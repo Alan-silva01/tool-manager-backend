@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,51 +8,12 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Package, Wrench, ShoppingCart, Plus, Minus, Search, CreditCard, Camera, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data baseado nas especificações
-const ferramentas = [
-  { id: 1, nome: "Furadeira", tag: "001", quantidade: 5 },
-  { id: 2, nome: "Parafusadeira", tag: "002", quantidade: 4 },
-  { id: 3, nome: "Chave de Impacto", tag: "003", quantidade: 3 },
-  { id: 4, nome: "Broca Aço Rápido Ø6mm", tag: "004", quantidade: 50 },
-  { id: 5, nome: "Broca Aço Rápido Ø10mm", tag: "005", quantidade: 50 },
-  { id: 6, nome: "Torquímetro", tag: "006", quantidade: 2 },
-  { id: 7, nome: "Chave Allen Conj.", tag: "007", quantidade: 6 },
-  { id: 8, nome: "Alicate Universal", tag: "008", quantidade: 10 },
-  { id: 9, nome: "Rebarbadora (esmerilhadeira)", tag: "009", quantidade: 2 },
-  { id: 10, nome: "Serra Manual", tag: "010", quantidade: 8 },
-];
-
-const materiais = [
-  { id: 11, nome: "Acetona", quantidade: 20, unidade: "litros", minimo: 5, tag: "MAT011" },
-  { id: 12, nome: "Pano de limpeza", quantidade: 200, unidade: "un", minimo: 50, tag: "MAT012" },
-  { id: 13, nome: "Desengripante", quantidade: 15, unidade: "latas", minimo: 5, tag: "MAT013" },
-  { id: 14, nome: "WD-40", quantidade: 10, unidade: "latas", minimo: 3, tag: "MAT014" },
-  { id: 15, nome: "Óleo de corte", quantidade: 25, unidade: "litros", minimo: 10, tag: "MAT015" },
-  { id: 16, nome: "Lixas", quantidade: 100, unidade: "un", minimo: 30, tag: "MAT016" },
-  { id: 17, nome: "Escova de aço", quantidade: 15, unidade: "un", minimo: 5, tag: "MAT017" },
-  { id: 18, nome: "Estopa", quantidade: 80, unidade: "kg", minimo: 20, tag: "MAT018" },
-  { id: 19, nome: "Solda TIG", quantidade: 40, unidade: "bastões", minimo: 10, tag: "MAT019" },
-  { id: 20, nome: "Cola Epóxi", quantidade: 20, unidade: "tubos", minimo: 5, tag: "MAT020" },
-];
-
-const funcionarios = {
-  "13812": { nome: "ANDRE FELIPE COSTA DA SILVA", setor: "Usinagem industrial" },
-  "7203": { nome: "ANGELO VALADARES DE CASTRO", setor: "Usinagem industrial" },
-  "8854": { nome: "ANTONIO UBIRAJARA SIQUEIRA MOREIRA", setor: "Usinagem industrial" },
-  "8734": { nome: "CARLOS EDUARDO DA SILVA CRAVEIRO", setor: "Usinagem de cilindros" },
-  "3954": { nome: "CARLOS EDUARDO OLIVEIRA SILVA", setor: "Usinagem industrial" },
-  "12920": { nome: "CLEDENILSON RIBEIRO DE OLIVEIRA", setor: "Usinagem industrial" },
-  "2355": { nome: "DENIS RIULY SANTOS SOUSA", setor: "Oficina de guias" },
-  "14108": { nome: "ELIZEU SILVA JACONE", setor: "Usinagem industrial" },
-  "13849": { nome: "GABRIEL PASSOS DA MOTA", setor: "Oficina de mancal" },
-  "8646": { nome: "GENILSON COSTA DE BRITO", setor: "Montagem de gaiola" },
-  "14611": { nome: "GERSON ARTHUR DE SOUSA SILVA", setor: "Oficina de guias" },
-  "7679": { nome: "JOTUANDERSON PEREIRA GOMES", setor: "Oficina cantilever" }
-};
+import { useFerramentas } from "@/hooks/useFerramentas";
+import { useMateriais } from "@/hooks/useMateriais";
+import { useFuncionarios } from "@/hooks/useFuncionarios";
 
 type CartItem = {
-  id: number;
+  id: string;
   nome: string;
   tag: string;
   quantidade: number;
@@ -61,6 +23,10 @@ type CartItem = {
 const PegarItem = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { ferramentas, loading: loadingFerramentas } = useFerramentas();
+  const { materiais, loading: loadingMateriais } = useMateriais();
+  const { buscarFuncionario, adicionarFerramentaAoFuncionario } = useFuncionarios();
+  
   const [step, setStep] = useState<'categoria' | 'lista' | 'carrinho' | 'funcionario' | 'confirmacao'>('categoria');
   const [categoria, setCategoria] = useState<'ferramentas' | 'materiais'>('ferramentas');
   const [carrinho, setCarrinho] = useState<CartItem[]>([]);
@@ -86,13 +52,10 @@ const PegarItem = () => {
           : c
       ));
     } else {
-      // Garantir que todos os itens tenham tag
-      const itemTag = item.tag || (categoria === 'materiais' ? `MAT${item.id.toString().padStart(3, '0')}` : `${item.id.toString().padStart(3, '0')}`);
-      
       setCarrinho([...carrinho, {
         id: item.id,
         nome: item.nome,
-        tag: itemTag,
+        tag: item.tag,
         quantidade: 1,
         tipo: categoria === 'ferramentas' ? 'ferramenta' : 'material'
       }]);
@@ -103,11 +66,11 @@ const PegarItem = () => {
     });
   };
 
-  const removeFromCart = (id: number) => {
+  const removeFromCart = (id: string) => {
     setCarrinho(carrinho.filter(item => item.id !== id));
   };
 
-  const updateCartQuantity = (id: number, delta: number) => {
+  const updateCartQuantity = (id: string, delta: number) => {
     setCarrinho(carrinho.map(item => 
       item.id === id 
         ? { ...item, quantidade: Math.max(1, item.quantidade + delta) }
@@ -116,7 +79,7 @@ const PegarItem = () => {
   };
 
   const handleMatriculaSubmit = () => {
-    const func = funcionarios[matricula as keyof typeof funcionarios];
+    const func = buscarFuncionario(matricula);
     if (func) {
       setFuncionario(func);
       setStep('confirmacao');
@@ -131,11 +94,11 @@ const PegarItem = () => {
 
   const handleNFCScan = () => {
     // Simular leitura de NFC - em produção seria integrado com API de NFC
-    const nfcIds = Object.keys(funcionarios);
-    const randomId = nfcIds[Math.floor(Math.random() * nfcIds.length)];
-    setMatricula(randomId);
+    const matriculas = ['13812', '7203', '8854']; // IDs de exemplo
+    const randomMatricula = matriculas[Math.floor(Math.random() * matriculas.length)];
+    setMatricula(randomMatricula);
     
-    const func = funcionarios[randomId as keyof typeof funcionarios];
+    const func = buscarFuncionario(randomMatricula);
     if (func) {
       setFuncionario(func);
       setStep('confirmacao');
@@ -147,16 +110,33 @@ const PegarItem = () => {
   };
 
   const getItensDisponiveis = () => {
-    const itens = categoria === 'ferramentas' ? ferramentas : materiais;
-    const filtro = categoria === 'ferramentas' ? filtroFerramentas : filtroMateriais;
-    
-    if (!filtro) return itens;
-    
-    return itens.filter(item => {
-      const nomeMatch = item.nome.toLowerCase().includes(filtro.toLowerCase());
-      const tagMatch = item.tag?.toLowerCase().includes(filtro.toLowerCase());
-      return nomeMatch || tagMatch;
-    });
+    if (categoria === 'ferramentas') {
+      const filtro = filtroFerramentas;
+      let itens = ferramentas;
+      
+      if (filtro) {
+        itens = ferramentas.filter(item => {
+          const nomeMatch = item.nome.toLowerCase().includes(filtro.toLowerCase());
+          const tagMatch = item.tag.toLowerCase().includes(filtro.toLowerCase());
+          return nomeMatch || tagMatch;
+        });
+      }
+      
+      return itens;
+    } else {
+      const filtro = filtroMateriais;
+      let itens = materiais;
+      
+      if (filtro) {
+        itens = materiais.filter(item => {
+          const nomeMatch = item.nome.toLowerCase().includes(filtro.toLowerCase());
+          const tagMatch = item.tag.toLowerCase().includes(filtro.toLowerCase());
+          return nomeMatch || tagMatch;
+        });
+      }
+      
+      return itens;
+    }
   };
 
   const handleTirarFoto = () => {
@@ -182,24 +162,37 @@ const PegarItem = () => {
     setConfirmando(true);
 
     try {
-      // Enviar dados para o webhook principal
+      // Adicionar ferramentas ao funcionário no banco de dados
+      if (categoria === 'ferramentas') {
+        for (const item of carrinho) {
+          const sucesso = await adicionarFerramentaAoFuncionario(matricula, item.tag);
+          if (!sucesso) {
+            toast({
+              title: "Erro ao registrar ferramenta",
+              description: `Erro ao registrar ${item.nome}`,
+              variant: "destructive",
+            });
+            setConfirmando(false);
+            return;
+          }
+        }
+      }
+
+      // Enviar dados para o webhook
       const formData = new FormData();
       
-      // Dados do funcionário
       formData.append('funcionario_matricula', matricula);
       formData.append('funcionario_nome', funcionario.nome);
       formData.append('funcionario_setor', funcionario.setor);
       
-      // Dados dos itens - garantindo formato consistente
       carrinho.forEach((item, index) => {
-        formData.append(`item_${index}_id`, item.id.toString());
+        formData.append(`item_${index}_id`, item.id);
         formData.append(`item_${index}_nome`, item.nome);
         formData.append(`item_${index}_tag`, item.tag);
         formData.append(`item_${index}_quantidade`, item.quantidade.toString());
         formData.append(`item_${index}_tipo`, item.tipo);
       });
       
-      // Dados de controle
       formData.append('data', new Date().toISOString());
       formData.append('timestamp', new Date().toISOString());
       formData.append('total_itens', carrinho.length.toString());
@@ -226,7 +219,6 @@ const PegarItem = () => {
         body: formData,
       });
 
-      // Enviar foto separadamente se existir
       if (foto) {
         const fotoFormData = new FormData();
         fotoFormData.append('funcionario_matricula', matricula);
@@ -247,7 +239,7 @@ const PegarItem = () => {
         description: `${carrinho.length} item(s) registrado(s) para ${funcionario.nome}`,
       });
     } catch (error) {
-      console.error('Erro ao enviar webhook:', error);
+      console.error('Erro ao processar retirada:', error);
       toast({
         title: "Itens retirados com sucesso!",
         description: `${carrinho.length} item(s) registrado(s) para ${funcionario.nome}`,
@@ -256,6 +248,18 @@ const PegarItem = () => {
     
     navigate('/');
   };
+
+  // Show loading state
+  if (loadingFerramentas || loadingMateriais) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -343,7 +347,6 @@ const PegarItem = () => {
               )}
             </div>
 
-            {/* Filtro */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -364,9 +367,9 @@ const PegarItem = () => {
                          TAG: {item.tag}
                        </Badge>
                        <p className="text-sm text-muted-foreground mt-1">
-                         Disponível: {item.quantidade} {(item as any).unidade || 'un'}
+                         Disponível: {item.quantidade} {categoria === 'materiais' ? (item as any).unidade || 'un' : 'un'}
                        </p>
-                       {categoria === 'materiais' && (item as any).minimo && item.quantidade <= (item as any).minimo && (
+                       {categoria === 'materiais' && (item as any).quantidade_minima && item.quantidade <= (item as any).quantidade_minima && (
                          <Badge variant="destructive" className="mt-1">
                            Estoque baixo!
                          </Badge>
@@ -444,7 +447,6 @@ const PegarItem = () => {
           </div>
         )}
 
-        {/* Funcionário */}
         {step === 'funcionario' && (
           <div className="space-y-4 mt-6">
             <Card>
@@ -506,7 +508,6 @@ const PegarItem = () => {
           </div>
         )}
 
-        {/* Confirmação */}
         {step === 'confirmacao' && funcionario && (
           <div className="space-y-4 mt-6">
             <Card>
