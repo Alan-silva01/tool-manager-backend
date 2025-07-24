@@ -17,9 +17,12 @@ export const useFerramentas = () => {
   useEffect(() => {
     const fetchFerramentas = async () => {
       try {
+        console.log('Buscando ferramentas...');
         const { data, error } = await supabase
           .from('ferramentas')
           .select('id, nome, tag, quantidade, categoria');
+
+        console.log('Resposta do Supabase:', { data, error });
 
         if (error) {
           console.error('Erro ao buscar ferramentas:', error);
@@ -27,6 +30,7 @@ export const useFerramentas = () => {
         }
 
         if (data) {
+          console.log('Dados brutos:', data);
           const ferramentasFormatadas = data.map(ferramenta => ({
             id: ferramenta.id,
             nome: ferramenta.nome || '',
@@ -35,6 +39,7 @@ export const useFerramentas = () => {
             categoria: ferramenta.categoria || ''
           }));
 
+          console.log('Ferramentas formatadas:', ferramentasFormatadas);
           setFerramentas(ferramentasFormatadas);
         }
       } catch (error) {
@@ -46,6 +51,8 @@ export const useFerramentas = () => {
 
     fetchFerramentas();
   }, []);
+
+  console.log('Estado atual - ferramentas:', ferramentas, 'loading:', loading);
 
   return {
     ferramentas,
