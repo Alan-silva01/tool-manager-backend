@@ -7,7 +7,6 @@ type Ferramenta = {
   nome: string;
   tag: string;
   quantidade: number;
-  saiu: number;
   categoria: string;
 };
 
@@ -20,7 +19,7 @@ export const useFerramentas = () => {
       try {
         const { data, error } = await supabase
           .from('ferramentas')
-          .select('id, nome, tag, quantidade, saiu, categoria');
+          .select('id, nome, tag, quantidade, categoria');
 
         if (error) {
           console.error('Erro ao buscar ferramentas:', error);
@@ -33,7 +32,6 @@ export const useFerramentas = () => {
             nome: ferramenta.nome || '',
             tag: ferramenta.tag || '',
             quantidade: Number(ferramenta.quantidade) || 0,
-            saiu: Number(ferramenta.saiu) || 0,
             categoria: ferramenta.categoria || ''
           }));
 
