@@ -18,6 +18,18 @@ export const useFerramentas = () => {
     const fetchFerramentas = async () => {
       try {
         console.log('Buscando ferramentas...');
+        
+        // Primeiro, vamos verificar se há dados na tabela
+        const { count, error: countError } = await supabase
+          .from('ferramentas')
+          .select('*', { count: 'exact', head: true });
+        
+        console.log('Total de ferramentas na tabela:', count);
+        
+        if (countError) {
+          console.error('Erro ao contar ferramentas:', countError);
+        }
+
         const { data, error } = await supabase
           .from('ferramentas')
           .select('id, nome, tag, quantidade, categoria');
@@ -31,6 +43,8 @@ export const useFerramentas = () => {
 
         if (data) {
           console.log('Dados brutos:', data);
+          console.log('Quantidade de ferramentas encontradas:', data.length);
+          
           const ferramentasFormatadas = data.map(ferramenta => ({
             id: ferramenta.id,
             nome: ferramenta.nome || '',

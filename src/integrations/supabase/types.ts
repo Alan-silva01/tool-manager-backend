@@ -20,6 +20,7 @@ export type Database = {
           id: string
           nome: string | null
           quantidade: number | null
+          saiu: number | null
           tag: string | null
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           id?: string
           nome?: string | null
           quantidade?: number | null
+          saiu?: number | null
           tag?: string | null
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           id?: string
           nome?: string | null
           quantidade?: number | null
+          saiu?: number | null
           tag?: string | null
         }
         Relationships: []
