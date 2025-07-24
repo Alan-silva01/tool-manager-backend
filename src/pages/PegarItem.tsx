@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +47,7 @@ const funcionarios = {
   "13849": { nome: "GABRIEL PASSOS DA MOTA", setor: "Oficina de mancal" },
   "8646": { nome: "GENILSON COSTA DE BRITO", setor: "Montagem de gaiola" },
   "14611": { nome: "GERSON ARTHUR DE SOUSA SILVA", setor: "Oficina de guias" },
+  "7679": { nome: "JOTUANDERSON PEREIRA GOMES", setor: "Oficina cantilever" }
 };
 
 type CartItem = {

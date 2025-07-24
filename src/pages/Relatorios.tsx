@@ -66,6 +66,11 @@ const funcionarios = {
         devolvido: false
       }
     ]
+  },
+  "7679": { 
+    nome: "JOTUANDERSON PEREIRA GOMES", 
+    setor: "Oficina cantilever",
+    historico: []
   }
 };
 

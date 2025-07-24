@@ -33,6 +33,11 @@ const funcionarios = {
       { id: 8, nome: "Alicate Universal", tag: "008", dataRetirada: "2024-01-12" },
     ]
   },
+  "7679": { 
+    nome: "JOTUANDERSON PEREIRA GOMES", 
+    setor: "Oficina cantilever",
+    ferramentas: []
+  }
 };
 
 const DevolverItem = () => {
