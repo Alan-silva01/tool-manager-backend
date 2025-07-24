@@ -21,9 +21,24 @@ export const useMateriais = () => {
   useEffect(() => {
     const fetchMateriais = async () => {
       try {
+        console.log('Buscando materiais...');
+        
+        // Primeiro, vamos verificar se há dados na tabela
+        const { count, error: countError } = await supabase
+          .from('materiais')
+          .select('*', { count: 'exact', head: true });
+        
+        console.log('Total de materiais na tabela:', count);
+        
+        if (countError) {
+          console.error('Erro ao contar materiais:', countError);
+        }
+
         const { data, error } = await supabase
           .from('materiais')
           .select('*');
+
+        console.log('Resposta do Supabase:', { data, error });
 
         if (error) {
           console.error('Erro ao buscar materiais:', error);
@@ -31,18 +46,30 @@ export const useMateriais = () => {
         }
 
         if (data) {
-          const materiaisFormatados = data.map(material => ({
-            id: material.id,
-            nome: material.nome || '',
-            tag: material.tag?.toString() || '',
-            quantidade: Number(material.entrada) || 0,
-            quantidade_minima: Number(material.quantidade_minima) || 0,
-            entrada: Number(material.entrada) || 0,
-            saida: Number(material.saida) || 0,
-            data_entrada_estoque: material.data_entrada_estoque || '',
-            unidade: 'un' // Valor padrão, pode ser ajustado conforme necessário
-          }));
+          console.log('Dados brutos:', data);
+          console.log('Quantidade de materiais encontrados:', data.length);
+          
+          const materiaisFormatados = data.map(material => {
+            const quantidadeEntrada = Number(material.entrada) || 0;
+            const quantidadeSaida = Number(material.saida) || 0;
+            const quantidadeDisponivel = quantidadeEntrada - quantidadeSaida;
+            
+            console.log(`${material.nome}: entrada=${quantidadeEntrada}, saida=${quantidadeSaida}, disponível=${quantidadeDisponivel}`);
+            
+            return {
+              id: material.id,
+              nome: material.nome || '',
+              tag: material.tag?.toString() || '',
+              quantidade: quantidadeDisponivel,
+              quantidade_minima: Number(material.quantidade_minima) || 0,
+              entrada: quantidadeEntrada,
+              saida: quantidadeSaida,
+              data_entrada_estoque: material.data_entrada_estoque || '',
+              unidade: 'un' // Valor padrão, pode ser ajustado conforme necessário
+            };
+          });
 
+          console.log('Materiais formatados:', materiaisFormatados);
           setMateriais(materiaisFormatados);
         }
       } catch (error) {
@@ -54,6 +81,8 @@ export const useMateriais = () => {
 
     fetchMateriais();
   }, []);
+
+  console.log('Estado atual - materiais:', materiais, 'loading:', loading);
 
   return {
     materiais,
