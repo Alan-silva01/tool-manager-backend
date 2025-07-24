@@ -32,7 +32,7 @@ export const useFerramentas = () => {
 
         const { data, error } = await supabase
           .from('ferramentas')
-          .select('id, nome, tag, quantidade, categoria');
+          .select('id, nome, tag, quantidade, saiu, categoria');
 
         console.log('Resposta do Supabase:', { data, error });
 
@@ -45,13 +45,21 @@ export const useFerramentas = () => {
           console.log('Dados brutos:', data);
           console.log('Quantidade de ferramentas encontradas:', data.length);
           
-          const ferramentasFormatadas = data.map(ferramenta => ({
-            id: ferramenta.id,
-            nome: ferramenta.nome || '',
-            tag: ferramenta.tag || '',
-            quantidade: Number(ferramenta.quantidade) || 0,
-            categoria: ferramenta.categoria || ''
-          }));
+          const ferramentasFormatadas = data.map(ferramenta => {
+            const quantidadeTotal = Number(ferramenta.quantidade) || 0;
+            const quantidadeSaiu = Number(ferramenta.saiu) || 0;
+            const quantidadeDisponivel = quantidadeTotal - quantidadeSaiu;
+            
+            console.log(`${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}`);
+            
+            return {
+              id: ferramenta.id,
+              nome: ferramenta.nome || '',
+              tag: ferramenta.tag || '',
+              quantidade: quantidadeDisponivel,
+              categoria: ferramenta.categoria || ''
+            };
+          });
 
           console.log('Ferramentas formatadas:', ferramentasFormatadas);
           setFerramentas(ferramentasFormatadas);
