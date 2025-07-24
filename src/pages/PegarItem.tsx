@@ -364,9 +364,9 @@ const PegarItem = () => {
                          TAG: {item.tag}
                        </Badge>
                        <p className="text-sm text-muted-foreground mt-1">
-                         Disponível: {item.quantidade} {'unidade' in item ? item.unidade : 'un'}
+                         Disponível: {item.quantidade} {(item as any).unidade || 'un'}
                        </p>
-                       {'minimo' in item && item.quantidade <= item.minimo && (
+                       {categoria === 'materiais' && (item as any).minimo && item.quantidade <= (item as any).minimo && (
                          <Badge variant="destructive" className="mt-1">
                            Estoque baixo!
                          </Badge>
