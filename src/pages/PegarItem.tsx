@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +24,7 @@ const PegarItem = () => {
   const { toast } = useToast();
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais } = useMateriais();
-  const { buscarFuncionario, adicionarFerramentaAoFuncionario } = useFuncionarios();
+  const { buscarFuncionario, adicionarFerramentaAoFuncionario, funcionarios, loading: loadingFuncionarios } = useFuncionarios();
   
   const [step, setStep] = useState<'categoria' | 'lista' | 'carrinho' | 'funcionario' | 'confirmacao'>('categoria');
   const [categoria, setCategoria] = useState<'ferramentas' | 'materiais'>('ferramentas');
@@ -79,23 +78,56 @@ const PegarItem = () => {
   };
 
   const handleMatriculaSubmit = () => {
-    const func = buscarFuncionario(matricula);
+    console.log('Tentando buscar funcionário com matrícula:', matricula);
+    console.log('Funcionários disponíveis:', Object.keys(funcionarios));
+    
+    if (!matricula.trim()) {
+      toast({
+        title: "Matrícula inválida",
+        description: "Por favor, digite uma matrícula válida",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const func = buscarFuncionario(matricula.trim());
+    console.log('Resultado da busca:', func);
+    
     if (func) {
       setFuncionario(func);
       setStep('confirmacao');
+      toast({
+        title: "Funcionário encontrado!",
+        description: `${func.nome} - ${func.setor}`,
+      });
     } else {
       toast({
         title: "Matrícula não encontrada",
-        description: "Verifique a matrícula digitada",
+        description: `Funcionário com matrícula ${matricula} não foi encontrado`,
         variant: "destructive",
       });
     }
   };
 
   const handleNFCScan = () => {
-    // Simular leitura de NFC - em produção seria integrado com API de NFC
-    const matriculas = ['13812', '7203', '8854']; // IDs de exemplo
-    const randomMatricula = matriculas[Math.floor(Math.random() * matriculas.length)];
+    console.log('Simulando leitura NFC...');
+    
+    // Pegar uma matrícula aleatória dos funcionários disponíveis
+    const matriculasDisponiveis = Object.keys(funcionarios);
+    console.log('Matrículas disponíveis para NFC:', matriculasDisponiveis);
+    
+    if (matriculasDisponiveis.length === 0) {
+      toast({
+        title: "Nenhum funcionário encontrado",
+        description: "Não há funcionários cadastrados no sistema",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const randomMatricula = matriculasDisponiveis[Math.floor(Math.random() * matriculasDisponiveis.length)];
+    console.log('Matrícula selecionada por NFC:', randomMatricula);
+    
     setMatricula(randomMatricula);
     
     const func = buscarFuncionario(randomMatricula);
@@ -104,7 +136,13 @@ const PegarItem = () => {
       setStep('confirmacao');
       toast({
         title: "Crachá lido com sucesso!",
-        description: `Funcionário: ${func.nome}`,
+        description: `Funcionário: ${func.nome} - ${func.setor}`,
+      });
+    } else {
+      toast({
+        title: "Erro na leitura NFC",
+        description: "Não foi possível identificar o funcionário",
+        variant: "destructive",
       });
     }
   };
@@ -250,7 +288,7 @@ const PegarItem = () => {
   };
 
   // Show loading state
-  if (loadingFerramentas || loadingMateriais) {
+  if (loadingFerramentas || loadingMateriais || loadingFuncionarios) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
