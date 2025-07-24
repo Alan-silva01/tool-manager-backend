@@ -33,7 +33,7 @@ export const useFuncionarios = () => {
               nome: func.nome,
               matricula: func.matricula,
               setor: func.setor,
-              posse_ferramentas: func.posse_ferramentas || []
+              posse_ferramentas: Array.isArray(func.posse_ferramentas) ? func.posse_ferramentas : []
             };
             return acc;
           }, {} as Record<string, Funcionario>);
