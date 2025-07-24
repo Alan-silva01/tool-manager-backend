@@ -20,7 +20,7 @@ export const useFerramentas = () => {
       try {
         const { data, error } = await supabase
           .from('ferramentas')
-          .select('*');
+          .select('id, nome, tag, quantidade, saiu, categoria');
 
         if (error) {
           console.error('Erro ao buscar ferramentas:', error);
