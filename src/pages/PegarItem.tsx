@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,7 +71,7 @@ const PegarItem = () => {
       setCarrinho([...carrinho, {
         id: item.id,
         nome: item.nome,
-        tag: item.tag,
+        tag: String(item.tag), // Convert tag to string for consistency
         quantidade: 1,
         tipo: categoria === 'ferramentas' ? 'ferramenta' : 'material'
       }]);
@@ -190,7 +191,7 @@ const PegarItem = () => {
       if (filtro) {
         itens = ferramentas.filter(item => {
           const nomeMatch = item.nome.toLowerCase().includes(filtro.toLowerCase());
-          const tagMatch = item.tag.toLowerCase().includes(filtro.toLowerCase());
+          const tagMatch = String(item.tag).toLowerCase().includes(filtro.toLowerCase());
           return nomeMatch || tagMatch;
         });
       }
@@ -203,7 +204,7 @@ const PegarItem = () => {
       if (filtro) {
         itens = materiais.filter(item => {
           const nomeMatch = item.nome.toLowerCase().includes(filtro.toLowerCase());
-          const tagMatch = item.tag.toLowerCase().includes(filtro.toLowerCase());
+          const tagMatch = String(item.tag).toLowerCase().includes(filtro.toLowerCase());
           return nomeMatch || tagMatch;
         });
       }
