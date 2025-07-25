@@ -160,16 +160,12 @@ const Admin = () => {
 
     try {
       const webhookData = {
-        funcionario: {
-          nome: funcionario.nome,
-          matricula: funcionario.matricula,
-          setor: funcionario.setor,
-          numero_whatsapp: funcionario.numero_whatsapp
-        },
-        ferramenta: {
-          nome: ferramenta.nome,
-          tag: ferramenta.tag
-        }
+        nome: funcionario.nome,
+        setor: funcionario.setor,
+        matricula: funcionario.matricula,
+        nome_ferramenta: ferramenta.nome,
+        tag_ferramenta: ferramenta.tag,
+        numero_whatsapp: funcionario.numero_whatsapp
       };
 
       console.log('Enviando notificação:', webhookData);
