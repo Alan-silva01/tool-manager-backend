@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Shield, 
   Users, 
@@ -19,12 +21,16 @@ import {
   Eye,
   LogOut,
   Bell,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  Wrench,
+  Box
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
+import { useMateriais } from "@/hooks/useMateriais";
 import { supabase } from "@/integrations/supabase/client";
 
 // Mock data para estoque e PDFs - mantém os dados existentes
@@ -35,38 +41,39 @@ const estoqueAlerta = [
   { id: 4, nome: "Óleo de corte", atual: 8, minimo: 10, unidade: "litros", categoria: "Material" },
 ];
 
-const historicoPDFs = [
-  {
-    id: 1,
-    nomeArquivo: "compra_materiais_2024_01.pdf",
-    dataUpload: "2024-01-22",
-    usuario: "Admin",
-    itensProcessados: 15,
-    status: "processado"
-  },
-  {
-    id: 2,
-    nomeArquivo: "compra_ferramentas_2024_01.pdf",
-    dataUpload: "2024-01-20",
-    usuario: "Admin",
-    itensProcessados: 8,
-    status: "processado"
-  }
-];
-
 const Admin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [funcionariosComFerramentas, setFuncionariosComFerramentas] = useState<any[]>([]);
   const [isNotifying, setIsNotifying] = useState<string | null>(null);
+  const [isAddingFerramenta, setIsAddingFerramenta] = useState(false);
+  const [isAddingMaterial, setIsAddingMaterial] = useState(false);
+  const [searchEstoque, setSearchEstoque] = useState("");
+
+  // Estados para novos itens
+  const [novaFerramenta, setNovaFerramenta] = useState({
+    nome: "",
+    categoria: "",
+    tag: "",
+    quantidade: 0,
+    caracteristicas: {}
+  });
+
+  const [novoMaterial, setNovoMaterial] = useState({
+    nome: "",
+    tag: "",
+    entrada: 0,
+    quantidade_minima: 0,
+    unidade: "un"
+  });
 
   const { funcionarios, loading: loadingFuncionarios } = useFuncionarios();
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
+  const { materiais, loading: loadingMateriais } = useMateriais();
 
   // Função para buscar funcionários com ferramentas
   const fetchFuncionariosComFerramentas = async () => {
@@ -88,14 +95,12 @@ const Admin = () => {
         
         const funcionariosFormatados = data
           .filter(func => {
-            // Verifica se posse_ferramentas é um array válido
             const posseFerramenta = Array.isArray(func.posse_ferramentas) 
               ? func.posse_ferramentas 
               : [];
             return posseFerramenta.length > 0;
           })
           .map(func => {
-            // Converte posse_ferramentas para array se necessário
             const posseFerramenta = Array.isArray(func.posse_ferramentas) 
               ? func.posse_ferramentas as string[]
               : [];
@@ -126,14 +131,12 @@ const Admin = () => {
     }
   };
 
-  // Carregar dados quando componente montar e quando ferramentas carregarem
   useEffect(() => {
     if (!loadingFerramentas && ferramentas.length > 0) {
       fetchFuncionariosComFerramentas();
     }
   }, [loadingFerramentas, ferramentas]);
 
-  // Função para atualizar dados
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchFuncionariosComFerramentas();
@@ -144,7 +147,6 @@ const Admin = () => {
     });
   };
 
-  // Função para notificar funcionário
   const notificarFuncionario = async (funcionario: any, ferramenta: any) => {
     if (!funcionario.numero_whatsapp) {
       toast({
@@ -220,21 +222,126 @@ const Admin = () => {
     navigate("/");
   };
 
-  const handleFileUpload = () => {
-    if (!selectedFile) {
+  // Função para adicionar nova ferramenta
+  const handleAddFerramenta = async () => {
+    if (!novaFerramenta.nome || !novaFerramenta.categoria || !novaFerramenta.tag) {
       toast({
-        title: "Nenhum arquivo selecionado",
-        description: "Selecione um PDF para fazer upload",
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
         variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: "PDF processado com sucesso",
-      description: `${selectedFile.name} foi processado e o estoque atualizado`,
-    });
-    setSelectedFile(null);
+    setIsAddingFerramenta(true);
+    try {
+      const { error } = await supabase
+        .from('ferramentas')
+        .insert([{
+          nome: novaFerramenta.nome,
+          categoria: novaFerramenta.categoria,
+          tag: novaFerramenta.tag,
+          quantidade: novaFerramenta.quantidade,
+          saiu: 0,
+          status: 'disponível',
+          caracteristicas: novaFerramenta.caracteristicas
+        }]);
+
+      if (error) {
+        console.error('Erro ao adicionar ferramenta:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível adicionar a ferramenta",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Ferramenta adicionada",
+        description: `${novaFerramenta.nome} foi adicionada ao estoque`,
+      });
+
+      setNovaFerramenta({
+        nome: "",
+        categoria: "",
+        tag: "",
+        quantidade: 0,
+        caracteristicas: {}
+      });
+
+      handleRefresh();
+    } catch (error) {
+      console.error('Erro ao adicionar ferramenta:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao adicionar ferramenta",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingFerramenta(false);
+    }
+  };
+
+  // Função para adicionar novo material
+  const handleAddMaterial = async () => {
+    if (!novoMaterial.nome || !novoMaterial.tag) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAddingMaterial(true);
+    try {
+      const { error } = await supabase
+        .from('materiais')
+        .insert([{
+          nome: novoMaterial.nome,
+          tag: novoMaterial.tag,
+          entrada: novoMaterial.entrada,
+          saida: 0,
+          quantidade_minima: novoMaterial.quantidade_minima,
+          unidade: novoMaterial.unidade,
+          data_entrada_estoque: new Date().toISOString().split('T')[0]
+        }]);
+
+      if (error) {
+        console.error('Erro ao adicionar material:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível adicionar o material",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Material adicionado",
+        description: `${novoMaterial.nome} foi adicionado ao estoque`,
+      });
+
+      setNovoMaterial({
+        nome: "",
+        tag: "",
+        entrada: 0,
+        quantidade_minima: 0,
+        unidade: "un"
+      });
+
+      handleRefresh();
+    } catch (error) {
+      console.error('Erro ao adicionar material:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao adicionar material",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingMaterial(false);
+    }
   };
 
   // Filtrar funcionários com ferramentas
@@ -244,6 +351,14 @@ const Admin = () => {
       funcionario.matricula.includes(searchTerm) ||
       funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase()) ||
       funcionario.ferramentas.some((f: any) => f.nome.toLowerCase().includes(searchTerm.toLowerCase()) || f.tag.includes(searchTerm))
+  );
+
+  // Filtrar materiais para controle de estoque
+  const filteredMateriais = materiais.filter(
+    material => 
+      material.nome.toLowerCase().includes(searchEstoque.toLowerCase()) ||
+      String(material.tag).includes(searchEstoque) ||
+      material.unidade.toLowerCase().includes(searchEstoque.toLowerCase())
   );
 
   // Calcular estatísticas
@@ -400,8 +515,8 @@ const Admin = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">PDFs Processados</p>
-                  <p className="text-2xl font-bold">{historicoPDFs.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Materiais</p>
+                  <p className="text-2xl font-bold">{materiais.length}</p>
                 </div>
                 <FileText className="w-8 h-8 text-primary" />
               </div>
@@ -414,7 +529,7 @@ const Admin = () => {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
             <TabsTrigger value="estoque">Estoque</TabsTrigger>
-            <TabsTrigger value="upload">Upload PDF</TabsTrigger>
+            <TabsTrigger value="controle">Controle de Estoque</TabsTrigger>
           </TabsList>
 
           {/* Aba Empréstimos */}
@@ -494,120 +609,197 @@ const Admin = () => {
 
           {/* Aba Estoque */}
           <TabsContent value="estoque" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="w-5 h-5" />
-                  Alertas de Estoque Baixo
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {estoqueAlerta.map((item) => (
-                    <Card key={item.id} className="border-accent/50">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h3 className="font-semibold">{item.nome}</h3>
-                            <Badge variant="outline">{item.categoria}</Badge>
-                            <div className="mt-2 space-y-1">
-                              <p className="text-sm text-muted-foreground">
-                                Estoque atual: <span className="font-medium">{item.atual} {item.unidade}</span>
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Mínimo: <span className="font-medium">{item.minimo} {item.unidade}</span>
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge variant="destructive" className="mb-2">
-                              Crítico
-                            </Badge>
-                            <div>
-                              <Button size="sm">
-                                Solicitar Compra
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Aba Upload PDF */}
-          <TabsContent value="upload" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Estoque de Materiais */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Upload className="w-5 h-5" />
-                    Upload de PDF de Compras
+                    <Box className="w-5 h-5" />
+                    Estoque de Materiais
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="pdf-upload">Selecionar arquivo PDF</Label>
-                    <Input
-                      id="pdf-upload"
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      className="mt-1"
-                    />
-                  </div>
-                  {selectedFile && (
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm font-medium">Arquivo selecionado:</p>
-                      <p className="text-sm text-muted-foreground">{selectedFile.name}</p>
-                    </div>
-                  )}
-                  <Button 
-                    className="w-full" 
-                    onClick={handleFileUpload}
-                    disabled={!selectedFile}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Processar PDF
-                  </Button>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p>• O PDF será analisado automaticamente</p>
-                    <p>• Itens identificados serão adicionados ao estoque</p>
-                    <p>• Um relatório será gerado após o processamento</p>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Material
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Adicionar Novo Material</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="material-nome">Nome do Material</Label>
+                          <Input
+                            id="material-nome"
+                            value={novoMaterial.nome}
+                            onChange={(e) => setNovoMaterial({...novoMaterial, nome: e.target.value})}
+                            placeholder="Ex: Parafuso M8"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="material-tag">Tag</Label>
+                          <Input
+                            id="material-tag"
+                            value={novoMaterial.tag}
+                            onChange={(e) => setNovoMaterial({...novoMaterial, tag: e.target.value})}
+                            placeholder="Ex: PAR001"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="material-entrada">Quantidade Entrada</Label>
+                          <Input
+                            id="material-entrada"
+                            type="number"
+                            value={novoMaterial.entrada}
+                            onChange={(e) => setNovoMaterial({...novoMaterial, entrada: Number(e.target.value)})}
+                            placeholder="100"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="material-minima">Quantidade Mínima</Label>
+                          <Input
+                            id="material-minima"
+                            type="number"
+                            value={novoMaterial.quantidade_minima}
+                            onChange={(e) => setNovoMaterial({...novoMaterial, quantidade_minima: Number(e.target.value)})}
+                            placeholder="10"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="material-unidade">Unidade</Label>
+                          <Select value={novoMaterial.unidade} onValueChange={(value) => setNovoMaterial({...novoMaterial, unidade: value})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a unidade" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="un">Unidade</SelectItem>
+                              <SelectItem value="kg">Quilograma</SelectItem>
+                              <SelectItem value="g">Grama</SelectItem>
+                              <SelectItem value="l">Litro</SelectItem>
+                              <SelectItem value="ml">Mililitro</SelectItem>
+                              <SelectItem value="m">Metro</SelectItem>
+                              <SelectItem value="cm">Centímetro</SelectItem>
+                              <SelectItem value="mm">Milímetro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button 
+                          className="w-full" 
+                          onClick={handleAddMaterial}
+                          disabled={isAddingMaterial}
+                        >
+                          {isAddingMaterial ? 'Adicionando...' : 'Adicionar Material'}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <div className="space-y-3">
+                    {estoqueAlerta.filter(item => item.categoria === "Material").map((item) => (
+                      <div key={item.id} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-sm">{item.nome}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Atual: {item.atual} {item.unidade} | Mínimo: {item.minimo} {item.unidade}
+                            </p>
+                          </div>
+                          <Badge variant={item.atual < item.minimo ? "destructive" : "secondary"}>
+                            {item.atual < item.minimo ? "Baixo" : "OK"}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Estoque de Ferramentas */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Histórico de Uploads
+                    <Wrench className="w-5 h-5" />
+                    Estoque de Ferramentas
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Ferramenta
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Adicionar Nova Ferramenta</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="ferramenta-nome">Nome da Ferramenta</Label>
+                          <Input
+                            id="ferramenta-nome"
+                            value={novaFerramenta.nome}
+                            onChange={(e) => setNovaFerramenta({...novaFerramenta, nome: e.target.value})}
+                            placeholder="Ex: Chave de Fenda"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="ferramenta-categoria">Categoria</Label>
+                          <Input
+                            id="ferramenta-categoria"
+                            value={novaFerramenta.categoria}
+                            onChange={(e) => setNovaFerramenta({...novaFerramenta, categoria: e.target.value})}
+                            placeholder="Ex: Chaves"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="ferramenta-tag">Tag</Label>
+                          <Input
+                            id="ferramenta-tag"
+                            value={novaFerramenta.tag}
+                            onChange={(e) => setNovaFerramenta({...novaFerramenta, tag: e.target.value})}
+                            placeholder="Ex: CHV001"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="ferramenta-quantidade">Quantidade</Label>
+                          <Input
+                            id="ferramenta-quantidade"
+                            type="number"
+                            value={novaFerramenta.quantidade}
+                            onChange={(e) => setNovaFerramenta({...novaFerramenta, quantidade: Number(e.target.value)})}
+                            placeholder="5"
+                          />
+                        </div>
+                        <Button 
+                          className="w-full" 
+                          onClick={handleAddFerramenta}
+                          disabled={isAddingFerramenta}
+                        >
+                          {isAddingFerramenta ? 'Adicionando...' : 'Adicionar Ferramenta'}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  
                   <div className="space-y-3">
-                    {historicoPDFs.map((pdf) => (
-                      <div key={pdf.id} className="border rounded-lg p-3">
-                        <div className="flex justify-between items-start">
+                    {estoqueAlerta.filter(item => item.categoria === "Ferramenta").map((item) => (
+                      <div key={item.id} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-sm">{pdf.nomeArquivo}</p>
+                            <p className="font-medium text-sm">{item.nome}</p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(pdf.dataUpload).toLocaleDateString('pt-BR')} por {pdf.usuario}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {pdf.itensProcessados} itens processados
+                              Atual: {item.atual} {item.unidade} | Mínimo: {item.minimo} {item.unidade}
                             </p>
                           </div>
-                          <div className="flex gap-1">
-                            <Badge variant="secondary">{pdf.status}</Badge>
-                            <Button size="sm" variant="ghost">
-                              <Download className="w-3 h-3" />
-                            </Button>
-                          </div>
+                          <Badge variant={item.atual < item.minimo ? "destructive" : "secondary"}>
+                            {item.atual < item.minimo ? "Baixo" : "OK"}
+                          </Badge>
                         </div>
                       </div>
                     ))}
@@ -615,6 +807,76 @@ const Admin = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Aba Controle de Estoque */}
+          <TabsContent value="controle" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Controle Geral de Estoque
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4" />
+                  <Input
+                    placeholder="Buscar por nome, tag ou unidade..."
+                    value={searchEstoque}
+                    onChange={(e) => setSearchEstoque(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingMateriais ? (
+                  <div className="flex items-center justify-center p-8">
+                    <RefreshCw className="w-8 h-8 animate-spin" />
+                    <span className="ml-2">Carregando materiais...</span>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Tag</TableHead>
+                          <TableHead>Quantidade Disponível</TableHead>
+                          <TableHead>Quantidade Mínima</TableHead>
+                          <TableHead>Unidade</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredMateriais.map((material) => (
+                          <TableRow key={material.id}>
+                            <TableCell className="font-medium">{material.nome}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{material.tag}</Badge>
+                            </TableCell>
+                            <TableCell>{material.quantidade}</TableCell>
+                            <TableCell>{material.quantidade_minima}</TableCell>
+                            <TableCell>{material.unidade}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={material.quantidade <= material.quantidade_minima ? "destructive" : "secondary"}
+                              >
+                                {material.quantidade <= material.quantidade_minima ? "Estoque Baixo" : "OK"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {filteredMateriais.length === 0 && (
+                      <div className="text-center py-8">
+                        <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">Nenhum material encontrado</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
