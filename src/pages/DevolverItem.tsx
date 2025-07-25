@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,60 +9,62 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Package, CheckCircle, CreditCard, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
-const funcionarios = {
-  "13812": { 
-    nome: "ANDRE FELIPE COSTA DA SILVA", 
-    setor: "Usinagem industrial",
-    ferramentas: [
-      { id: 1, nome: "Furadeira", tag: "001", dataRetirada: "2024-01-15" },
-      { id: 6, nome: "Torquímetro", tag: "006", dataRetirada: "2024-01-14" },
-    ]
-  },
-  "7203": { 
-    nome: "ANGELO VALADARES DE CASTRO", 
-    setor: "Usinagem industrial",
-    ferramentas: [
-      { id: 2, nome: "Parafusadeira", tag: "002", dataRetirada: "2024-01-16" },
-    ]
-  },
-  "8854": { 
-    nome: "ANTONIO UBIRAJARA SIQUEIRA MOREIRA", 
-    setor: "Usinagem industrial",
-    ferramentas: [
-      { id: 3, nome: "Chave de Impacto", tag: "003", dataRetirada: "2024-01-10" },
-      { id: 8, nome: "Alicate Universal", tag: "008", dataRetirada: "2024-01-12" },
-    ]
-  },
-  "7679": { 
-    nome: "JOTUANDERSON PEREIRA GOMES", 
-    setor: "Oficina cantilever",
-    ferramentas: []
-  }
-};
+import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { useFerramentas } from "@/hooks/useFerramentas";
 
 const DevolverItem = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { buscarFuncionario } = useFuncionarios();
+  const { ferramentas } = useFerramentas();
+  
   const [step, setStep] = useState<'matricula' | 'ferramentas' | 'confirmacao'>('matricula');
   const [matricula, setMatricula] = useState('');
   const [funcionario, setFuncionario] = useState<any>(null);
-  const [selectedFerramentas, setSelectedFerramentas] = useState<number[]>([]);
+  const [funcionarioFerramentas, setFuncionarioFerramentas] = useState<any[]>([]);
+  const [selectedFerramentas, setSelectedFerramentas] = useState<string[]>([]);
   const [tipoIdentificacao, setTipoIdentificacao] = useState<'matricula' | 'nfc'>('matricula');
   const [foto, setFoto] = useState<File | null>(null);
   const [confirmando, setConfirmando] = useState(false);
 
   const handleMatriculaSubmit = () => {
-    const func = funcionarios[matricula as keyof typeof funcionarios];
+    console.log('Buscando funcionário com matrícula:', matricula);
+    const func = buscarFuncionario(matricula);
+    
     if (func) {
-      if (func.ferramentas.length === 0) {
+      console.log('Funcionário encontrado:', func);
+      console.log('Ferramentas em posse:', func.posse_ferramentas);
+      
+      // Buscar as ferramentas do funcionário pelas tags
+      const ferramentasDoFuncionario = [];
+      
+      if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
+        func.posse_ferramentas.forEach((tag: string) => {
+          const ferramenta = ferramentas.find(f => f.tag === tag);
+          if (ferramenta) {
+            ferramentasDoFuncionario.push({
+              id: ferramenta.id,
+              nome: ferramenta.nome,
+              tag: ferramenta.tag,
+              categoria: ferramenta.categoria,
+              dataRetirada: new Date().toISOString() // Placeholder - em produção viria do histórico
+            });
+          }
+        });
+      }
+      
+      console.log('Ferramentas encontradas para o funcionário:', ferramentasDoFuncionario);
+      
+      if (ferramentasDoFuncionario.length === 0) {
         toast({
           title: "Nenhuma ferramenta em posse",
           description: "Este funcionário não possui ferramentas para devolver",
         });
         return;
       }
+      
       setFuncionario(func);
+      setFuncionarioFerramentas(ferramentasDoFuncionario);
       setStep('ferramentas');
     } else {
       toast({
@@ -74,33 +77,61 @@ const DevolverItem = () => {
 
   const handleNFCScan = () => {
     // Simular leitura de NFC - em produção seria integrado com API de NFC
-    const nfcIds = ['13812', '7203', '8854'];
-    const randomId = nfcIds[Math.floor(Math.random() * nfcIds.length)];
-    setMatricula(randomId);
+    const nfcMatriculas = ['13812', '7203', '8854', '7679'];
+    const randomMatricula = nfcMatriculas[Math.floor(Math.random() * nfcMatriculas.length)];
+    setMatricula(randomMatricula);
     
-    const func = funcionarios[randomId as keyof typeof funcionarios];
+    console.log('Simulando NFC para matrícula:', randomMatricula);
+    const func = buscarFuncionario(randomMatricula);
+    
     if (func) {
-      if (func.ferramentas.length === 0) {
+      // Buscar as ferramentas do funcionário pelas tags
+      const ferramentasDoFuncionario = [];
+      
+      if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
+        func.posse_ferramentas.forEach((tag: string) => {
+          const ferramenta = ferramentas.find(f => f.tag === tag);
+          if (ferramenta) {
+            ferramentasDoFuncionario.push({
+              id: ferramenta.id,
+              nome: ferramenta.nome,
+              tag: ferramenta.tag,
+              categoria: ferramenta.categoria,
+              dataRetirada: new Date().toISOString()
+            });
+          }
+        });
+      }
+      
+      if (ferramentasDoFuncionario.length === 0) {
         toast({
           title: "Nenhuma ferramenta em posse",
           description: "Este funcionário não possui ferramentas para devolver",
         });
         return;
       }
+      
       setFuncionario(func);
+      setFuncionarioFerramentas(ferramentasDoFuncionario);
       setStep('ferramentas');
       toast({
         title: "Crachá lido com sucesso!",
         description: `Funcionário: ${func.nome}`,
       });
+    } else {
+      toast({
+        title: "Funcionário não encontrado",
+        description: "Não foi possível identificar o funcionário",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleFerramentaToggle = (ferramentaId: number) => {
+  const handleFerramentaToggle = (ferramentaTag: string) => {
     setSelectedFerramentas(prev => 
-      prev.includes(ferramentaId)
-        ? prev.filter(id => id !== ferramentaId)
-        : [...prev, ferramentaId]
+      prev.includes(ferramentaTag)
+        ? prev.filter(tag => tag !== ferramentaTag)
+        : [...prev, ferramentaTag]
     );
   };
 
@@ -136,7 +167,6 @@ const DevolverItem = () => {
     setConfirmando(true);
 
     try {
-      // Enviar dados para o webhook principal
       const formData = new FormData();
       
       // Dados do funcionário
@@ -144,11 +174,13 @@ const DevolverItem = () => {
       formData.append('funcionario_nome', funcionario.nome);
       formData.append('funcionario_setor', funcionario.setor);
       
-      // Dados das ferramentas
+      // Dados das ferramentas selecionadas
+      const ferramentasSelecionadas = funcionarioFerramentas.filter(f => selectedFerramentas.includes(f.tag));
       ferramentasSelecionadas.forEach((ferramenta, index) => {
-        formData.append(`ferramenta_${index}_id`, ferramenta.id.toString());
+        formData.append(`ferramenta_${index}_id`, ferramenta.id);
         formData.append(`ferramenta_${index}_nome`, ferramenta.nome);
         formData.append(`ferramenta_${index}_tag`, ferramenta.tag);
+        formData.append(`ferramenta_${index}_categoria`, ferramenta.categoria);
         formData.append(`ferramenta_${index}_dataRetirada`, ferramenta.dataRetirada);
       });
       
@@ -193,9 +225,7 @@ const DevolverItem = () => {
     navigate('/');
   };
 
-  const ferramentasSelecionadas = funcionario?.ferramentas.filter(
-    (f: any) => selectedFerramentas.includes(f.id)
-  ) || [];
+  const ferramentasSelecionadas = funcionarioFerramentas.filter(f => selectedFerramentas.includes(f.tag));
 
   return (
     <div className="min-h-screen bg-background">
@@ -263,7 +293,7 @@ const DevolverItem = () => {
                         id="matricula"
                         value={matricula}
                         onChange={(e) => setMatricula(e.target.value)}
-                        placeholder="Ex: 13812"
+                        placeholder="Ex: 7679"
                         className="text-center text-lg"
                       />
                     </div>
@@ -299,47 +329,60 @@ const DevolverItem = () => {
               <CardHeader>
                 <CardTitle>Suas Ferramentas</CardTitle>
                 <div className="text-sm text-muted-foreground">
-                  <p>{funcionario.nome}</p>
+                  <p><strong>{funcionario.nome}</strong></p>
                   <p>{funcionario.setor}</p>
+                  <p className="text-xs">Matrícula: {matricula}</p>
                 </div>
               </CardHeader>
             </Card>
 
-            {funcionario.ferramentas.map((ferramenta: any) => (
-              <Card key={ferramenta.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      id={`ferramenta-${ferramenta.id}`}
-                      checked={selectedFerramentas.includes(ferramenta.id)}
-                      onCheckedChange={() => handleFerramentaToggle(ferramenta.id)}
-                    />
-                    <div className="flex-1">
-                      <label 
-                        htmlFor={`ferramenta-${ferramenta.id}`}
-                        className="cursor-pointer"
-                      >
-                        <h3 className="font-semibold">{ferramenta.nome}</h3>
-                        <Badge variant="outline" className="mt-1">
-                          TAG: {ferramenta.tag}
-                        </Badge>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Retirada em: {new Date(ferramenta.dataRetirada).toLocaleDateString('pt-BR')}
-                        </p>
-                      </label>
-                    </div>
-                  </div>
+            {funcionarioFerramentas.length > 0 ? (
+              <>
+                {funcionarioFerramentas.map((ferramenta) => (
+                  <Card key={ferramenta.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id={`ferramenta-${ferramenta.id}`}
+                          checked={selectedFerramentas.includes(ferramenta.tag)}
+                          onCheckedChange={() => handleFerramentaToggle(ferramenta.tag)}
+                        />
+                        <div className="flex-1">
+                          <label 
+                            htmlFor={`ferramenta-${ferramenta.id}`}
+                            className="cursor-pointer"
+                          >
+                            <h3 className="font-semibold">{ferramenta.nome}</h3>
+                            <Badge variant="outline" className="mt-1">
+                              TAG: {ferramenta.tag}
+                            </Badge>
+                            {ferramenta.categoria && (
+                              <Badge variant="secondary" className="mt-1 ml-2">
+                                {ferramenta.categoria}
+                              </Badge>
+                            )}
+                          </label>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {selectedFerramentas.length > 0 && (
+                  <Button 
+                    className="w-full" 
+                    onClick={() => setStep('confirmacao')}
+                  >
+                    Devolver {selectedFerramentas.length} ferramenta(s)
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-muted-foreground">Nenhuma ferramenta encontrada em posse deste funcionário.</p>
                 </CardContent>
               </Card>
-            ))}
-
-            {selectedFerramentas.length > 0 && (
-              <Button 
-                className="w-full" 
-                onClick={() => setStep('confirmacao')}
-              >
-                Devolver {selectedFerramentas.length} ferramenta(s)
-              </Button>
             )}
           </div>
         )}
@@ -366,7 +409,7 @@ const DevolverItem = () => {
 
                 <div>
                   <h3 className="font-semibold">Ferramentas a devolver:</h3>
-                  {ferramentasSelecionadas.map((ferramenta: any) => (
+                  {ferramentasSelecionadas.map((ferramenta) => (
                     <div key={ferramenta.id} className="flex justify-between items-center py-2">
                       <div>
                         <span className="font-medium">{ferramenta.nome}</span>
