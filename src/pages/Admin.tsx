@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,48 +18,17 @@ import {
   Calendar,
   Search,
   Eye,
-  LogOut
+  LogOut,
+  Bell,
+  RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { useFerramentas } from "@/hooks/useFerramentas";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock data for admin
-const ferramentasEmprestadas = [
-  {
-    id: 1,
-    ferramenta: "Furadeira",
-    tag: "001",
-    funcionario: "ANDRE FELIPE COSTA DA SILVA",
-    matricula: "13812",
-    setor: "Usinagem industrial",
-    dataRetirada: "2024-01-15",
-    diasVencido: 8,
-    status: "vencido"
-  },
-  {
-    id: 2,
-    ferramenta: "Torquímetro",
-    tag: "006",
-    funcionario: "ANDRE FELIPE COSTA DA SILVA",
-    matricula: "13812",
-    setor: "Usinagem industrial",
-    dataRetirada: "2024-01-14",
-    diasVencido: 9,
-    status: "vencido"
-  },
-  {
-    id: 3,
-    ferramenta: "Parafusadeira",
-    tag: "002",
-    funcionario: "ANGELO VALADARES DE CASTRO",
-    matricula: "7203",
-    setor: "Usinagem industrial",
-    dataRetirada: "2024-01-20",
-    diasVencido: 0,
-    status: "normal"
-  }
-];
-
+// Mock data para estoque e PDFs - mantém os dados existentes
 const estoqueAlerta = [
   { id: 1, nome: "WD-40", atual: 2, minimo: 3, unidade: "latas", categoria: "Material" },
   { id: 2, nome: "Torquímetro", atual: 1, minimo: 2, unidade: "un", categoria: "Ferramenta" },
@@ -92,9 +62,136 @@ const Admin = () => {
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [funcionariosComFerramentas, setFuncionariosComFerramentas] = useState<any[]>([]);
+  const [isNotifying, setIsNotifying] = useState<string | null>(null);
+
+  const { funcionarios, loading: loadingFuncionarios } = useFuncionarios();
+  const { ferramentas, loading: loadingFerramentas } = useFerramentas();
+
+  // Função para buscar funcionários com ferramentas
+  const fetchFuncionariosComFerramentas = async () => {
+    try {
+      console.log('Buscando funcionários com ferramentas...');
+      
+      const { data, error } = await supabase
+        .from('funcionarios')
+        .select('id, nome, matricula, setor, posse_ferramentas, numero_whatsapp')
+        .not('posse_ferramentas', 'is', null);
+
+      if (error) {
+        console.error('Erro ao buscar funcionários:', error);
+        return;
+      }
+
+      if (data) {
+        console.log('Funcionários encontrados:', data);
+        
+        const funcionariosFormatados = data
+          .filter(func => func.posse_ferramentas && Array.isArray(func.posse_ferramentas) && func.posse_ferramentas.length > 0)
+          .map(func => {
+            const ferramentasDetalhadas = func.posse_ferramentas.map((tag: string) => {
+              const ferramenta = ferramentas.find(f => f.tag === tag);
+              return {
+                tag,
+                nome: ferramenta?.nome || 'Ferramenta não encontrada'
+              };
+            });
+
+            return {
+              id: func.id,
+              nome: func.nome,
+              matricula: func.matricula?.toString() || '',
+              setor: func.setor || '',
+              numero_whatsapp: func.numero_whatsapp || '',
+              ferramentas: ferramentasDetalhadas
+            };
+          });
+
+        console.log('Funcionários formatados:', funcionariosFormatados);
+        setFuncionariosComFerramentas(funcionariosFormatados);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar funcionários com ferramentas:', error);
+    }
+  };
+
+  // Carregar dados quando componente montar e quando ferramentas carregarem
+  useEffect(() => {
+    if (!loadingFerramentas && ferramentas.length > 0) {
+      fetchFuncionariosComFerramentas();
+    }
+  }, [loadingFerramentas, ferramentas]);
+
+  // Função para atualizar dados
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchFuncionariosComFerramentas();
+    setIsRefreshing(false);
+    toast({
+      title: "Dados atualizados",
+      description: "As informações foram recarregadas com sucesso",
+    });
+  };
+
+  // Função para notificar funcionário
+  const notificarFuncionario = async (funcionario: any, ferramenta: any) => {
+    if (!funcionario.numero_whatsapp) {
+      toast({
+        title: "Erro",
+        description: "Funcionário não possui número de WhatsApp cadastrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsNotifying(funcionario.id);
+
+    try {
+      const webhookData = {
+        funcionario: {
+          nome: funcionario.nome,
+          matricula: funcionario.matricula,
+          setor: funcionario.setor,
+          numero_whatsapp: funcionario.numero_whatsapp
+        },
+        ferramenta: {
+          nome: ferramenta.nome,
+          tag: ferramenta.tag
+        }
+      };
+
+      console.log('Enviando notificação:', webhookData);
+
+      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/notificar-funcionario', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Notificação enviada",
+          description: `Funcionário ${funcionario.nome} foi notificado sobre a devolução da ${ferramenta.nome}`,
+        });
+      } else {
+        throw new Error('Erro ao enviar notificação');
+      }
+    } catch (error) {
+      console.error('Erro ao notificar funcionário:', error);
+      toast({
+        title: "Erro ao notificar",
+        description: "Não foi possível enviar a notificação. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsNotifying(null);
+    }
+  };
 
   const handleLogin = () => {
-    // Simulação de login - em produção seria validação real
     if (loginData.username === "admin" && loginData.password === "admin123") {
       setIsLoggedIn(true);
       toast({
@@ -126,7 +223,6 @@ const Admin = () => {
       return;
     }
 
-    // Simulação de processamento do PDF
     toast({
       title: "PDF processado com sucesso",
       description: `${selectedFile.name} foi processado e o estoque atualizado`,
@@ -134,15 +230,18 @@ const Admin = () => {
     setSelectedFile(null);
   };
 
-  const filteredFerramentas = ferramentasEmprestadas.filter(
-    item => 
-      item.funcionario.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.ferramenta.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.matricula.includes(searchTerm)
+  // Filtrar funcionários com ferramentas
+  const filteredFuncionarios = funcionariosComFerramentas.filter(
+    funcionario => 
+      funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      funcionario.matricula.includes(searchTerm) ||
+      funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      funcionario.ferramentas.some((f: any) => f.nome.toLowerCase().includes(searchTerm.toLowerCase()) || f.tag.includes(searchTerm))
   );
 
-  const ferramentasVencidas = ferramentasEmprestadas.filter(item => item.status === "vencido");
-  const totalFerramentasEmprestadas = ferramentasEmprestadas.length;
+  // Calcular estatísticas
+  const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
+  const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;
   const itensEstoqueBaixo = estoqueAlerta.length;
 
   if (!isLoggedIn) {
@@ -227,15 +326,27 @@ const Admin = () => {
               <p className="text-sm text-primary-foreground/80">AVB - Sistema de Controle</p>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="text-primary-foreground hover:bg-primary-foreground/20"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -246,8 +357,8 @@ const Admin = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Emprestado</p>
-                  <p className="text-2xl font-bold">{totalFerramentasEmprestadas}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Funcionários com Ferramentas</p>
+                  <p className="text-2xl font-bold">{totalFuncionariosComFerramentas}</p>
                 </div>
                 <Users className="w-8 h-8 text-primary" />
               </div>
@@ -258,10 +369,10 @@ const Admin = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Ferramentas Vencidas</p>
-                  <p className="text-2xl font-bold text-destructive">{ferramentasVencidas.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Emprestado</p>
+                  <p className="text-2xl font-bold">{totalFerramentasEmprestadas}</p>
                 </div>
-                <Calendar className="w-8 h-8 text-destructive" />
+                <Package className="w-8 h-8 text-primary" />
               </div>
             </CardContent>
           </Card>
@@ -293,9 +404,8 @@ const Admin = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="emprestimos" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
-            <TabsTrigger value="vencidos">Vencidos</TabsTrigger>
             <TabsTrigger value="estoque">Estoque</TabsTrigger>
             <TabsTrigger value="upload">Upload PDF</TabsTrigger>
           </TabsList>
@@ -306,12 +416,12 @@ const Admin = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  Controle de Empréstimos
+                  Controle de Empréstimos ({totalFerramentasEmprestadas} ferramentas)
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   <Search className="w-4 h-4" />
                   <Input
-                    placeholder="Buscar por funcionário, ferramenta ou matrícula..."
+                    placeholder="Buscar por funcionário, ferramenta, tag ou matrícula..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-sm"
@@ -319,104 +429,62 @@ const Admin = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ferramenta</TableHead>
-                      <TableHead>Funcionário</TableHead>
-                      <TableHead>Setor</TableHead>
-                      <TableHead>Data Retirada</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredFerramentas.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{item.ferramenta}</p>
-                            <Badge variant="outline">{item.tag}</Badge>
+                {loadingFuncionarios || loadingFerramentas ? (
+                  <div className="flex items-center justify-center p-8">
+                    <RefreshCw className="w-8 h-8 animate-spin" />
+                    <span className="ml-2">Carregando dados...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredFuncionarios.map((funcionario) => (
+                      <Card key={funcionario.id} className="border-l-4 border-l-primary">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-2">
+                              <div>
+                                <h3 className="font-semibold text-lg">{funcionario.nome}</h3>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Badge variant="outline">#{funcionario.matricula}</Badge>
+                                  <span>{funcionario.setor}</span>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">Ferramentas em posse:</p>
+                                {funcionario.ferramentas.map((ferramenta: any, index: number) => (
+                                  <div key={index} className="flex items-center gap-2">
+                                    <Badge variant="secondary">{ferramenta.tag}</Badge>
+                                    <span className="text-sm">{ferramenta.nome}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {funcionario.ferramentas.map((ferramenta: any, index: number) => (
+                                <Button
+                                  key={index}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => notificarFuncionario(funcionario, ferramenta)}
+                                  disabled={isNotifying === funcionario.id}
+                                  className="w-full"
+                                >
+                                  <Bell className="w-4 h-4 mr-2" />
+                                  {isNotifying === funcionario.id ? 'Notificando...' : 'Solicitar Devolução'}
+                                </Button>
+                              ))}
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{item.funcionario}</p>
-                            <p className="text-sm text-muted-foreground">#{item.matricula}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.setor}</TableCell>
-                        <TableCell>{new Date(item.dataRetirada).toLocaleDateString('pt-BR')}</TableCell>
-                        <TableCell>
-                          {item.status === "vencido" ? (
-                            <Badge variant="destructive">
-                              Vencido há {item.diasVencido} dias
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">Em dia</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Aba Vencidos */}
-          <TabsContent value="vencidos" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="w-5 h-5" />
-                  Ferramentas Vencidas ({ferramentasVencidas.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {ferramentasVencidas.map((item) => (
-                    <Card key={item.id} className="border-destructive/50">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-2">
-                            <div>
-                              <h3 className="font-semibold">{item.ferramenta}</h3>
-                              <Badge variant="outline">{item.tag}</Badge>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">{item.funcionario}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {item.setor} - #{item.matricula}
-                              </p>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Retirado em: {new Date(item.dataRetirada).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <Badge variant="destructive" className="mb-2">
-                              {item.diasVencido} dias em atraso
-                            </Badge>
-                            <div className="space-x-2">
-                              <Button size="sm" variant="outline">
-                                Notificar
-                              </Button>
-                              <Button size="sm">
-                                Devolver
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                    {filteredFuncionarios.length === 0 && (
+                      <div className="text-center py-8">
+                        <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">Nenhum funcionário encontrado com ferramentas</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
