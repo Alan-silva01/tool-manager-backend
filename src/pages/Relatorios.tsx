@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, FileText, User, AlertTriangle } from "lucide-react";
+import { ArrowLeft, FileText, User, AlertTriangle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
@@ -23,6 +22,10 @@ const Relatorios = () => {
   const [matricula, setMatricula] = useState('');
   const [funcionario, setFuncionario] = useState<any>(null);
   const [ferramentasEmPosse, setFerramentasEmPosse] = useState<any[]>([]);
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   const handleBuscarFuncionario = () => {
     if (!matricula.trim()) {
@@ -73,26 +76,37 @@ const Relatorios = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-primary text-primary-foreground p-4 shadow-sm">
-        <div className="container mx-auto flex items-center gap-3">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={() => {
+                if (view === 'menu') navigate('/');
+                else setView('menu');
+              }}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold">Relatórios</h1>
+              <p className="text-sm text-primary-foreground/80">
+                {view === 'menu' && 'Escolha um relatório'}
+                {view === 'funcionario' && 'Histórico do funcionário'}
+                {view === 'estoque' && 'Alertas de estoque'}
+              </p>
+            </div>
+          </div>
           <Button
             variant="ghost"
             size="icon"
             className="text-primary-foreground hover:bg-primary-foreground/20"
-            onClick={() => {
-              if (view === 'menu') navigate('/');
-              else setView('menu');
-            }}
+            onClick={handleRefresh}
+            disabled={isLoading}
           >
-            <ArrowLeft className="w-5 h-5" />
+            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
-          <div>
-            <h1 className="text-xl font-bold">Relatórios</h1>
-            <p className="text-sm text-primary-foreground/80">
-              {view === 'menu' && 'Escolha um relatório'}
-              {view === 'funcionario' && 'Histórico do funcionário'}
-              {view === 'estoque' && 'Alertas de estoque'}
-            </p>
-          </div>
         </div>
       </header>
 
