@@ -39,14 +39,22 @@ export const useFuncionarios = () => {
             
             const matriculaStr = func.matricula?.toString() || '';
             if (matriculaStr) {
-              // Processar posse_ferramentas - garantir que seja um array
+              // Processar posse_ferramentas - garantir que seja um array de strings
               let posseFerramenta: string[] = [];
               if (func.posse_ferramentas) {
                 if (Array.isArray(func.posse_ferramentas)) {
-                  posseFerramenta = func.posse_ferramentas;
+                  // Filtrar apenas valores que são strings
+                  posseFerramenta = func.posse_ferramentas.filter(
+                    (item): item is string => typeof item === 'string'
+                  );
                 } else if (typeof func.posse_ferramentas === 'string') {
                   try {
-                    posseFerramenta = JSON.parse(func.posse_ferramentas);
+                    const parsed = JSON.parse(func.posse_ferramentas);
+                    if (Array.isArray(parsed)) {
+                      posseFerramenta = parsed.filter(
+                        (item): item is string => typeof item === 'string'
+                      );
+                    }
                   } catch (e) {
                     posseFerramenta = [];
                   }
