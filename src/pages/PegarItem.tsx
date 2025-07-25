@@ -396,7 +396,7 @@ const PegarItem = () => {
             </div>
 
             {getItensDisponiveis().map((item) => (
-              <Card key={item.id} className="hover:shadow-md transition-shadow">
+              <Card key={item.id} className={`hover:shadow-md transition-shadow ${item.quantidade <= 0 ? 'opacity-50' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start">
                      <div className="flex-1">
@@ -404,10 +404,15 @@ const PegarItem = () => {
                        <Badge variant="outline" className="mt-1">
                          TAG: {item.tag}
                        </Badge>
-                       <p className="text-sm text-muted-foreground mt-1">
+                       <p className={`text-sm mt-1 ${item.quantidade <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                          Disponível: {item.quantidade} {categoria === 'materiais' ? (item as any).unidade || 'un' : 'un'}
                        </p>
-                       {categoria === 'materiais' && (item as any).quantidade_minima && item.quantidade <= (item as any).quantidade_minima && (
+                       {item.quantidade <= 0 && (
+                         <Badge variant="destructive" className="mt-1">
+                           Sem estoque
+                         </Badge>
+                       )}
+                       {categoria === 'materiais' && (item as any).quantidade_minima && item.quantidade <= (item as any).quantidade_minima && item.quantidade > 0 && (
                          <Badge variant="destructive" className="mt-1">
                            Estoque baixo!
                          </Badge>
@@ -417,6 +422,7 @@ const PegarItem = () => {
                       onClick={() => addToCart(item)}
                       size="sm"
                       className="ml-2"
+                      disabled={item.quantidade <= 0}
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
