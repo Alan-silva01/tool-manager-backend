@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,90 +8,48 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, FileText, User, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
-const funcionarios = {
-  "13812": { 
-    nome: "ANDRE FELIPE COSTA DA SILVA", 
-    setor: "Usinagem industrial",
-    historico: [
-      {
-        id: 1,
-        tipo: "retirada",
-        item: "Furadeira",
-        tag: "001",
-        data: "2024-01-15",
-        hora: "08:30",
-        devolvido: false
-      },
-      {
-        id: 2,
-        tipo: "retirada",
-        item: "Torquímetro",
-        tag: "006",
-        data: "2024-01-14",
-        hora: "14:20",
-        devolvido: false
-      },
-      {
-        id: 3,
-        tipo: "retirada",
-        item: "Chave Allen Conj.",
-        tag: "007",
-        data: "2024-01-10",
-        hora: "09:15",
-        devolvido: true,
-        dataDevolucao: "2024-01-12",
-        horaDevolucao: "16:45"
-      },
-      {
-        id: 4,
-        tipo: "material",
-        item: "Acetona",
-        quantidade: "2 litros",
-        data: "2024-01-16",
-        hora: "10:30"
-      }
-    ]
-  },
-  "7203": { 
-    nome: "ANGELO VALADARES DE CASTRO", 
-    setor: "Usinagem industrial",
-    historico: [
-      {
-        id: 5,
-        tipo: "retirada",
-        item: "Parafusadeira",
-        tag: "002",
-        data: "2024-01-16",
-        hora: "07:45",
-        devolvido: false
-      }
-    ]
-  },
-  "7679": { 
-    nome: "JOTUANDERSON PEREIRA GOMES", 
-    setor: "Oficina cantilever",
-    historico: []
-  }
-};
-
-const estoqueBaixo = [
-  { nome: "WD-40", quantidade: 3, minimo: 3, unidade: "latas" },
-  { nome: "Torquímetro", quantidade: 1, minimo: 2, unidade: "un" },
-  { nome: "Escova de aço", quantidade: 4, minimo: 5, unidade: "un" },
-];
+import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { useFerramentas } from "@/hooks/useFerramentas";
+import { useMateriais } from "@/hooks/useMateriais";
 
 const Relatorios = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { buscarFuncionario, loading: loadingFuncionarios } = useFuncionarios();
+  const { ferramentas, loading: loadingFerramentas } = useFerramentas();
+  const { materiais, loading: loadingMateriais } = useMateriais();
+  
   const [view, setView] = useState<'menu' | 'funcionario' | 'estoque'>('menu');
   const [matricula, setMatricula] = useState('');
   const [funcionario, setFuncionario] = useState<any>(null);
+  const [ferramentasEmPosse, setFerramentasEmPosse] = useState<any[]>([]);
 
   const handleBuscarFuncionario = () => {
-    const func = funcionarios[matricula as keyof typeof funcionarios];
+    if (!matricula.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite a matrícula do funcionário",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const func = buscarFuncionario(matricula);
     if (func) {
       setFuncionario(func);
+      
+      // Buscar ferramentas em posse
+      const ferramentasDoFuncionario = [];
+      if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
+        for (const tag of func.posse_ferramentas) {
+          const ferramenta = ferramentas.find(f => f.tag === tag);
+          if (ferramenta) {
+            ferramentasDoFuncionario.push(ferramenta);
+          }
+        }
+      }
+      
+      setFerramentasEmPosse(ferramentasDoFuncionario);
       setView('funcionario');
     } else {
       toast({
@@ -101,17 +60,14 @@ const Relatorios = () => {
     }
   };
 
-  const ferramentasEmPosse = funcionario?.historico.filter(
-    (item: any) => item.tipo === 'retirada' && !item.devolvido
-  ) || [];
+  // Calcular materiais com estoque baixo
+  const estoqueBaixo = materiais.filter(material => {
+    const quantidade = Number(material.quantidade) || 0;
+    const minimo = Number(material.quantidade_minima) || 0;
+    return quantidade <= minimo;
+  });
 
-  const materiaisRetirados = funcionario?.historico.filter(
-    (item: any) => item.tipo === 'material'
-  ) || [];
-
-  const ferramentasDevolvidas = funcionario?.historico.filter(
-    (item: any) => item.tipo === 'retirada' && item.devolvido
-  ) || [];
+  const isLoading = loadingFuncionarios || loadingFerramentas || loadingMateriais;
 
   return (
     <div className="min-h-screen bg-background">
@@ -198,14 +154,15 @@ const Relatorios = () => {
                     value={matricula}
                     onChange={(e) => setMatricula(e.target.value)}
                     placeholder="Ex: 13812"
+                    disabled={isLoading}
                   />
                 </div>
                 <Button 
                   className="w-full" 
                   onClick={handleBuscarFuncionario}
-                  disabled={!matricula}
+                  disabled={!matricula || isLoading}
                 >
-                  Buscar Histórico
+                  {isLoading ? 'Carregando...' : 'Buscar Histórico'}
                 </Button>
               </CardContent>
             </Card>
@@ -237,76 +194,29 @@ const Relatorios = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {ferramentasEmPosse.map((item: any) => (
-                    <div key={item.id} className="border-l-4 border-destructive pl-4">
+                  {ferramentasEmPosse.map((ferramenta) => (
+                    <div key={ferramenta.id} className="border-l-4 border-destructive pl-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-semibold">{item.item}</p>
-                          <Badge variant="outline">{item.tag}</Badge>
-                        </div>
-                        <div className="text-right text-sm text-muted-foreground">
-                          <p>{item.data}</p>
-                          <p>{item.hora}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Ferramentas Devolvidas */}
-            {ferramentasDevolvidas.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-primary">
-                    Ferramentas Devolvidas ({ferramentasDevolvidas.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {ferramentasDevolvidas.map((item: any) => (
-                    <div key={item.id} className="border-l-4 border-primary pl-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold">{item.item}</p>
-                          <Badge variant="outline">{item.tag}</Badge>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            <p>Retirada: {item.data} às {item.hora}</p>
-                            <p>Devolução: {item.dataDevolucao} às {item.horaDevolucao}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Materiais Consumidos */}
-            {materiaisRetirados.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-accent">
-                    Materiais Consumidos ({materiaisRetirados.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {materiaisRetirados.map((item: any) => (
-                    <div key={item.id} className="border-l-4 border-accent pl-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold">{item.item}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Quantidade: {item.quantidade}
+                          <p className="font-semibold">{ferramenta.nome}</p>
+                          <Badge variant="outline">{ferramenta.tag}</Badge>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Categoria: {ferramenta.categoria}
                           </p>
                         </div>
-                        <div className="text-right text-sm text-muted-foreground">
-                          <p>{item.data}</p>
-                          <p>{item.hora}</p>
-                        </div>
                       </div>
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {ferramentasEmPosse.length === 0 && (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <p className="text-muted-foreground">
+                    Este funcionário não possui ferramentas em sua posse no momento
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -317,6 +227,7 @@ const Relatorios = () => {
               onClick={() => {
                 setFuncionario(null);
                 setMatricula('');
+                setFerramentasEmPosse([]);
               }}
             >
               Buscar Outro Funcionário
@@ -336,35 +247,45 @@ const Relatorios = () => {
               </CardHeader>
             </Card>
 
-            {estoqueBaixo.map((item, index) => (
-              <Card key={index} className="border-destructive/50">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-semibold text-destructive">{item.nome}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Estoque atual: {item.quantidade} {item.unidade}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Mínimo necessário: {item.minimo} {item.unidade}
-                      </p>
-                    </div>
-                    <Badge variant="destructive">
-                      Crítico
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {estoqueBaixo.length === 0 && (
+            {isLoading ? (
               <Card>
                 <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground">
-                    Nenhum item com estoque baixo no momento
-                  </p>
+                  <p className="text-muted-foreground">Carregando alertas...</p>
                 </CardContent>
               </Card>
+            ) : (
+              <>
+                {estoqueBaixo.map((item) => (
+                  <Card key={item.id} className="border-destructive/50">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-semibold text-destructive">{item.nome}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Estoque atual: {item.quantidade} {item.unidade}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Mínimo necessário: {item.quantidade_minima} {item.unidade}
+                          </p>
+                        </div>
+                        <Badge variant="destructive">
+                          Crítico
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {estoqueBaixo.length === 0 && (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p className="text-muted-foreground">
+                        Nenhum item com estoque baixo no momento
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </div>
         )}
