@@ -42,8 +42,24 @@ const PegarItem = () => {
     setStep('lista');
   };
 
+  const getItemDisponivel = (itemId: string) => {
+    const allItems = categoria === 'ferramentas' ? ferramentas : materiais;
+    return allItems.find(item => item.id === itemId);
+  };
+
   const addToCart = (item: any) => {
     const existingItem = carrinho.find(c => c.id === item.id);
+    const quantidadeNoCarrinho = existingItem ? existingItem.quantidade : 0;
+    
+    if (quantidadeNoCarrinho >= item.quantidade) {
+      toast({
+        title: "Quantidade indisponível",
+        description: `Só há ${item.quantidade} ${item.nome} disponível(is)`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (existingItem) {
       setCarrinho(carrinho.map(c => 
         c.id === item.id 
@@ -70,11 +86,30 @@ const PegarItem = () => {
   };
 
   const updateCartQuantity = (id: string, delta: number) => {
-    setCarrinho(carrinho.map(item => 
-      item.id === id 
-        ? { ...item, quantidade: Math.max(1, item.quantidade + delta) }
-        : item
-    ));
+    const itemDisponivel = getItemDisponivel(id);
+    if (!itemDisponivel) return;
+
+    setCarrinho(carrinho.map(item => {
+      if (item.id === id) {
+        const novaQuantidade = item.quantidade + delta;
+        
+        // Não permitir quantidade menor que 1
+        if (novaQuantidade < 1) return item;
+        
+        // Não permitir quantidade maior que o disponível
+        if (novaQuantidade > itemDisponivel.quantidade) {
+          toast({
+            title: "Quantidade indisponível",
+            description: `Só há ${itemDisponivel.quantidade} ${item.nome} disponível(is)`,
+            variant: "destructive",
+          });
+          return item;
+        }
+        
+        return { ...item, quantidade: novaQuantidade };
+      }
+      return item;
+    }));
   };
 
   const handleMatriculaSubmit = () => {
@@ -395,41 +430,52 @@ const PegarItem = () => {
               />
             </div>
 
-            {getItensDisponiveis().map((item) => (
-              <Card key={item.id} className={`hover:shadow-md transition-shadow ${item.quantidade <= 0 ? 'opacity-50' : ''}`}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                     <div className="flex-1">
-                       <h3 className="font-semibold">{item.nome}</h3>
-                       <Badge variant="outline" className="mt-1">
-                         TAG: {item.tag}
-                       </Badge>
-                       <p className={`text-sm mt-1 ${item.quantidade <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                         Disponível: {item.quantidade} {categoria === 'materiais' ? (item as any).unidade || 'un' : 'un'}
-                       </p>
-                       {item.quantidade <= 0 && (
-                         <Badge variant="destructive" className="mt-1">
-                           Sem estoque
+            {getItensDisponiveis().map((item) => {
+              const itemNoCarrinho = carrinho.find(c => c.id === item.id);
+              const quantidadeNoCarrinho = itemNoCarrinho ? itemNoCarrinho.quantidade : 0;
+              const podeAdicionarMais = quantidadeNoCarrinho < item.quantidade;
+              
+              return (
+                <Card key={item.id} className={`hover:shadow-md transition-shadow ${item.quantidade <= 0 ? 'opacity-50' : ''}`}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                       <div className="flex-1">
+                         <h3 className="font-semibold">{item.nome}</h3>
+                         <Badge variant="outline" className="mt-1">
+                           TAG: {item.tag}
                          </Badge>
-                       )}
-                       {categoria === 'materiais' && (item as any).quantidade_minima && item.quantidade <= (item as any).quantidade_minima && item.quantidade > 0 && (
-                         <Badge variant="destructive" className="mt-1">
-                           Estoque baixo!
-                         </Badge>
-                       )}
-                     </div>
-                    <Button 
-                      onClick={() => addToCart(item)}
-                      size="sm"
-                      className="ml-2"
-                      disabled={item.quantidade <= 0}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                         <p className={`text-sm mt-1 ${item.quantidade <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                           Disponível: {item.quantidade} {categoria === 'materiais' ? (item as any).unidade || 'un' : 'un'}
+                         </p>
+                         {quantidadeNoCarrinho > 0 && (
+                           <p className="text-sm text-blue-600 mt-1">
+                             No carrinho: {quantidadeNoCarrinho}
+                           </p>
+                         )}
+                         {item.quantidade <= 0 && (
+                           <Badge variant="destructive" className="mt-1">
+                             Sem estoque
+                           </Badge>
+                         )}
+                         {categoria === 'materiais' && (item as any).quantidade_minima && item.quantidade <= (item as any).quantidade_minima && item.quantidade > 0 && (
+                           <Badge variant="destructive" className="mt-1">
+                             Estoque baixo!
+                           </Badge>
+                         )}
+                       </div>
+                      <Button 
+                        onClick={() => addToCart(item)}
+                        size="sm"
+                        className="ml-2"
+                        disabled={item.quantidade <= 0 || !podeAdicionarMais}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
 
@@ -441,44 +487,54 @@ const PegarItem = () => {
               <Badge variant="secondary">{carrinho.length} itens</Badge>
             </div>
 
-            {carrinho.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{item.nome}</h3>
-                      <Badge variant="outline" className="mt-1">
-                        TAG: {item.tag}
-                      </Badge>
+            {carrinho.map((item) => {
+              const itemDisponivel = getItemDisponivel(item.id);
+              const quantidadeMaxima = itemDisponivel ? itemDisponivel.quantidade : 0;
+              
+              return (
+                <Card key={item.id}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{item.nome}</h3>
+                        <Badge variant="outline" className="mt-1">
+                          TAG: {item.tag}
+                        </Badge>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Máximo disponível: {quantidadeMaxima}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateCartQuantity(item.id, -1)}
+                          disabled={item.quantidade <= 1}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <span className="w-8 text-center">{item.quantidade}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateCartQuantity(item.id, 1)}
+                          disabled={item.quantidade >= quantidadeMaxima}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => removeFromCart(item.id)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateCartQuantity(item.id, -1)}
-                      >
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                      <span className="w-8 text-center">{item.quantidade}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateCartQuantity(item.id, 1)}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => removeFromCart(item.id)}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
 
             {carrinho.length > 0 && (
               <Button 
