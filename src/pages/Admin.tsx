@@ -87,9 +87,20 @@ const Admin = () => {
         console.log('Funcionários encontrados:', data);
         
         const funcionariosFormatados = data
-          .filter(func => func.posse_ferramentas && Array.isArray(func.posse_ferramentas) && func.posse_ferramentas.length > 0)
+          .filter(func => {
+            // Verifica se posse_ferramentas é um array válido
+            const posseFerramenta = Array.isArray(func.posse_ferramentas) 
+              ? func.posse_ferramentas 
+              : [];
+            return posseFerramenta.length > 0;
+          })
           .map(func => {
-            const ferramentasDetalhadas = func.posse_ferramentas.map((tag: string) => {
+            // Converte posse_ferramentas para array se necessário
+            const posseFerramenta = Array.isArray(func.posse_ferramentas) 
+              ? func.posse_ferramentas as string[]
+              : [];
+
+            const ferramentasDetalhadas = posseFerramenta.map((tag: string) => {
               const ferramenta = ferramentas.find(f => f.tag === tag);
               return {
                 tag,
