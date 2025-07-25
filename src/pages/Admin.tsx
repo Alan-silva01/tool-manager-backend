@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,7 +83,7 @@ const Admin = () => {
         return;
       }
 
-      if (data) {
+      if (data && Array.isArray(data)) {
         console.log('Funcionários encontrados:', data);
         
         const funcionariosFormatados = data

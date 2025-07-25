@@ -46,6 +46,7 @@ export type Database = {
           id: string
           matricula: number | null
           nome: string | null
+          numero_whatsapp: string | null
           posse_ferramentas: Json | null
           setor: Database["public"]["Enums"]["setor"] | null
         }
@@ -53,6 +54,7 @@ export type Database = {
           id?: string
           matricula?: number | null
           nome?: string | null
+          numero_whatsapp?: string | null
           posse_ferramentas?: Json | null
           setor?: Database["public"]["Enums"]["setor"] | null
         }
@@ -60,6 +62,7 @@ export type Database = {
           id?: string
           matricula?: number | null
           nome?: string | null
+          numero_whatsapp?: string | null
           posse_ferramentas?: Json | null
           setor?: Database["public"]["Enums"]["setor"] | null
         }
