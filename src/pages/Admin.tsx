@@ -155,7 +155,8 @@ const Admin = () => {
       return;
     }
 
-    setIsNotifying(funcionario.id);
+    const notificationKey = `${funcionario.id}-${ferramenta.tag}`;
+    setIsNotifying(notificationKey);
 
     try {
       const webhookData = {
@@ -449,40 +450,36 @@ const Admin = () => {
                     {filteredFuncionarios.map((funcionario) => (
                       <Card key={funcionario.id} className="border-l-4 border-l-primary">
                         <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="space-y-2">
-                              <div>
-                                <h3 className="font-semibold text-lg">{funcionario.nome}</h3>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Badge variant="outline">#{funcionario.matricula}</Badge>
-                                  <span>{funcionario.setor}</span>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm font-medium">Ferramentas em posse:</p>
-                                {funcionario.ferramentas.map((ferramenta: any, index: number) => (
-                                  <div key={index} className="flex items-center gap-2">
-                                    <Badge variant="secondary">{ferramenta.tag}</Badge>
-                                    <span className="text-sm">{ferramenta.nome}</span>
-                                  </div>
-                                ))}
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="font-semibold text-lg">{funcionario.nome}</h3>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Badge variant="outline">#{funcionario.matricula}</Badge>
+                                <span>{funcionario.setor}</span>
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              {funcionario.ferramentas.map((ferramenta: any, index: number) => (
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Ferramentas em posse:</p>
+                            {funcionario.ferramentas.map((ferramenta: any, index: number) => (
+                              <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="secondary">{ferramenta.tag}</Badge>
+                                  <span className="text-sm">{ferramenta.nome}</span>
+                                </div>
                                 <Button
-                                  key={index}
                                   size="sm"
                                   variant="outline"
                                   onClick={() => notificarFuncionario(funcionario, ferramenta)}
-                                  disabled={isNotifying === funcionario.id}
-                                  className="w-full"
+                                  disabled={isNotifying === `${funcionario.id}-${ferramenta.tag}`}
+                                  className="ml-2"
                                 >
                                   <Bell className="w-4 h-4 mr-2" />
-                                  {isNotifying === funcionario.id ? 'Notificando...' : 'Solicitar Devolução'}
+                                  {isNotifying === `${funcionario.id}-${ferramenta.tag}` ? 'Notificando...' : 'Solicitar Devolução'}
                                 </Button>
-                              ))}
-                            </div>
+                              </div>
+                            ))}
                           </div>
                         </CardContent>
                       </Card>
