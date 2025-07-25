@@ -7,7 +7,8 @@ type Funcionario = {
   nome: string;
   matricula: number;
   setor: string;
-  posse_ferramentas: any[];
+  numero_whatsapp: string;
+  posse_ferramentas: string[];
 };
 
 export const useFuncionarios = () => {
@@ -38,12 +39,27 @@ export const useFuncionarios = () => {
             
             const matriculaStr = func.matricula?.toString() || '';
             if (matriculaStr) {
+              // Processar posse_ferramentas - garantir que seja um array
+              let posseFerramenta: string[] = [];
+              if (func.posse_ferramentas) {
+                if (Array.isArray(func.posse_ferramentas)) {
+                  posseFerramenta = func.posse_ferramentas;
+                } else if (typeof func.posse_ferramentas === 'string') {
+                  try {
+                    posseFerramenta = JSON.parse(func.posse_ferramentas);
+                  } catch (e) {
+                    posseFerramenta = [];
+                  }
+                }
+              }
+
               acc[matriculaStr] = {
                 id: func.id,
                 nome: func.nome || '',
                 matricula: func.matricula || 0,
                 setor: func.setor || '',
-                posse_ferramentas: Array.isArray(func.posse_ferramentas) ? func.posse_ferramentas : []
+                numero_whatsapp: func.numero_whatsapp || '',
+                posse_ferramentas: posseFerramenta
               };
             }
             return acc;

@@ -19,20 +19,9 @@ export const useFerramentas = () => {
       try {
         console.log('Buscando ferramentas...');
         
-        // Primeiro, vamos verificar se há dados na tabela
-        const { count, error: countError } = await supabase
-          .from('ferramentas')
-          .select('*', { count: 'exact', head: true });
-        
-        console.log('Total de ferramentas na tabela:', count);
-        
-        if (countError) {
-          console.error('Erro ao contar ferramentas:', countError);
-        }
-
         const { data, error } = await supabase
           .from('ferramentas')
-          .select('id, nome, tag, quantidade, saiu, categoria');
+          .select('*');
 
         console.log('Resposta do Supabase:', { data, error });
 

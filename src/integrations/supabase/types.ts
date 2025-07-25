@@ -16,85 +16,106 @@ export type Database = {
     Tables: {
       ferramentas: {
         Row: {
-          categoria: string | null
+          categoria: string
+          created_at: string
           id: string
-          nome: string | null
-          quantidade: number | null
-          saiu: number | null
-          tag: string | null
+          nome: string
+          quantidade: number
+          saiu: number
+          tag: string
+          updated_at: string
         }
         Insert: {
-          categoria?: string | null
+          categoria: string
+          created_at?: string
           id?: string
-          nome?: string | null
-          quantidade?: number | null
-          saiu?: number | null
-          tag?: string | null
+          nome: string
+          quantidade?: number
+          saiu?: number
+          tag: string
+          updated_at?: string
         }
         Update: {
-          categoria?: string | null
+          categoria?: string
+          created_at?: string
           id?: string
-          nome?: string | null
-          quantidade?: number | null
-          saiu?: number | null
-          tag?: string | null
+          nome?: string
+          quantidade?: number
+          saiu?: number
+          tag?: string
+          updated_at?: string
         }
         Relationships: []
       }
       funcionarios: {
         Row: {
+          created_at: string
           id: string
-          matricula: number | null
-          nome: string | null
+          matricula: number
+          nome: string
           numero_whatsapp: string | null
           posse_ferramentas: Json | null
-          setor: Database["public"]["Enums"]["setor"] | null
+          setor: string
+          updated_at: string
         }
         Insert: {
+          created_at?: string
           id?: string
-          matricula?: number | null
-          nome?: string | null
+          matricula: number
+          nome: string
           numero_whatsapp?: string | null
           posse_ferramentas?: Json | null
-          setor?: Database["public"]["Enums"]["setor"] | null
+          setor: string
+          updated_at?: string
         }
         Update: {
+          created_at?: string
           id?: string
-          matricula?: number | null
-          nome?: string | null
+          matricula?: number
+          nome?: string
           numero_whatsapp?: string | null
           posse_ferramentas?: Json | null
-          setor?: Database["public"]["Enums"]["setor"] | null
+          setor?: string
+          updated_at?: string
         }
         Relationships: []
       }
       materiais: {
         Row: {
+          created_at: string
           data_entrada_estoque: string | null
-          entrada: number | null
+          entrada: number
           id: string
-          nome: string | null
-          quantidade_minima: number | null
-          saida: number | null
-          tag: number | null
+          nome: string
+          quantidade_minima: number
+          saida: number
+          tag: string
+          unidade: string | null
+          updated_at: string
         }
         Insert: {
+          created_at?: string
           data_entrada_estoque?: string | null
-          entrada?: number | null
+          entrada?: number
           id?: string
-          nome?: string | null
-          quantidade_minima?: number | null
-          saida?: number | null
-          tag?: number | null
+          nome: string
+          quantidade_minima?: number
+          saida?: number
+          tag: string
+          unidade?: string | null
+          updated_at?: string
         }
         Update: {
+          created_at?: string
           data_entrada_estoque?: string | null
-          entrada?: number | null
+          entrada?: number
           id?: string
-          nome?: string | null
-          quantidade_minima?: number | null
-          saida?: number | null
-          tag?: number | null
+          nome?: string
+          quantidade_minima?: number
+          saida?: number
+          tag?: string
+          unidade?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

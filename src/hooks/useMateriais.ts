@@ -23,17 +23,6 @@ export const useMateriais = () => {
       try {
         console.log('Buscando materiais...');
         
-        // Primeiro, vamos verificar se há dados na tabela
-        const { count, error: countError } = await supabase
-          .from('materiais')
-          .select('*', { count: 'exact', head: true });
-        
-        console.log('Total de materiais na tabela:', count);
-        
-        if (countError) {
-          console.error('Erro ao contar materiais:', countError);
-        }
-
         const { data, error } = await supabase
           .from('materiais')
           .select('*');
@@ -59,13 +48,13 @@ export const useMateriais = () => {
             return {
               id: material.id,
               nome: material.nome || '',
-              tag: material.tag?.toString() || '',
+              tag: material.tag || '',
               quantidade: quantidadeDisponivel,
               quantidade_minima: Number(material.quantidade_minima) || 0,
               entrada: quantidadeEntrada,
               saida: quantidadeSaida,
               data_entrada_estoque: material.data_entrada_estoque || '',
-              unidade: 'un' // Valor padrão, pode ser ajustado conforme necessário
+              unidade: material.unidade || 'un'
             };
           });
 
