@@ -278,7 +278,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
         toast({
           title: "Erro",
           description: "Não foi possível editar a ferramenta",
-          variant: "destructiva",
+          variant: "destructive",
         });
         return;
       }
