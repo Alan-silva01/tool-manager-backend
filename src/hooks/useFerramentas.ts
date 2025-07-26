@@ -23,7 +23,7 @@ export const useFerramentas = () => {
         
         const { data, error } = await supabase
           .from('ferramentas')
-          .select('*');
+          .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
 
         console.log('Resposta do Supabase:', { data, error });
 
