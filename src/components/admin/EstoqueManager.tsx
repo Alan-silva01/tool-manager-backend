@@ -681,7 +681,7 @@ export const EstoqueManager = ({
                     <TableHead>Tag</TableHead>
                     <TableHead className="text-center">Quantidade Disponível</TableHead>
                     <TableHead>Características</TableHead>
-                    <TableHead>Ações</TableHead>
+                    <TableHead>Editar</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
