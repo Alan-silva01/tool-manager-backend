@@ -108,15 +108,15 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
     try {
       const { error } = await supabase
         .from('materiais')
-        .insert([{
+        .insert({
           nome: formatarTexto(novoMaterial.nome),
-          tag: novoMaterial.tag,
+          tag: Number(novoMaterial.tag),
           entrada: Number(novoMaterial.entrada) || 0,
           saida: 0,
           quantidade_minima: Number(novoMaterial.quantidade_minima) || 0,
           unidade: novoMaterial.unidade,
           data_entrada_estoque: new Date().toISOString().split('T')[0]
-        }]);
+        });
 
       if (error) {
         console.error('Erro ao adicionar material:', error);
@@ -162,7 +162,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
         .from('materiais')
         .update({
           nome: formatarTexto(editingMaterial.nome),
-          tag: editingMaterial.tag,
+          tag: Number(editingMaterial.tag),
           entrada: editingMaterial.entrada,
           quantidade_minima: editingMaterial.quantidade_minima,
           unidade: editingMaterial.unidade
@@ -207,7 +207,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
     try {
       const { error } = await supabase
         .from('ferramentas')
-        .insert([{
+        .insert({
           nome: formatarTexto(novaFerramenta.nome),
           categoria: formatarTexto(novaFerramenta.categoria),
           tag: novaFerramenta.tag,
@@ -215,7 +215,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
           saiu: 0,
           status: 'disponível',
           caracteristicas: caracteristicasJson
-        }]);
+        });
 
       if (error) {
         console.error('Erro ao adicionar ferramenta:', error);
@@ -278,7 +278,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
         toast({
           title: "Erro",
           description: "Não foi possível editar a ferramenta",
-          variant: "destructive",
+          variant: "destructiva",
         });
         return;
       }
@@ -350,6 +350,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                     <Label htmlFor="material-tag">Tag (Número)</Label>
                     <Input
                       id="material-tag"
+                      type="number"
                       value={novoMaterial.tag}
                       onChange={(e) => setNovoMaterial({...novoMaterial, tag: e.target.value})}
                       placeholder="Ex: 001"
@@ -553,6 +554,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                                     <Label htmlFor="edit-material-tag">Tag</Label>
                                     <Input
                                       id="edit-material-tag"
+                                      type="number"
                                       value={editingMaterial.tag}
                                       onChange={(e) => setEditingMaterial({...editingMaterial, tag: e.target.value})}
                                     />
