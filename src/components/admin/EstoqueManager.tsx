@@ -743,7 +743,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                         id="ferramenta-nome"
                         value={novaFerramenta.nome}
                         onChange={(e) => setNovaFerramenta({...novaFerramenta, nome: e.target.value})}
-                        placeholder="Ex: Furadeira de Bancada"
+                        placeholder="Ex: Furadeira"
                       />
                     </div>
                     <div>
@@ -752,7 +752,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                         id="ferramenta-categoria"
                         value={novaFerramenta.categoria}
                         onChange={(e) => setNovaFerramenta({...novaFerramenta, categoria: e.target.value})}
-                        placeholder="Ex: Furadeiras"
+                        placeholder="Ex: Elétrica"
                       />
                     </div>
                     <div>
@@ -761,7 +761,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                         id="ferramenta-tag"
                         value={novaFerramenta.tag}
                         onChange={(e) => setNovaFerramenta({...novaFerramenta, tag: e.target.value})}
-                        placeholder="Ex: FUR001"
+                        placeholder="Ex: 00000000000"
                       />
                     </div>
                     <div>
@@ -771,7 +771,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                         type="number"
                         value={novaFerramenta.quantidade}
                         onChange={(e) => setNovaFerramenta({...novaFerramenta, quantidade: e.target.value})}
-                        placeholder="5"
+                        placeholder="0"
                       />
                     </div>
                     <div>
