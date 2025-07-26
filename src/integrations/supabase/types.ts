@@ -16,106 +16,103 @@ export type Database = {
     Tables: {
       ferramentas: {
         Row: {
+          caracteristicas: Json | null
           categoria: string
-          created_at: string
+          data_emprestado: string | null
+          funcionario_emprestado: string | null
           id: string
+          matricula: number | null
           nome: string
           quantidade: number
-          saiu: number
+          saiu: number | null
+          status: string | null
           tag: string
-          updated_at: string
         }
         Insert: {
+          caracteristicas?: Json | null
           categoria: string
-          created_at?: string
+          data_emprestado?: string | null
+          funcionario_emprestado?: string | null
           id?: string
+          matricula?: number | null
           nome: string
-          quantidade?: number
-          saiu?: number
+          quantidade: number
+          saiu?: number | null
+          status?: string | null
           tag: string
-          updated_at?: string
         }
         Update: {
+          caracteristicas?: Json | null
           categoria?: string
-          created_at?: string
+          data_emprestado?: string | null
+          funcionario_emprestado?: string | null
           id?: string
+          matricula?: number | null
           nome?: string
           quantidade?: number
-          saiu?: number
+          saiu?: number | null
+          status?: string | null
           tag?: string
-          updated_at?: string
         }
         Relationships: []
       }
       funcionarios: {
         Row: {
-          created_at: string
           id: string
           matricula: number
           nome: string
           numero_whatsapp: string | null
           posse_ferramentas: Json | null
-          setor: string
-          updated_at: string
+          setor: Database["public"]["Enums"]["setor"]
         }
         Insert: {
-          created_at?: string
           id?: string
           matricula: number
           nome: string
           numero_whatsapp?: string | null
           posse_ferramentas?: Json | null
-          setor: string
-          updated_at?: string
+          setor: Database["public"]["Enums"]["setor"]
         }
         Update: {
-          created_at?: string
           id?: string
           matricula?: number
           nome?: string
           numero_whatsapp?: string | null
           posse_ferramentas?: Json | null
-          setor?: string
-          updated_at?: string
+          setor?: Database["public"]["Enums"]["setor"]
         }
         Relationships: []
       }
       materiais: {
         Row: {
-          created_at: string
           data_entrada_estoque: string | null
           entrada: number
           id: string
           nome: string
           quantidade_minima: number
           saida: number
-          tag: string
+          tag: number | null
           unidade: string | null
-          updated_at: string
         }
         Insert: {
-          created_at?: string
           data_entrada_estoque?: string | null
-          entrada?: number
+          entrada: number
           id?: string
           nome: string
-          quantidade_minima?: number
-          saida?: number
-          tag: string
+          quantidade_minima: number
+          saida: number
+          tag?: number | null
           unidade?: string | null
-          updated_at?: string
         }
         Update: {
-          created_at?: string
           data_entrada_estoque?: string | null
           entrada?: number
           id?: string
           nome?: string
           quantidade_minima?: number
           saida?: number
-          tag?: string
+          tag?: number | null
           unidade?: string | null
-          updated_at?: string
         }
         Relationships: []
       }
@@ -124,7 +121,54 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_materiais: {
+        Args: {
+          p_nome?: string
+          p_tag?: number
+          p_quant?: number
+          p_data_entrada?: string
+        }
+        Returns: {
+          nome: string
+          quantidade_disponivel: number
+          tag: number
+        }[]
+      }
+      search_tools: {
+        Args: {
+          p_nome?: string
+          p_tipo?: string
+          p_status?: string
+          p_quant?: number
+          p_tag?: string
+          p_caracteristicas?: string[]
+          p_funcionario?: string
+          p_matricula?: number
+          p_data_emprestado?: string
+          p_detalhado?: boolean
+        }
+        Returns: {
+          nome: string
+          tag: string
+          quantidade_disponivel: number
+          tipo: string
+          status: string
+          quantidade_total: number
+          caracteristicas: Json
+          id: string
+          funcionario_emprestado: string
+          matricula: number
+          data_emprestado: string
+        }[]
+      }
+      unaccent: {
+        Args: { "": string }
+        Returns: string
+      }
+      unaccent_init: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
     }
     Enums: {
       setor:
