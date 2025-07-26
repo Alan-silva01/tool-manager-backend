@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -109,7 +110,10 @@ const Admin = () => {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchFuncionariosComFerramentas();
+    
+    // Recarregar dados das ferramentas e materiais
+    window.location.reload();
+    
     setIsRefreshing(false);
     toast({
       title: "Dados atualizados",
