@@ -90,7 +90,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
 
   const setores = [
     "Usinagem industrial",
-    "Oficina cantiléver", 
+    "Oficina cantilever", 
     "Oficina de guias",
     "Montagem de gaiola",
     "Oficina de mancal",
