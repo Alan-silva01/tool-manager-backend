@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { useNFC } from "@/hooks/useNFC";
 
 type CartItem = {
   id: string;
@@ -26,6 +26,7 @@ const PegarItem = () => {
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais } = useMateriais();
   const { buscarFuncionario, adicionarFerramentaAoFuncionario, funcionarios, loading: loadingFuncionarios } = useFuncionarios();
+  const { readNFC, isReading, isSupported } = useNFC();
   
   const [step, setStep] = useState<'categoria' | 'lista' | 'carrinho' | 'funcionario' | 'confirmacao'>('categoria');
   const [categoria, setCategoria] = useState<'ferramentas' | 'materiais'>('ferramentas');
@@ -145,39 +146,51 @@ const PegarItem = () => {
     }
   };
 
-  const handleNFCScan = () => {
-    console.log('Simulando leitura NFC...');
+  const handleNFCScan = async () => {
+    console.log('Iniciando leitura NFC real...');
     
-    // Pegar uma matrícula aleatória dos funcionários disponíveis
-    const matriculasDisponiveis = Object.keys(funcionarios);
-    console.log('Matrículas disponíveis para NFC:', matriculasDisponiveis);
-    
-    if (matriculasDisponiveis.length === 0) {
+    if (!isSupported) {
       toast({
-        title: "Nenhum funcionário encontrado",
-        description: "Não há funcionários cadastrados no sistema",
+        title: "NFC não suportado",
+        description: "Este dispositivo não suporta leitura NFC",
         variant: "destructive",
       });
       return;
     }
 
-    const randomMatricula = matriculasDisponiveis[Math.floor(Math.random() * matriculasDisponiveis.length)];
-    console.log('Matrícula selecionada por NFC:', randomMatricula);
-    
-    setMatricula(randomMatricula);
-    
-    const func = buscarFuncionario(randomMatricula);
-    if (func) {
-      setFuncionario(func);
-      setStep('confirmacao');
-      toast({
-        title: "Crachá lido com sucesso!",
-        description: `Funcionário: ${func.nome} - ${func.setor}`,
-      });
-    } else {
+    toast({
+      title: "Aproxime o crachá",
+      description: "Posicione o crachá próximo ao dispositivo para leitura",
+    });
+
+    try {
+      const nfcData = await readNFC();
+      
+      if (nfcData && nfcData.matricula) {
+        console.log('Matrícula lida via NFC:', nfcData.matricula);
+        setMatricula(nfcData.matricula);
+        
+        const func = buscarFuncionario(nfcData.matricula);
+        if (func) {
+          setFuncionario(func);
+          setStep('confirmacao');
+          toast({
+            title: "Crachá lido com sucesso!",
+            description: `Funcionário: ${func.nome} - ${func.setor}`,
+          });
+        } else {
+          toast({
+            title: "Funcionário não encontrado",
+            description: `Funcionário com matrícula ${nfcData.matricula} não foi encontrado no sistema`,
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro na leitura NFC:', error);
       toast({
         title: "Erro na leitura NFC",
-        description: "Não foi possível identificar o funcionário",
+        description: "Não foi possível ler o crachá. Tente novamente.",
         variant: "destructive",
       });
     }
@@ -567,11 +580,18 @@ const PegarItem = () => {
                     variant={tipoIdentificacao === 'nfc' ? 'default' : 'outline'}
                     onClick={() => setTipoIdentificacao('nfc')}
                     className="flex-1"
+                    disabled={!isSupported}
                   >
                     <CreditCard className="w-4 h-4 mr-2" />
                     NFC
                   </Button>
                 </div>
+
+                {!isSupported && (
+                  <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                    NFC não é suportado neste dispositivo
+                  </div>
+                )}
 
                 {tipoIdentificacao === 'matricula' ? (
                   <>
@@ -594,13 +614,16 @@ const PegarItem = () => {
                   </>
                 ) : (
                   <div className="text-center space-y-4">
-                    <p className="text-muted-foreground">Aproxime seu crachá do leitor NFC</p>
+                    <p className="text-muted-foreground">
+                      {isReading ? 'Lendo crachá...' : 'Aproxime seu crachá do dispositivo'}
+                    </p>
                     <Button 
                       className="w-full" 
                       onClick={handleNFCScan}
+                      disabled={isReading || !isSupported}
                     >
                       <CreditCard className="w-4 h-4 mr-2" />
-                      Escanear Crachá
+                      {isReading ? 'Lendo...' : 'Escanear Crachá'}
                     </Button>
                   </div>
                 )}

@@ -136,6 +136,46 @@ export const useFuncionarios = () => {
     }
   };
 
+  const removerFerramentaDoFuncionario = async (matricula: string, tag: string) => {
+    try {
+      console.log('Removendo ferramenta do funcionário:', { matricula, tag });
+      
+      const funcionario = funcionarios[matricula];
+      if (!funcionario) {
+        console.error('Funcionário não encontrado para matrícula:', matricula);
+        throw new Error('Funcionário não encontrado');
+      }
+
+      const novasPosseFerramenta = funcionario.posse_ferramentas.filter(t => t !== tag);
+      console.log('Ferramentas após remoção:', novasPosseFerramenta);
+
+      const { error } = await supabase
+        .from('funcionarios')
+        .update({ posse_ferramentas: novasPosseFerramenta })
+        .eq('matricula', parseInt(matricula));
+
+      if (error) {
+        console.error('Erro ao atualizar funcionário:', error);
+        throw error;
+      }
+
+      // Atualizar o estado local
+      setFuncionarios(prev => ({
+        ...prev,
+        [matricula]: {
+          ...prev[matricula],
+          posse_ferramentas: novasPosseFerramenta
+        }
+      }));
+
+      console.log('Ferramenta removida com sucesso');
+      return true;
+    } catch (error) {
+      console.error('Erro ao remover ferramenta do funcionário:', error);
+      return false;
+    }
+  };
+
   console.log('Estado atual useFuncionarios:', { 
     totalFuncionarios: Object.keys(funcionarios).length, 
     loading,
@@ -146,6 +186,7 @@ export const useFuncionarios = () => {
     funcionarios,
     loading,
     buscarFuncionario,
-    adicionarFerramentaAoFuncionario
+    adicionarFerramentaAoFuncionario,
+    removerFerramentaDoFuncionario
   };
 };
