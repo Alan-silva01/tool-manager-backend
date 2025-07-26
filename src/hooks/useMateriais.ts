@@ -48,7 +48,7 @@ export const useMateriais = () => {
             return {
               id: material.id,
               nome: material.nome || '',
-              tag: material.tag || '',
+              tag: material.tag?.toString() || '',
               quantidade: quantidadeDisponivel,
               quantidade_minima: Number(material.quantidade_minima) || 0,
               entrada: quantidadeEntrada,

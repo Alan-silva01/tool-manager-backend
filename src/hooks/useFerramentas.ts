@@ -8,6 +8,8 @@ type Ferramenta = {
   tag: string;
   quantidade: number;
   categoria: string;
+  caracteristicas: any;
+  saiu: number;
 };
 
 export const useFerramentas = () => {
@@ -46,7 +48,9 @@ export const useFerramentas = () => {
               nome: ferramenta.nome || '',
               tag: ferramenta.tag || '',
               quantidade: quantidadeDisponivel,
-              categoria: ferramenta.categoria || ''
+              categoria: ferramenta.categoria || '',
+              caracteristicas: ferramenta.caracteristicas || {},
+              saiu: quantidadeSaiu
             };
           });
 

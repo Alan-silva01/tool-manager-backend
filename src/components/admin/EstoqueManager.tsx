@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface Material {
   id: string;
   nome: string;
-  tag: number;
+  tag: string;
   entrada: number;
   quantidade_minima: number;
   data_entrada_estoque: string;
@@ -52,9 +52,9 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
   // Estados para novo material
   const [novoMaterial, setNovoMaterial] = useState({
     nome: "",
-    tag: 0,
-    entrada: 0,
-    quantidade_minima: 0,
+    tag: "",
+    entrada: "",
+    quantidade_minima: "",
     unidade: "un"
   });
 
@@ -62,10 +62,37 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
   const [novaFerramenta, setNovaFerramenta] = useState({
     nome: "",
     categoria: "",
-    quantidade: 0,
+    quantidade: "",
     tag: "",
     caracteristicas: ""
   });
+
+  const formatarTexto = (texto: string) => {
+    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+  };
+
+  const formatarCaracteristicas = (texto: string) => {
+    if (!texto.trim()) return {};
+    
+    try {
+      // Se já for um JSON válido, retorna parseado
+      return JSON.parse(texto);
+    } catch {
+      // Se não for JSON, tenta converter características em formato chave:valor para JSON
+      const linhas = texto.split('\n').filter(linha => linha.trim());
+      const caracteristicasObj: any = {};
+      
+      linhas.forEach(linha => {
+        const [chave, ...valorParts] = linha.split(':');
+        if (chave && valorParts.length > 0) {
+          const valor = valorParts.join(':').trim();
+          caracteristicasObj[chave.trim()] = valor;
+        }
+      });
+      
+      return caracteristicasObj;
+    }
+  };
 
   const handleAddMaterial = async () => {
     if (!novoMaterial.nome || !novoMaterial.tag) {
@@ -82,11 +109,11 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
       const { error } = await supabase
         .from('materiais')
         .insert([{
-          nome: novoMaterial.nome,
+          nome: formatarTexto(novoMaterial.nome),
           tag: novoMaterial.tag,
-          entrada: novoMaterial.entrada,
+          entrada: Number(novoMaterial.entrada) || 0,
           saida: 0,
-          quantidade_minima: novoMaterial.quantidade_minima,
+          quantidade_minima: Number(novoMaterial.quantidade_minima) || 0,
           unidade: novoMaterial.unidade,
           data_entrada_estoque: new Date().toISOString().split('T')[0]
         }]);
@@ -103,14 +130,14 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
 
       toast({
         title: "Material adicionado",
-        description: `${novoMaterial.nome} foi adicionado ao estoque`,
+        description: `${formatarTexto(novoMaterial.nome)} foi adicionado ao estoque`,
       });
 
       setNovoMaterial({
         nome: "",
-        tag: 0,
-        entrada: 0,
-        quantidade_minima: 0,
+        tag: "",
+        entrada: "",
+        quantidade_minima: "",
         unidade: "un"
       });
 
@@ -134,7 +161,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
       const { error } = await supabase
         .from('materiais')
         .update({
-          nome: editingMaterial.nome,
+          nome: formatarTexto(editingMaterial.nome),
           tag: editingMaterial.tag,
           entrada: editingMaterial.entrada,
           quantidade_minima: editingMaterial.quantidade_minima,
@@ -154,7 +181,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
 
       toast({
         title: "Material editado",
-        description: `${editingMaterial.nome} foi editado com sucesso`,
+        description: `${formatarTexto(editingMaterial.nome)} foi editado com sucesso`,
       });
 
       setEditingMaterial(null);
@@ -174,29 +201,17 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
       return;
     }
 
-    let caracteristicasJson = {};
-    if (novaFerramenta.caracteristicas.trim()) {
-      try {
-        caracteristicasJson = JSON.parse(novaFerramenta.caracteristicas);
-      } catch (error) {
-        toast({
-          title: "Erro",
-          description: "Características devem estar em formato JSON válido",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
+    const caracteristicasJson = formatarCaracteristicas(novaFerramenta.caracteristicas);
 
     setIsAddingFerramenta(true);
     try {
       const { error } = await supabase
         .from('ferramentas')
         .insert([{
-          nome: novaFerramenta.nome,
-          categoria: novaFerramenta.categoria,
+          nome: formatarTexto(novaFerramenta.nome),
+          categoria: formatarTexto(novaFerramenta.categoria),
           tag: novaFerramenta.tag,
-          quantidade: novaFerramenta.quantidade,
+          quantidade: Number(novaFerramenta.quantidade) || 0,
           saiu: 0,
           status: 'disponível',
           caracteristicas: caracteristicasJson
@@ -214,13 +229,13 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
 
       toast({
         title: "Ferramenta adicionada",
-        description: `${novaFerramenta.nome} foi adicionada ao estoque`,
+        description: `${formatarTexto(novaFerramenta.nome)} foi adicionada ao estoque`,
       });
 
       setNovaFerramenta({
         nome: "",
         categoria: "",
-        quantidade: 0,
+        quantidade: "",
         tag: "",
         caracteristicas: ""
       });
@@ -242,25 +257,16 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
     if (!editingFerramenta) return;
 
     let caracteristicasJson = editingFerramenta.caracteristicas;
-    if (typeof editingFerramenta.caracteristicas === 'string' && editingFerramenta.caracteristicas.trim()) {
-      try {
-        caracteristicasJson = JSON.parse(editingFerramenta.caracteristicas);
-      } catch (error) {
-        toast({
-          title: "Erro",
-          description: "Características devem estar em formato JSON válido",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (typeof editingFerramenta.caracteristicas === 'string') {
+      caracteristicasJson = formatarCaracteristicas(editingFerramenta.caracteristicas);
     }
 
     try {
       const { error } = await supabase
         .from('ferramentas')
         .update({
-          nome: editingFerramenta.nome,
-          categoria: editingFerramenta.categoria,
+          nome: formatarTexto(editingFerramenta.nome),
+          categoria: formatarTexto(editingFerramenta.categoria),
           quantidade: editingFerramenta.quantidade,
           tag: editingFerramenta.tag,
           caracteristicas: caracteristicasJson
@@ -279,7 +285,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
 
       toast({
         title: "Ferramenta editada",
-        description: `${editingFerramenta.nome} foi editada com sucesso`,
+        description: `${formatarTexto(editingFerramenta.nome)} foi editada com sucesso`,
       });
 
       setEditingFerramenta(null);
@@ -344,9 +350,8 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                     <Label htmlFor="material-tag">Tag (Número)</Label>
                     <Input
                       id="material-tag"
-                      type="number"
                       value={novoMaterial.tag}
-                      onChange={(e) => setNovoMaterial({...novoMaterial, tag: Number(e.target.value)})}
+                      onChange={(e) => setNovoMaterial({...novoMaterial, tag: e.target.value})}
                       placeholder="Ex: 001"
                     />
                   </div>
@@ -356,7 +361,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                       id="material-entrada"
                       type="number"
                       value={novoMaterial.entrada}
-                      onChange={(e) => setNovoMaterial({...novoMaterial, entrada: Number(e.target.value)})}
+                      onChange={(e) => setNovoMaterial({...novoMaterial, entrada: e.target.value})}
                       placeholder="100"
                     />
                   </div>
@@ -366,7 +371,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                       id="material-minima"
                       type="number"
                       value={novoMaterial.quantidade_minima}
-                      onChange={(e) => setNovoMaterial({...novoMaterial, quantidade_minima: Number(e.target.value)})}
+                      onChange={(e) => setNovoMaterial({...novoMaterial, quantidade_minima: e.target.value})}
                       placeholder="10"
                     />
                   </div>
@@ -444,21 +449,21 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                       id="ferramenta-quantidade"
                       type="number"
                       value={novaFerramenta.quantidade}
-                      onChange={(e) => setNovaFerramenta({...novaFerramenta, quantidade: Number(e.target.value)})}
+                      onChange={(e) => setNovaFerramenta({...novaFerramenta, quantidade: e.target.value})}
                       placeholder="5"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="ferramenta-caracteristicas">Características (JSON)</Label>
+                    <Label htmlFor="ferramenta-caracteristicas">Características</Label>
                     <Textarea
                       id="ferramenta-caracteristicas"
                       value={novaFerramenta.caracteristicas}
                       onChange={(e) => setNovaFerramenta({...novaFerramenta, caracteristicas: e.target.value})}
-                      placeholder='{"cor": "Preta", "uso": "Perfuração em metais", "potência": "500W"}'
+                      placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`}
                       rows={4}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Digite as características em formato JSON válido
+                      Digite uma característica por linha no formato "nome: valor"
                     </p>
                   </div>
                   <Button 
@@ -548,9 +553,8 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                                     <Label htmlFor="edit-material-tag">Tag</Label>
                                     <Input
                                       id="edit-material-tag"
-                                      type="number"
                                       value={editingMaterial.tag}
-                                      onChange={(e) => setEditingMaterial({...editingMaterial, tag: Number(e.target.value)})}
+                                      onChange={(e) => setEditingMaterial({...editingMaterial, tag: e.target.value})}
                                     />
                                   </div>
                                   <div>
@@ -648,10 +652,17 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                               <Button 
                                 size="sm" 
                                 variant="ghost"
-                                onClick={() => setEditingFerramenta({
-                                  ...ferramenta,
-                                  caracteristicas: JSON.stringify(ferramenta.caracteristicas || {}, null, 2)
-                                })}
+                                onClick={() => {
+                                  const caracteristicasStr = ferramenta.caracteristicas 
+                                    ? Object.entries(ferramenta.caracteristicas)
+                                        .map(([key, value]) => `${key}: ${value}`)
+                                        .join('\n')
+                                    : '';
+                                  setEditingFerramenta({
+                                    ...ferramenta,
+                                    caracteristicas: caracteristicasStr
+                                  });
+                                }}
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -696,13 +707,17 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                                     />
                                   </div>
                                   <div>
-                                    <Label htmlFor="edit-ferramenta-caracteristicas">Características (JSON)</Label>
+                                    <Label htmlFor="edit-ferramenta-caracteristicas">Características</Label>
                                     <Textarea
                                       id="edit-ferramenta-caracteristicas"
-                                      value={typeof editingFerramenta.caracteristicas === 'string' ? editingFerramenta.caracteristicas : JSON.stringify(editingFerramenta.caracteristicas || {}, null, 2)}
+                                      value={typeof editingFerramenta.caracteristicas === 'string' ? editingFerramenta.caracteristicas : ''}
                                       onChange={(e) => setEditingFerramenta({...editingFerramenta, caracteristicas: e.target.value})}
                                       rows={6}
+                                      placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`}
                                     />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Digite uma característica por linha no formato "nome: valor"
+                                    </p>
                                   </div>
                                   <Button 
                                     className="w-full" 
