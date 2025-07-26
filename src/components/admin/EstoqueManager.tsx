@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +49,8 @@ interface EstoqueManagerProps {
   onRefresh: () => void;
 }
 
+type SetorType = "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central";
+
 export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueManagerProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,7 +89,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
     numero_whatsapp: ""
   });
 
-  const setores = [
+  const setores: SetorType[] = [
     "Usinagem industrial",
     "Oficina cantilever", 
     "Oficina de guias",
@@ -385,7 +386,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
         .insert({
           nome: novoFuncionario.nome.toUpperCase(),
           matricula: Number(novoFuncionario.matricula),
-          setor: novoFuncionario.setor,
+          setor: novoFuncionario.setor as SetorType,
           numero_whatsapp: novoFuncionario.numero_whatsapp,
           posse_ferramentas: []
         });
@@ -434,7 +435,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
         .update({
           nome: editingFuncionario.nome.toUpperCase(),
           matricula: editingFuncionario.matricula,
-          setor: editingFuncionario.setor,
+          setor: editingFuncionario.setor as SetorType,
           numero_whatsapp: editingFuncionario.numero_whatsapp
         })
         .eq('id', editingFuncionario.id);
