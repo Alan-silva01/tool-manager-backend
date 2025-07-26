@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,15 +89,22 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
   });
 
   const setores = [
-    "Produção",
-    "Manutenção", 
-    "Qualidade",
-    "Administrativo",
-    "Logística",
-    "Vendas",
-    "RH",
-    "Financeiro"
+    "Usinagem industrial",
+    "Oficina cantiléver", 
+    "Oficina de guias",
+    "Montagem de gaiola",
+    "Oficina de mancal",
+    "Usinagem de cilindros",
+    "Oficina central"
   ];
+
+  // Função para formatar data no formato dd-mm-aaaa
+  const formatarDataParaBanco = (data: Date) => {
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    return `${dia}-${mes}-${ano}`;
+  };
 
   // Carregar funcionários
   const fetchFuncionarios = async () => {
@@ -119,7 +127,9 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
           matricula: func.matricula || 0,
           setor: func.setor || '',
           numero_whatsapp: func.numero_whatsapp || '',
-          posse_ferramentas: Array.isArray(func.posse_ferramentas) ? func.posse_ferramentas : []
+          posse_ferramentas: Array.isArray(func.posse_ferramentas) 
+            ? func.posse_ferramentas.filter((item: any): item is string => typeof item === 'string')
+            : []
         }));
         setFuncionarios(funcionariosFormatados);
       }
@@ -167,6 +177,8 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
 
     setIsAddingMaterial(true);
     try {
+      const dataEntrada = formatarDataParaBanco(new Date());
+      
       const { error } = await supabase
         .from('materiais')
         .insert({
@@ -176,7 +188,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
           saida: 0,
           quantidade_minima: Number(novoMaterial.quantidade_minima) || 0,
           unidade: novoMaterial.unidade,
-          data_entrada_estoque: new Date().toISOString().split('T')[0]
+          data_entrada_estoque: dataEntrada
         });
 
       if (error) {
@@ -371,7 +383,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
       const { error } = await supabase
         .from('funcionarios')
         .insert({
-          nome: formatarTexto(novoFuncionario.nome),
+          nome: novoFuncionario.nome.toUpperCase(),
           matricula: Number(novoFuncionario.matricula),
           setor: novoFuncionario.setor,
           numero_whatsapp: novoFuncionario.numero_whatsapp,
@@ -390,7 +402,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
 
       toast({
         title: "Funcionário adicionado",
-        description: `${formatarTexto(novoFuncionario.nome)} foi adicionado com sucesso`,
+        description: `${novoFuncionario.nome.toUpperCase()} foi adicionado com sucesso`,
       });
 
       setNovoFuncionario({
@@ -420,7 +432,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
       const { error } = await supabase
         .from('funcionarios')
         .update({
-          nome: formatarTexto(editingFuncionario.nome),
+          nome: editingFuncionario.nome.toUpperCase(),
           matricula: editingFuncionario.matricula,
           setor: editingFuncionario.setor,
           numero_whatsapp: editingFuncionario.numero_whatsapp
@@ -439,7 +451,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
 
       toast({
         title: "Funcionário editado",
-        description: `${formatarTexto(editingFuncionario.nome)} foi editado com sucesso`,
+        description: `${editingFuncionario.nome.toUpperCase()} foi editado com sucesso`,
       });
 
       setEditingFuncionario(null);
@@ -587,8 +599,8 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Tag</TableHead>
-                    <TableHead>Quantidade Disponível</TableHead>
-                    <TableHead>Quantidade Mínima</TableHead>
+                    <TableHead className="text-center">Quantidade Disponível</TableHead>
+                    <TableHead className="text-center">Quantidade Mínima</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Data Entrada</TableHead>
                     <TableHead>Status</TableHead>
@@ -604,8 +616,8 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                         <TableCell>
                           <Badge variant="outline">{material.tag}</Badge>
                         </TableCell>
-                        <TableCell>{quantidadeDisponivel}</TableCell>
-                        <TableCell>{material.quantidade_minima}</TableCell>
+                        <TableCell className="text-center">{quantidadeDisponivel}</TableCell>
+                        <TableCell className="text-center">{material.quantidade_minima}</TableCell>
                         <TableCell>{material.unidade || 'un'}</TableCell>
                         <TableCell>{material.data_entrada_estoque}</TableCell>
                         <TableCell>
@@ -793,7 +805,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                     <TableHead>Nome</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Tag</TableHead>
-                    <TableHead>Quantidade Disponível</TableHead>
+                    <TableHead className="text-center">Quantidade Disponível</TableHead>
                     <TableHead>Características</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
@@ -808,7 +820,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                         <TableCell>
                           <Badge variant="outline">{ferramenta.tag}</Badge>
                         </TableCell>
-                        <TableCell>{quantidadeDisponivel}</TableCell>
+                        <TableCell className="text-center">{quantidadeDisponivel}</TableCell>
                         <TableCell>
                           {ferramenta.caracteristicas && Object.keys(ferramenta.caracteristicas).length > 0 ? (
                             <Badge variant="secondary">Com características</Badge>
@@ -980,10 +992,10 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Matrícula</TableHead>
+                    <TableHead className="text-center">Matrícula</TableHead>
                     <TableHead>Setor</TableHead>
                     <TableHead>WhatsApp</TableHead>
-                    <TableHead>Ferramentas</TableHead>
+                    <TableHead className="text-center">Ferramentas</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -996,12 +1008,12 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                     filteredFuncionarios.map((funcionario) => (
                       <TableRow key={funcionario.id}>
                         <TableCell className="font-medium">{funcionario.nome}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Badge variant="outline">{funcionario.matricula}</Badge>
                         </TableCell>
                         <TableCell>{funcionario.setor}</TableCell>
                         <TableCell>{funcionario.numero_whatsapp || 'Não informado'}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Badge variant={funcionario.posse_ferramentas.length > 0 ? "secondary" : "outline"}>
                             {funcionario.posse_ferramentas.length} ferramentas
                           </Badge>
