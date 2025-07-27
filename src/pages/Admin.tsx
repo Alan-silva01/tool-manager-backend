@@ -22,7 +22,30 @@ import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { supabase } from "@/integrations/supabase/client";
-import { EstoqueManager } from "@/components/admin/EstoqueManager";
+import EstoqueManager from "@/components/admin/EstoqueManager";
+
+// Definir os tipos para o Admin
+type AdminDatabaseMaterial = {
+  id: string;
+  nome: string;
+  tag: number;
+  quantidade_minima: number;
+  entrada: number;
+  saida: number;
+  data_entrada_estoque: string;
+  unidade: string;
+  quantidade?: number;
+};
+
+type AdminDatabaseFerramenta = {
+  id: string;
+  nome: string;
+  tag: string;
+  quantidade: number;
+  categoria: string;
+  caracteristicas: any;
+  saiu: number;
+};
 
 const Admin = () => {
   const { toast } = useToast();
@@ -218,9 +241,25 @@ const Admin = () => {
   
   // Calcular itens com estoque baixo baseado em dados reais
   const itensEstoqueBaixo = [
-    ...materiais.filter(material => material.quantidade <= material.quantidade_minima),
-    ...ferramentas.filter(ferramenta => ferramenta.quantidade <= 1) // Assumindo que ferramentas com 1 ou menos são consideradas estoque baixo
+    ...materiais.filter(material => {
+      const quantidade = material.quantidade || (material.entrada - material.saida);
+      return quantidade <= material.quantidade_minima;
+    }),
+    ...ferramentas.filter(ferramenta => (ferramenta.quantidade - ferramenta.saiu) <= 1)
   ].length;
+
+  // Converter materiais para o formato esperado pelo EstoqueManager
+  const materiaisFormatados: AdminDatabaseMaterial[] = materiais.map(material => ({
+    id: material.id,
+    nome: material.nome,
+    tag: typeof material.tag === 'string' ? parseInt(material.tag) : material.tag,
+    quantidade_minima: material.quantidade_minima,
+    entrada: material.entrada,
+    saida: material.saida,
+    data_entrada_estoque: material.data_entrada_estoque,
+    unidade: material.unidade,
+    quantidade: material.quantidade
+  }));
 
   if (!isLoggedIn) {
     return (
@@ -465,7 +504,7 @@ const Admin = () => {
           {/* Aba Controle de Estoque */}
           <TabsContent value="controle" className="space-y-6">
             <EstoqueManager 
-              materiais={materiais}
+              materiais={materiaisFormatados}
               ferramentas={ferramentas}
               onRefresh={handleRefresh}
             />

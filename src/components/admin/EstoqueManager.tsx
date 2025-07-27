@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +65,9 @@ const SETORES_DISPONIVEIS = [
   "Oficina de mancal",
   "Usinagem de cilindros",
   "Oficina central"
-];
+] as const;
+
+type SetorType = typeof SETORES_DISPONIVEIS[number];
 
 interface EstoqueManagerProps {
   materiais: DatabaseMaterial[];
@@ -217,13 +220,13 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
       
       const { error } = await supabase
         .from('funcionarios')
-        .insert([{
+        .insert({
           nome: novoFuncionario.nome,
           matricula: parseInt(novoFuncionario.matricula),
-          setor: setorFinal,
+          setor: setorFinal as SetorType,
           numero_whatsapp: novoFuncionario.numero_whatsapp,
           posse_ferramentas: novoFuncionario.posse_ferramentas
-        }]);
+        });
 
       if (error) throw error;
 
@@ -250,22 +253,22 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
     if (!editingItem) return;
 
     try {
-      let tabela = '';
-      let dadosAtualizados = {};
-
       if (editingItem.type === 'material') {
-        tabela = 'materiais';
-        dadosAtualizados = {
-          nome: editingItem.nome,
-          tag: parseInt(editingItem.tag),
-          quantidade_minima: parseInt(editingItem.quantidade_minima),
-          entrada: parseInt(editingItem.entrada),
-          saida: parseInt(editingItem.saida),
-          data_entrada_estoque: editingItem.data_entrada_estoque,
-          unidade: editingItem.unidade
-        };
+        const { error } = await supabase
+          .from('materiais')
+          .update({
+            nome: editingItem.nome,
+            tag: parseInt(editingItem.tag),
+            quantidade_minima: parseInt(editingItem.quantidade_minima),
+            entrada: parseInt(editingItem.entrada),
+            saida: parseInt(editingItem.saida),
+            data_entrada_estoque: editingItem.data_entrada_estoque,
+            unidade: editingItem.unidade
+          })
+          .eq('id', editingItem.id);
+
+        if (error) throw error;
       } else if (editingItem.type === 'ferramenta') {
-        tabela = 'ferramentas';
         let caracteristicas = {};
         if (editingItem.caracteristicas) {
           try {
@@ -276,31 +279,34 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
             caracteristicas = { descricao: editingItem.caracteristicas };
           }
         }
-        dadosAtualizados = {
-          nome: editingItem.nome,
-          tag: editingItem.tag,
-          quantidade: parseInt(editingItem.quantidade),
-          categoria: editingItem.categoria,
-          caracteristicas: caracteristicas,
-          saiu: parseInt(editingItem.saiu)
-        };
+
+        const { error } = await supabase
+          .from('ferramentas')
+          .update({
+            nome: editingItem.nome,
+            tag: editingItem.tag,
+            quantidade: parseInt(editingItem.quantidade),
+            categoria: editingItem.categoria,
+            caracteristicas: caracteristicas,
+            saiu: parseInt(editingItem.saiu)
+          })
+          .eq('id', editingItem.id);
+
+        if (error) throw error;
       } else if (editingItem.type === 'funcionario') {
-        tabela = 'funcionarios';
-        dadosAtualizados = {
-          nome: editingItem.nome,
-          matricula: parseInt(editingItem.matricula),
-          setor: editingItem.setor,
-          numero_whatsapp: editingItem.numero_whatsapp,
-          posse_ferramentas: editingItem.posse_ferramentas
-        };
+        const { error } = await supabase
+          .from('funcionarios')
+          .update({
+            nome: editingItem.nome,
+            matricula: parseInt(editingItem.matricula),
+            setor: editingItem.setor as SetorType,
+            numero_whatsapp: editingItem.numero_whatsapp,
+            posse_ferramentas: editingItem.posse_ferramentas
+          })
+          .eq('id', editingItem.id);
+
+        if (error) throw error;
       }
-
-      const { error } = await supabase
-        .from(tabela)
-        .update(dadosAtualizados)
-        .eq('id', editingItem.id);
-
-      if (error) throw error;
 
       toast.success("Item atualizado com sucesso!");
       setEditingItem(null);
@@ -316,29 +322,48 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
   };
 
   // Função para deletar item
-  const deletarItem = async (id: string, tipo: string) => {
+  const deletarMaterial = async (id: string) => {
     try {
-      let tabela = '';
-      if (tipo === 'material') tabela = 'materiais';
-      else if (tipo === 'ferramenta') tabela = 'ferramentas';
-      else if (tipo === 'funcionario') tabela = 'funcionarios';
-
       const { error } = await supabase
-        .from(tabela)
+        .from('materiais')
         .delete()
         .eq('id', id);
-
       if (error) throw error;
-
-      toast.success("Item deletado com sucesso!");
-      if (tipo === 'funcionario') {
-        carregarFuncionarios();
-      } else {
-        onRefresh();
-      }
+      toast.success("Material deletado com sucesso!");
+      onRefresh();
     } catch (error) {
-      console.error('Erro ao deletar item:', error);
-      toast.error("Erro ao deletar item");
+      console.error('Erro ao deletar material:', error);
+      toast.error("Erro ao deletar material");
+    }
+  };
+
+  const deletarFerramenta = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('ferramentas')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      toast.success("Ferramenta deletada com sucesso!");
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao deletar ferramenta:', error);
+      toast.error("Erro ao deletar ferramenta");
+    }
+  };
+
+  const deletarFuncionario = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('funcionarios')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      toast.success("Funcionário deletado com sucesso!");
+      carregarFuncionarios();
+    } catch (error) {
+      console.error('Erro ao deletar funcionário:', error);
+      toast.error("Erro ao deletar funcionário");
     }
   };
 
@@ -522,7 +547,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => deletarItem(material.id, 'material')}
+                        onClick={() => deletarMaterial(material.id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -633,7 +658,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => deletarItem(ferramenta.id, 'ferramenta')}
+                        onClick={() => deletarFerramenta(ferramenta.id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -750,7 +775,7 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => deletarItem(funcionario.id, 'funcionario')}
+                        onClick={() => deletarFuncionario(funcionario.id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
