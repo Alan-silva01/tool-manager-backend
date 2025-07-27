@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,19 +11,22 @@ import { supabase } from '@/integrations/supabase/client';
 interface Material {
   id: string;
   nome: string;
-  categoria: string;
-  descricao: string;
-  unidade: string;
-  quantidade_disponivel: number;
+  tag: string;
+  entrada: number;
   quantidade_minima: number;
+  data_entrada_estoque: string;
+  saida: number;
+  unidade: string;
 }
 
 interface Ferramenta {
   id: string;
   nome: string;
   tag: string;
+  quantidade: number;
   categoria: string;
-  disponivel: boolean;
+  caracteristicas: any;
+  saiu: number;
 }
 
 interface Funcionario {
@@ -31,6 +35,12 @@ interface Funcionario {
   matricula: number;
   setor: string;
   numero_whatsapp: string;
+}
+
+interface EstoqueManagerProps {
+  materiais: Material[];
+  ferramentas: Ferramenta[];
+  onRefresh: () => Promise<void>;
 }
 
 type SetorType = 
@@ -52,7 +62,7 @@ const setoresPredefinidos: SetorType[] = [
   "Oficina central"
 ];
 
-const EstoqueManager = () => {
+const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueManagerProps) => {
   const { toast } = useToast();
   const [novoFuncionario, setNovoFuncionario] = useState<Funcionario>({
     nome: '',
@@ -101,13 +111,13 @@ const EstoqueManager = () => {
 
       const { error } = await supabase
         .from('funcionarios')
-        .insert([{
+        .insert({
           nome: novoFuncionario.nome.toUpperCase(),
           matricula: novoFuncionario.matricula,
-          setor: setorFinal as SetorType,
+          setor: setorFinal,
           numero_whatsapp: novoFuncionario.numero_whatsapp || null,
           posse_ferramentas: []
-        }]);
+        });
 
       if (error) {
         console.error('Erro ao cadastrar funcionário:', error);
@@ -132,6 +142,9 @@ const EstoqueManager = () => {
         numero_whatsapp: ''
       });
       setSetorCustomizado('');
+
+      // Refresh data
+      await onRefresh();
 
     } catch (error) {
       console.error('Erro ao cadastrar funcionário:', error);
@@ -178,7 +191,7 @@ const EstoqueManager = () => {
               <Select 
                 value={novoFuncionario.setor} 
                 onValueChange={(value) => {
-                  setNovoFuncionario({...novoFuncionario, setor: value as SetorType});
+                  setNovoFuncionario({...novoFuncionario, setor: value});
                   if (value !== 'outro') {
                     setSetorCustomizado('');
                   }

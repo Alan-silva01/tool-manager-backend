@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +55,8 @@ type Ferramenta = {
   saiu: number;
 };
 
+type ItemWithType = (Material & { type: 'material' }) | (Ferramenta & { type: 'ferramenta' });
+
 const PegarItem = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -70,8 +71,8 @@ const PegarItem = () => {
   const [funcionarioSelecionado, setFuncionarioSelecionado] = useState<any>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
-  // Combine materials and tools for search
-  const allItems = [
+  // Combine materials and tools for search with type information
+  const allItems: ItemWithType[] = [
     ...materiais.map(m => ({ ...m, type: 'material' as const })),
     ...ferramentas.map(f => ({ ...f, type: 'ferramenta' as const }))
   ];
@@ -83,12 +84,10 @@ const PegarItem = () => {
     // Only show items that are available
     let isAvailable = false;
     if (item.type === 'material') {
-      const material = item as Material;
-      const quantidadeDisponivel = (material.entrada || 0) - (material.saida || 0);
+      const quantidadeDisponivel = (item.entrada || 0) - (item.saida || 0);
       isAvailable = quantidadeDisponivel > 0;
     } else {
-      const ferramenta = item as Ferramenta;
-      const quantidadeDisponivel = (ferramenta.quantidade || 0) - (ferramenta.saiu || 0);
+      const quantidadeDisponivel = (item.quantidade || 0) - (item.saiu || 0);
       isAvailable = quantidadeDisponivel > 0;
     }
     
@@ -155,11 +154,9 @@ const PegarItem = () => {
     
     let maxQuantity = 0;
     if (item.type === 'material') {
-      const material = item as Material;
-      maxQuantity = (material.entrada || 0) - (material.saida || 0);
+      maxQuantity = (item.entrada || 0) - (item.saida || 0);
     } else {
-      const ferramenta = item as Ferramenta;
-      maxQuantity = (ferramenta.quantidade || 0) - (ferramenta.saiu || 0);
+      maxQuantity = (item.quantidade || 0) - (item.saiu || 0);
     }
     
     if (quantity > maxQuantity) {
@@ -194,13 +191,12 @@ const PegarItem = () => {
         
         if (item.type === 'material') {
           // Update material quantity
-          const material = item as Material;
-          const novaQuantidadeSaida = (material.saida || 0) + quantity;
+          const novaQuantidadeSaida = (item.saida || 0) + quantity;
           
           const { error } = await supabase
             .from('materiais')
             .update({ saida: novaQuantidadeSaida })
-            .eq('id', material.id);
+            .eq('id', item.id);
             
           if (error) {
             console.error('Erro ao atualizar material:', error);
@@ -208,13 +204,12 @@ const PegarItem = () => {
           }
         } else {
           // Update tool quantity and add to employee
-          const ferramenta = item as Ferramenta;
-          const novaQuantidadeSaiu = (ferramenta.saiu || 0) + quantity;
+          const novaQuantidadeSaiu = (item.saiu || 0) + quantity;
           
           const { error } = await supabase
             .from('ferramentas')
             .update({ saiu: novaQuantidadeSaiu })
-            .eq('id', ferramenta.id);
+            .eq('id', item.id);
             
           if (error) {
             console.error('Erro ao atualizar ferramenta:', error);
@@ -249,15 +244,15 @@ const PegarItem = () => {
     }
   };
 
-  const getAvailableQuantity = (item: Material | Ferramenta) => {
-    if (isMaterial(item)) {
+  const getAvailableQuantity = (item: ItemWithType) => {
+    if (item.type === 'material') {
       return (item.entrada || 0) - (item.saida || 0);
     } else {
       return (item.quantidade || 0) - (item.saiu || 0);
     }
   };
 
-  const renderItemCard = (item: Material | Ferramenta) => {
+  const renderItemCard = (item: ItemWithType) => {
     const availableQuantity = getAvailableQuantity(item);
     const isSelected = selectedItems.includes(item.tag);
     const selectedQuantity = quantities[item.tag] || 1;
