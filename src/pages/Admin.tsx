@@ -21,7 +21,7 @@ import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { supabase } from "@/integrations/supabase/client";
-import EstoqueManager from "@/components/admin/EstoqueManager";
+import { EstoqueManager } from "@/components/admin/EstoqueManager";
 
 const Admin = () => {
   const { toast } = useToast();
