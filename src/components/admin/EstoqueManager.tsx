@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,11 @@ import { Plus, Edit, Trash2, Package, Wrench } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "@/hooks/use-toast";
 
-type Material = {
+// Tipos baseados no banco de dados
+type DatabaseMaterial = {
   id: string;
   nome: string;
-  tag: string;
+  tag: number;
   entrada: number;
   quantidade_minima: number;
   data_entrada_estoque: string;
@@ -22,30 +24,43 @@ type Material = {
   unidade: string;
 };
 
-type Ferramenta = {
+type DatabaseFerramenta = {
   id: string;
   nome: string;
   tag: string;
   quantidade: number;
+  categoria: string;
+  caracteristicas?: any;
+  data_emprestado?: string;
+  funcionario_emprestado?: string;
+  matricula?: number;
+  saiu?: number;
+  status?: string;
 };
 
-type Funcionario = {
+type DatabaseFuncionario = {
   id: string;
   nome: string;
-  matricula: string;
+  matricula: number;
   setor: string;
   numero_whatsapp: string;
-  posse_ferramentas: string[];
+  posse_ferramentas: any;
 };
 
-const EstoqueManager = () => {
-  const [materiais, setMateriais] = useState<Material[]>([]);
-  const [ferramentas, setFerramentas] = useState<Ferramenta[]>([]);
-  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+interface EstoqueManagerProps {
+  materiais: DatabaseMaterial[];
+  ferramentas: DatabaseFerramenta[];
+  onRefresh: () => Promise<void>;
+}
+
+const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisProps, ferramentas: ferramentasProps, onRefresh }) => {
+  const [materiais, setMateriais] = useState<DatabaseMaterial[]>([]);
+  const [ferramentas, setFerramentas] = useState<DatabaseFerramenta[]>([]);
+  const [funcionarios, setFuncionarios] = useState<DatabaseFuncionario[]>([]);
 
   const [novoMaterial, setNovoMaterial] = useState({
     nome: '',
-    tag: '',
+    tag: 0,
     entrada: 0,
     quantidade_minima: 0,
     data_entrada_estoque: '',
@@ -55,7 +70,8 @@ const EstoqueManager = () => {
   const [novaFerramenta, setNovaFerramenta] = useState({
     nome: '',
     tag: '',
-    quantidade: 0
+    quantidade: 0,
+    categoria: 'Geral'
   });
   const [novoFuncionario, setNovoFuncionario] = useState({
     nome: '',
@@ -65,9 +81,9 @@ const EstoqueManager = () => {
     posse_ferramentas: []
   });
 
-  const [materialEditando, setMaterialEditando] = useState<Material | null>(null);
-  const [ferramentaEditando, setFerramentaEditando] = useState<Ferramenta | null>(null);
-  const [funcionarioEditando, setFuncionarioEditando] = useState<Funcionario | null>(null);
+  const [materialEditando, setMaterialEditando] = useState<DatabaseMaterial | null>(null);
+  const [ferramentaEditando, setFerramentaEditando] = useState<DatabaseFerramenta | null>(null);
+  const [funcionarioEditando, setFuncionarioEditando] = useState<DatabaseFuncionario | null>(null);
 
   const setoresPermitidos = [
     "Usinagem industrial",
@@ -78,8 +94,6 @@ const EstoqueManager = () => {
     "Usinagem de cilindros",
     "Oficina central"
   ] as const;
-
-  type SetorPermitido = typeof setoresPermitidos[number];
 
   const fetchMateriais = async () => {
     try {
@@ -134,7 +148,14 @@ const EstoqueManager = () => {
       }
 
       if (data) {
-        setFuncionarios(data);
+        const funcionariosFormatados = data.map(func => ({
+          ...func,
+          matricula: func.matricula?.toString() || '',
+          posse_ferramentas: Array.isArray(func.posse_ferramentas) 
+            ? func.posse_ferramentas as string[]
+            : []
+        }));
+        setFuncionarios(funcionariosFormatados as any);
       }
     } catch (error) {
       console.error('Erro ao carregar funcionários:', error);
@@ -179,7 +200,7 @@ const EstoqueManager = () => {
 
       setNovoMaterial({
         nome: '',
-        tag: '',
+        tag: 0,
         entrada: 0,
         quantidade_minima: 0,
         data_entrada_estoque: '',
@@ -307,7 +328,8 @@ const EstoqueManager = () => {
       setNovaFerramenta({
         nome: '',
         tag: '',
-        quantidade: 0
+        quantidade: 0,
+        categoria: 'Geral'
       });
 
       await fetchFerramentas();
@@ -411,7 +433,7 @@ const EstoqueManager = () => {
       const funcionarioData = {
         nome: novoFuncionario.nome,
         matricula: Number(novoFuncionario.matricula),
-        setor: novoFuncionario.setor as SetorPermitido,
+        setor: novoFuncionario.setor,
         numero_whatsapp: novoFuncionario.numero_whatsapp || '',
         posse_ferramentas: []
       };
@@ -468,7 +490,7 @@ const EstoqueManager = () => {
       const funcionarioData = {
         nome: funcionarioEditando.nome,
         matricula: Number(funcionarioEditando.matricula),
-        setor: funcionarioEditando.setor as SetorPermitido,
+        setor: funcionarioEditando.setor,
         numero_whatsapp: funcionarioEditando.numero_whatsapp || '',
         posse_ferramentas: funcionarioEditando.posse_ferramentas || []
       };
@@ -571,8 +593,9 @@ const EstoqueManager = () => {
                   <Label htmlFor="tag">Tag</Label>
                   <Input
                     id="tag"
+                    type="number"
                     value={novoMaterial.tag}
-                    onChange={(e) => setNovoMaterial({...novoMaterial, tag: e.target.value})}
+                    onChange={(e) => setNovoMaterial({...novoMaterial, tag: Number(e.target.value)})}
                     placeholder="Tag"
                   />
                 </div>
@@ -633,10 +656,13 @@ const EstoqueManager = () => {
             <CardContent>
               <div className="grid grid-cols-1 gap-4">
                 {materiais.map((material) => (
-                  <div key={material.id} className="flex justify-between items-center">
+                  <div key={material.id} className="flex justify-between items-center p-4 border rounded-lg">
                     <div>
                       <p className="font-medium">{material.nome}</p>
                       <p className="text-sm text-muted-foreground">TAG: {material.tag}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Disponível: {(material.entrada || 0) - (material.saida || 0)} {material.unidade}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -700,6 +726,15 @@ const EstoqueManager = () => {
                     placeholder="Quantidade"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="categoria">Categoria</Label>
+                  <Input
+                    id="categoria"
+                    value={novaFerramenta.categoria}
+                    onChange={(e) => setNovaFerramenta({...novaFerramenta, categoria: e.target.value})}
+                    placeholder="Categoria"
+                  />
+                </div>
               </div>
               <Button onClick={adicionarFerramenta}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -718,10 +753,13 @@ const EstoqueManager = () => {
             <CardContent>
               <div className="grid grid-cols-1 gap-4">
                 {ferramentas.map((ferramenta) => (
-                  <div key={ferramenta.id} className="flex justify-between items-center">
+                  <div key={ferramenta.id} className="flex justify-between items-center p-4 border rounded-lg">
                     <div>
                       <p className="font-medium">{ferramenta.nome}</p>
                       <p className="text-sm text-muted-foreground">TAG: {ferramenta.tag}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Disponível: {(ferramenta.quantidade || 0) - (ferramenta.saiu || 0)}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -815,7 +853,7 @@ const EstoqueManager = () => {
             <CardContent>
               <div className="grid grid-cols-1 gap-4">
                 {funcionarios.map((funcionario) => (
-                  <div key={funcionario.id} className="flex justify-between items-center">
+                  <div key={funcionario.id} className="flex justify-between items-center p-4 border rounded-lg">
                     <div>
                       <p className="font-medium">{funcionario.nome}</p>
                       <p className="text-sm text-muted-foreground">Matrícula: {funcionario.matricula}</p>
@@ -865,8 +903,9 @@ const EstoqueManager = () => {
               <Label htmlFor="tag">Tag</Label>
               <Input
                 id="tag"
-                value={materialEditando?.tag || ''}
-                onChange={(e) => setMaterialEditando({...materialEditando!, tag: e.target.value})}
+                type="number"
+                value={materialEditando?.tag || 0}
+                onChange={(e) => setMaterialEditando({...materialEditando!, tag: Number(e.target.value)})}
                 placeholder="Tag"
               />
             </div>
@@ -949,6 +988,15 @@ const EstoqueManager = () => {
                 value={ferramentaEditando?.quantidade || 0}
                 onChange={(e) => setFerramentaEditando({...ferramentaEditando!, quantidade: Number(e.target.value)})}
                 placeholder="Quantidade"
+              />
+            </div>
+            <div>
+              <Label htmlFor="categoria">Categoria</Label>
+              <Input
+                id="categoria"
+                value={ferramentaEditando?.categoria || ''}
+                onChange={(e) => setFerramentaEditando({...ferramentaEditando!, categoria: e.target.value})}
+                placeholder="Categoria"
               />
             </div>
           </div>
