@@ -22,30 +22,15 @@ import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { supabase } from "@/integrations/supabase/client";
-import EstoqueManager from "@/components/admin/EstoqueManager";
+import { EstoqueManager } from "@/components/admin/EstoqueManager";
 
-// Definir os tipos para o Admin
-type AdminDatabaseMaterial = {
-  id: string;
-  nome: string;
-  tag: number;
-  quantidade_minima: number;
-  entrada: number;
-  saida: number;
-  data_entrada_estoque: string;
-  unidade: string;
-  quantidade?: number;
-};
-
-type AdminDatabaseFerramenta = {
-  id: string;
-  nome: string;
-  tag: string;
-  quantidade: number;
-  categoria: string;
-  caracteristicas: any;
-  saiu: number;
-};
+// Mock data para estoque e PDFs - mantém os dados existentes
+const estoqueAlerta = [
+  { id: 1, nome: "WD-40", atual: 2, minimo: 3, unidade: "latas", categoria: "Material" },
+  { id: 2, nome: "Torquímetro", atual: 1, minimo: 2, unidade: "un", categoria: "Ferramenta" },
+  { id: 3, nome: "Escova de aço", atual: 4, minimo: 5, unidade: "un", categoria: "Material" },
+  { id: 4, nome: "Óleo de corte", atual: 8, minimo: 10, unidade: "litros", categoria: "Material" },
+];
 
 const Admin = () => {
   const { toast } = useToast();
@@ -56,7 +41,6 @@ const Admin = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [funcionariosComFerramentas, setFuncionariosComFerramentas] = useState<any[]>([]);
   const [isNotifying, setIsNotifying] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const { funcionarios, loading: loadingFuncionarios } = useFuncionarios();
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
@@ -122,33 +106,19 @@ const Admin = () => {
     if (!loadingFerramentas && ferramentas.length > 0) {
       fetchFuncionariosComFerramentas();
     }
-  }, [loadingFerramentas, ferramentas, refreshKey]);
+  }, [loadingFerramentas, ferramentas]);
 
-  // Função para recarregar dados sem fazer reload da página
   const handleRefresh = async () => {
     setIsRefreshing(true);
     
-    try {
-      // Incrementar o refreshKey para forçar recarregamento dos hooks
-      setRefreshKey(prev => prev + 1);
-      
-      // Recarregar funcionários com ferramentas
-      await fetchFuncionariosComFerramentas();
-      
-      toast({
-        title: "Dados atualizados",
-        description: "As informações foram recarregadas com sucesso",
-      });
-    } catch (error) {
-      console.error('Erro ao atualizar dados:', error);
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível recarregar os dados. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
+    // Recarregar dados das ferramentas e materiais
+    window.location.reload();
+    
+    setIsRefreshing(false);
+    toast({
+      title: "Dados atualizados",
+      description: "As informações foram recarregadas com sucesso",
+    });
   };
 
   const notificarFuncionario = async (funcionario: any, ferramenta: any) => {
@@ -238,28 +208,7 @@ const Admin = () => {
   // Calcular estatísticas
   const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
   const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;
-  
-  // Calcular itens com estoque baixo baseado em dados reais
-  const itensEstoqueBaixo = [
-    ...materiais.filter(material => {
-      const quantidade = material.quantidade || (material.entrada - material.saida);
-      return quantidade <= material.quantidade_minima;
-    }),
-    ...ferramentas.filter(ferramenta => (ferramenta.quantidade - ferramenta.saiu) <= 1)
-  ].length;
-
-  // Converter materiais para o formato esperado pelo EstoqueManager
-  const materiaisFormatados: AdminDatabaseMaterial[] = materiais.map(material => ({
-    id: material.id,
-    nome: material.nome,
-    tag: typeof material.tag === 'string' ? parseInt(material.tag) : material.tag,
-    quantidade_minima: material.quantidade_minima,
-    entrada: material.entrada,
-    saida: material.saida,
-    data_entrada_estoque: material.data_entrada_estoque,
-    unidade: material.unidade,
-    quantidade: material.quantidade
-  }));
+  const itensEstoqueBaixo = estoqueAlerta.length;
 
   if (!isLoggedIn) {
     return (
@@ -504,7 +453,7 @@ const Admin = () => {
           {/* Aba Controle de Estoque */}
           <TabsContent value="controle" className="space-y-6">
             <EstoqueManager 
-              materiais={materiaisFormatados}
+              materiais={materiais}
               ferramentas={ferramentas}
               onRefresh={handleRefresh}
             />

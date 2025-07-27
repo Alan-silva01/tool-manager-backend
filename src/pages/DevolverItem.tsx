@@ -293,7 +293,7 @@ const DevolverItem = () => {
                         id="matricula"
                         value={matricula}
                         onChange={(e) => setMatricula(e.target.value)}
-                        placeholder="Ex: 7679"
+                        placeholder="Digite sua matrícula"
                         className="text-center text-lg"
                       />
                     </div>
