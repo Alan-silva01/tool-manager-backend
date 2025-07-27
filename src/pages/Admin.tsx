@@ -21,7 +21,7 @@ import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { supabase } from "@/integrations/supabase/client";
-import { EstoqueManager } from "@/components/admin/EstoqueManager";
+import EstoqueManager from "@/components/admin/EstoqueManager";
 
 const Admin = () => {
   const { toast } = useToast();
@@ -38,7 +38,6 @@ const Admin = () => {
   const { ferramentas, loading: loadingFerramentas, refetch: refetchFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais, refetch: refetchMateriais } = useMateriais();
 
-  // Função para buscar funcionários com ferramentas
   const fetchFuncionariosComFerramentas = async () => {
     try {
       console.log('Buscando funcionários com ferramentas...');
@@ -204,7 +203,6 @@ const Admin = () => {
     navigate("/");
   };
 
-  // Filtrar funcionários com ferramentas
   const filteredFuncionarios = funcionariosComFerramentas.filter(
     funcionario => 
       funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -213,11 +211,9 @@ const Admin = () => {
       funcionario.ferramentas.some((f: any) => f.nome.toLowerCase().includes(searchTerm.toLowerCase()) || f.tag.includes(searchTerm))
   );
 
-  // Calcular estatísticas
   const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
   const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;
   
-  // Calcular estoque baixo com dados reais
   const itensEstoqueBaixo = materiais.filter(material => {
     const quantidadeDisponivel = (material.entrada || 0) - (material.saida || 0);
     return quantidadeDisponivel <= (material.quantidade_minima || 0);
@@ -289,7 +285,6 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header Admin */}
       <header className="bg-primary text-primary-foreground p-4 shadow-lg">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -330,7 +325,6 @@ const Admin = () => {
       </header>
 
       <main className="container mx-auto p-6">
-        {/* Dashboard Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           <Card>
             <CardContent className="p-6">
@@ -381,14 +375,12 @@ const Admin = () => {
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
         <Tabs defaultValue="emprestimos" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
             <TabsTrigger value="controle">Controle de Estoque</TabsTrigger>
           </TabsList>
 
-          {/* Aba Empréstimos */}
           <TabsContent value="emprestimos" className="space-y-6">
             <Card>
               <CardHeader>
@@ -463,7 +455,6 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          {/* Aba Controle de Estoque */}
           <TabsContent value="controle" className="space-y-6">
             <EstoqueManager 
               materiais={materiais}

@@ -1,255 +1,436 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Package, Search, User, RefreshCw, Wifi } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { useNavigate } from "react-router-dom";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
+import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { useNFC } from "@/hooks/useNFC";
 
-interface Material {
-  id: string;
-  nome: string;
-  categoria: string;
-  descricao: string;
-  quantidade_disponivel: number;
-  quantidade_minima: number;
-  unidade: string;
-}
-
-interface Ferramenta {
+type Ferramenta = {
   id: string;
   nome: string;
   tag: string;
+  quantidade: number;
   categoria: string;
-  disponivel: boolean;
-}
+  caracteristicas: any;
+  saiu: number;
+};
+
+type Material = {
+  id: string;
+  nome: string;
+  tag: string;
+  entrada: number;
+  quantidade_minima: number;
+  data_entrada_estoque: string;
+  saida: number;
+  unidade: string;
+};
 
 const PegarItem = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const { buscarFuncionario } = useFuncionarios();
-  const { ferramentas } = useFerramentas();
-  const { materiais } = useMateriais();
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [funcionarioMatricula, setFuncionarioMatricula] = useState("");
+  const [funcionarioInfo, setFuncionarioInfo] = useState<any>(null);
+  const [selectedItems, setSelectedItems] = useState<(Ferramenta | Material)[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingFuncionario, setIsLoadingFuncionario] = useState(false);
 
-  const [step, setStep] = useState<'busca' | 'funcionario'>('busca');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [selectedItem, setSelectedItem] = useState<Material | Ferramenta | null>(null);
-  const [matricula, setMatricula] = useState('');
-  const [funcionario, setFuncionario] = useState<any>(null);
+  const { ferramentas, loading: loadingFerramentas } = useFerramentas();
+  const { materiais, loading: loadingMateriais } = useMateriais();
+  const { buscarFuncionario, adicionarFerramentaAoFuncionario } = useFuncionarios();
+  const { isNFCAvailable, readNFC, isReading } = useNFC();
 
-  const isMaterial = (item: any): item is Material => {
-  return 'unidade' in item;
-};
-
-const isFerramenta = (item: any): item is Ferramenta => {
-  return 'tag' in item;
-};
-
-  const handleSearch = () => {
-    if (!searchQuery) {
-      setSearchResults([]);
-      return;
-    }
-
-    const normalizedQuery = searchQuery.toLowerCase();
-
-    const results = [
-      ...ferramentas.filter(ferramenta => ferramenta.nome.toLowerCase().includes(normalizedQuery) || ferramenta.tag.toLowerCase().includes(normalizedQuery)),
-      ...materiais.filter(material => material.nome.toLowerCase().includes(normalizedQuery) || material.categoria.toLowerCase().includes(normalizedQuery))
-    ];
-
-    setSearchResults(results);
+  // Função para verificar se é ferramenta
+  const isFerramenta = (item: Ferramenta | Material): item is Ferramenta => {
+    return 'quantidade' in item && 'categoria' in item;
   };
 
-  const handleMatriculaSubmit = () => {
-    const func = buscarFuncionario(matricula);
-    if (func) {
-      setFuncionario(func);
+  // Função para verificar se é material
+  const isMaterial = (item: Ferramenta | Material): item is Material => {
+    return 'entrada' in item && 'unidade' in item;
+  };
+
+  // Combinar e filtrar itens disponíveis
+  const availableItems = [
+    ...ferramentas.filter(f => isFerramenta(f) && f.quantidade > 0),
+    ...materiais.filter(m => isMaterial(m) && (m.entrada - m.saida) > 0)
+  ].filter(item => {
+    const nome = item.nome.toLowerCase();
+    const tag = item.tag.toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return nome.includes(search) || tag.includes(search);
+  });
+
+  const handleNFCRead = async () => {
+    try {
+      const nfcData = await readNFC();
+      if (nfcData) {
+        console.log('Dados NFC lidos:', nfcData);
+        setFuncionarioMatricula(nfcData);
+        await buscarFuncionarioInfo(nfcData);
+      }
+    } catch (error) {
+      console.error('Erro ao ler NFC:', error);
       toast({
-        title: "Funcionário encontrado!",
-        description: `Bem-vindo, ${func.nome}`,
-      });
-      navigate('/');
-    } else {
-      toast({
-        title: "Matrícula não encontrada",
-        description: "Verifique a matrícula digitada",
+        title: "Erro ao ler NFC",
+        description: "Não foi possível ler o cartão NFC. Tente novamente.",
         variant: "destructive",
       });
     }
   };
 
+  const buscarFuncionarioInfo = async (matricula: string) => {
+    if (!matricula) return;
+
+    setIsLoadingFuncionario(true);
+    try {
+      const funcionario = buscarFuncionario(matricula);
+      if (funcionario) {
+        setFuncionarioInfo(funcionario);
+        toast({
+          title: "Funcionário encontrado!",
+          description: `${funcionario.nome} - ${funcionario.setor}`,
+        });
+      } else {
+        setFuncionarioInfo(null);
+        toast({
+          title: "Funcionário não encontrado",
+          description: "Verifique a matrícula informada",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar funcionário:', error);
+      setFuncionarioInfo(null);
+      toast({
+        title: "Erro ao buscar funcionário",
+        description: "Ocorreu um erro ao buscar o funcionário",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingFuncionario(false);
+    }
+  };
+
+  const handleAddItem = (item: Ferramenta | Material) => {
+    const isAlreadySelected = selectedItems.some(selectedItem => selectedItem.id === item.id);
+    
+    if (isAlreadySelected) {
+      toast({
+        title: "Item já selecionado",
+        description: "Este item já está na lista de retirada",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedItems([...selectedItems, item]);
+    toast({
+      title: "Item adicionado",
+      description: `${item.nome} foi adicionado à lista de retirada`,
+    });
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    setSelectedItems(selectedItems.filter(item => item.id !== itemId));
+  };
+
+  const handleConfirmRetirada = async () => {
+    if (!funcionarioInfo) {
+      toast({
+        title: "Funcionário não identificado",
+        description: "Identifique o funcionário antes de confirmar a retirada",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedItems.length === 0) {
+      toast({
+        title: "Nenhum item selecionado",
+        description: "Selecione pelo menos um item para retirar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // Processar apenas ferramentas (materiais não são rastreados por funcionário)
+      const ferramentasParaRetirar = selectedItems.filter(isFerramenta);
+      
+      for (const ferramenta of ferramentasParaRetirar) {
+        const sucesso = await adicionarFerramentaAoFuncionario(funcionarioMatricula, ferramenta.tag);
+        if (!sucesso) {
+          throw new Error(`Erro ao registrar ferramenta ${ferramenta.nome}`);
+        }
+      }
+
+      toast({
+        title: "Retirada confirmada!",
+        description: `${selectedItems.length} item(s) retirado(s) por ${funcionarioInfo.nome}`,
+      });
+
+      // Limpar seleções
+      setSelectedItems([]);
+      setFuncionarioInfo(null);
+      setFuncionarioMatricula("");
+
+    } catch (error) {
+      console.error('Erro ao confirmar retirada:', error);
+      toast({
+        title: "Erro ao confirmar retirada",
+        description: "Ocorreu um erro ao registrar a retirada",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getQuantidadeDisponivel = (item: Ferramenta | Material) => {
+    if (isFerramenta(item)) {
+      return item.quantidade;
+    } else if (isMaterial(item)) {
+      return item.entrada - item.saida;
+    }
+    return 0;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-primary text-primary-foreground p-4 shadow-sm">
-        <div className="container mx-auto">
-          <h1 className="text-xl font-bold">Pegar Item</h1>
-          <p className="text-sm text-primary-foreground/80">
-            {step === 'busca' && 'Busque o item desejado'}
-            {step === 'funcionario' && 'Informe sua matrícula'}
-          </p>
+      <header className="bg-primary text-primary-foreground p-4 shadow-lg">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/")}
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center">
+              <img 
+                src="/lovable-uploads/3b7074e8-e9f6-44ab-ba68-338592581b56.png" 
+                alt="AVB Logo" 
+                className="w-8 h-8"
+              />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">Pegar Item</h1>
+              <p className="text-sm text-primary-foreground/80">Retirada de Ferramentas e Materiais</p>
+            </div>
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto p-4 max-w-md lg:max-w-lg">
-        {/* Busca de Item */}
-        {step === 'busca' && (
-          <div className="space-y-4 mt-6">
-            <Card>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="search">Buscar Item</Label>
-                  <Input
-                    id="search"
-                    placeholder="Nome ou TAG"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <Button className="w-full" onClick={handleSearch}>
-                  Buscar
-                </Button>
-              </CardContent>
-            </Card>
-
-            {searchResults.length > 0 && (
-  <div className="space-y-2">
-    <h3 className="font-semibold">Resultados da busca:</h3>
-    {searchResults.map((item) => (
-      <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedItem(item)}>
-        <CardContent className="p-4">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <h4 className="font-semibold">{item.nome}</h4>
-              {isFerramenta(item) && (
-                <Badge variant="outline" className="mt-1">
-                  TAG: {item.tag}
-                </Badge>
-              )}
-              {isMaterial(item) && item.quantidade_disponivel !== undefined && (
-                <Badge variant={item.quantidade_disponivel > 0 ? "default" : "destructive"} className="mt-1">
-                  Disponível: {item.quantidade_disponivel}
-                </Badge>
-              )}
-              {item.categoria && (
-                <Badge variant="secondary" className="mt-1 ml-2">
-                  {item.categoria}
-                </Badge>
-              )}
-            </div>
-            <div className="text-right">
-              {isFerramenta(item) && (
-                <Badge variant={item.disponivel ? "default" : "destructive"}>
-                  {item.disponivel ? "Disponível" : "Em uso"}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-)}
-
-            {selectedItem && (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <Package className="w-5 h-5" />
-        {selectedItem.nome}
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      {isFerramenta(selectedItem) && (
-        <>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">TAG:</span>
-            <Badge variant="outline">{selectedItem.tag}</Badge>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Status:</span>
-            <Badge variant={selectedItem.disponivel ? "default" : "destructive"}>
-              {selectedItem.disponivel ? "Disponível" : "Em uso"}
-            </Badge>
-          </div>
-        </>
-      )}
-      
-      {isMaterial(selectedItem) && selectedItem.quantidade_disponivel !== undefined && (
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Quantidade disponível:</span>
-          <Badge variant={selectedItem.quantidade_disponivel > 0 ? "default" : "destructive"}>
-            {selectedItem.quantidade_disponivel} {selectedItem.unidade}
-          </Badge>
-        </div>
-      )}
-
-      {selectedItem.categoria && (
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Categoria:</span>
-          <Badge variant="secondary">{selectedItem.categoria}</Badge>
-        </div>
-      )}
-
-      {selectedItem.descricao && (
-        <div>
-          <span className="text-sm text-muted-foreground block mb-1">Descrição:</span>
-          <p className="text-sm">{selectedItem.descricao}</p>
-        </div>
-      )}
-
-      {isFerramenta(selectedItem) && selectedItem.disponivel && (
-        <Button 
-          className="w-full" 
-          onClick={() => setStep('funcionario')}
-        >
-          Pegar Ferramenta
-        </Button>
-      )}
-      
-      {isMaterial(selectedItem) && selectedItem.quantidade_disponivel !== undefined && selectedItem.quantidade_disponivel > 0 && (
-        <Button 
-          className="w-full" 
-          onClick={() => setStep('funcionario')}
-        >
-          Pegar Material
-        </Button>
-      )}
-    </CardContent>
-  </Card>
-)}
-          </div>
-        )}
-
-        {/* Identificação do Funcionário */}
-        {step === 'funcionario' && (
-          <div className="space-y-4 mt-6">
-            <Card>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="matricula">Sua Matrícula</Label>
+      <main className="container mx-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Coluna 1: Identificação do Funcionário */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Identificação do Funcionário
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="matricula">Matrícula do Funcionário</Label>
+                <div className="flex gap-2">
                   <Input
                     id="matricula"
-                    placeholder="Digite sua matrícula"
-                    value={matricula}
-                    onChange={(e) => setMatricula(e.target.value)}
-                    className="text-center text-lg"
+                    placeholder="Digite a matrícula..."
+                    value={funcionarioMatricula}
+                    onChange={(e) => setFuncionarioMatricula(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        buscarFuncionarioInfo(funcionarioMatricula);
+                      }
+                    }}
                   />
+                  <Button
+                    onClick={() => buscarFuncionarioInfo(funcionarioMatricula)}
+                    disabled={isLoadingFuncionario}
+                  >
+                    {isLoadingFuncionario ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Buscar"}
+                  </Button>
                 </div>
-                <Button className="w-full" onClick={handleMatriculaSubmit}>
-                  Confirmar Matrícula
+              </div>
+
+              {/* Botão NFC */}
+              <div className="space-y-2">
+                <Label>Ou usar NFC</Label>
+                <Button
+                  onClick={handleNFCRead}
+                  disabled={isReading || !isNFCAvailable}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Wifi className="w-4 h-4 mr-2" />
+                  {isReading ? "Lendo NFC..." : "Ler Cartão NFC"}
                 </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                {!isNFCAvailable && (
+                  <p className="text-sm text-muted-foreground">
+                    NFC não disponível neste dispositivo
+                  </p>
+                )}
+              </div>
+
+              {/* Informações do Funcionário */}
+              {funcionarioInfo && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <h3 className="font-semibold">{funcionarioInfo.nome}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Matrícula: {funcionarioInfo.matricula}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Setor: {funcionarioInfo.setor}
+                  </p>
+                  <Badge variant="outline" className="mt-2">
+                    Funcionário Identificado
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Coluna 2: Lista de Itens Disponíveis */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Itens Disponíveis
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Search className="w-4 h-4" />
+                <Input
+                  placeholder="Buscar por nome ou tag..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingFerramentas || loadingMateriais ? (
+                <div className="flex items-center justify-center p-8">
+                  <RefreshCw className="w-8 h-8 animate-spin" />
+                  <span className="ml-2">Carregando itens...</span>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {availableItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                    >
+                      <div className="flex-1">
+                        <h4 className="font-medium">{item.nome}</h4>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Badge variant="outline">{item.tag}</Badge>
+                          <span>Disponível: {getQuantidadeDisponivel(item)}</span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddItem(item)}
+                        disabled={!funcionarioInfo}
+                      >
+                        Adicionar
+                      </Button>
+                    </div>
+                  ))}
+                  {availableItems.length === 0 && (
+                    <div className="text-center py-8">
+                      <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">
+                        {searchTerm ? "Nenhum item encontrado" : "Carregando itens..."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Coluna 3: Itens Selecionados */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Itens Selecionados ({selectedItems.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {selectedItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-muted/50"
+                  >
+                    <div className="flex-1">
+                      <h4 className="font-medium">{item.nome}</h4>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Badge variant="outline">{item.tag}</Badge>
+                        {isFerramenta(item) && (
+                          <span>Ferramenta</span>
+                        )}
+                        {isMaterial(item) && (
+                          <span>Material</span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleRemoveItem(item.id)}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                ))}
+                {selectedItems.length === 0 && (
+                  <div className="text-center py-8">
+                    <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      Nenhum item selecionado
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <Separator className="my-4" />
+
+              <Button
+                onClick={handleConfirmRetirada}
+                disabled={!funcionarioInfo || selectedItems.length === 0 || isProcessing}
+                className="w-full"
+              >
+                {isProcessing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  `Confirmar Retirada (${selectedItems.length} item${selectedItems.length !== 1 ? 's' : ''})`
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </main>
     </div>
   );
