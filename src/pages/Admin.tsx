@@ -1,293 +1,99 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Users, 
-  Package, 
-  AlertTriangle, 
-  FileText, 
-  Search,
-  LogOut,
-  Bell,
-  RefreshCw
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Package, Users, Settings, AlertTriangle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
-import { supabase } from "@/integrations/supabase/client";
 import EstoqueManager from "@/components/admin/EstoqueManager";
 
-const Admin = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [funcionariosComFerramentas, setFuncionariosComFerramentas] = useState<any[]>([]);
-  const [isNotifying, setIsNotifying] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+// Define interfaces for Admin page
+interface AdminMaterial {
+  id: string;
+  nome: string;
+  categoria: string;
+  descricao: string;
+  unidade: string;
+  quantidade_disponivel: number;
+  quantidade_minima: number;
+}
 
-  const { funcionarios, loading: loadingFuncionarios } = useFuncionarios();
+interface AdminFerramenta {
+  id: string;
+  nome: string;
+  tag: string;
+  categoria: string;
+  disponivel: boolean;
+  caracteristicas: {
+    cor?: string;
+    tensao?: string;
+    peso?: string;
+    marca?: string;
+    modelo?: string;
+    observacoes?: string;
+  };
+}
+
+const Admin = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'overview' | 'estoque'>('overview');
   const { ferramentas, loading: loadingFerramentas, refetch: refetchFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais, refetch: refetchMateriais } = useMateriais();
 
-  const fetchFuncionariosComFerramentas = async () => {
-    try {
-      console.log('Buscando funcionários com ferramentas...');
-      
-      const { data, error } = await supabase
-        .from('funcionarios')
-        .select('id, nome, matricula, setor, posse_ferramentas, numero_whatsapp')
-        .not('posse_ferramentas', 'is', null);
-
-      if (error) {
-        console.error('Erro ao buscar funcionários:', error);
-        return;
-      }
-
-      if (data && Array.isArray(data)) {
-        console.log('Funcionários encontrados:', data);
-        
-        const funcionariosFormatados = data
-          .filter(func => {
-            const posseFerramenta = Array.isArray(func.posse_ferramentas) 
-              ? func.posse_ferramentas 
-              : [];
-            return posseFerramenta.length > 0;
-          })
-          .map(func => {
-            const posseFerramenta = Array.isArray(func.posse_ferramentas) 
-              ? func.posse_ferramentas as string[]
-              : [];
-
-            const ferramentasDetalhadas = posseFerramenta.map((tag: string) => {
-              const ferramenta = ferramentas.find(f => f.tag === tag);
-              return {
-                tag,
-                nome: ferramenta?.nome || 'Ferramenta não encontrada'
-              };
-            });
-
-            return {
-              id: func.id,
-              nome: func.nome,
-              matricula: func.matricula?.toString() || '',
-              setor: func.setor || '',
-              numero_whatsapp: func.numero_whatsapp || '',
-              ferramentas: ferramentasDetalhadas
-            };
-          });
-
-        console.log('Funcionários formatados:', funcionariosFormatados);
-        setFuncionariosComFerramentas(funcionariosFormatados);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar funcionários com ferramentas:', error);
-    }
+  const handleRefresh = () => {
+    refetchFerramentas();
+    refetchMateriais();
   };
 
-  useEffect(() => {
-    if (!loadingFerramentas && ferramentas.length > 0) {
-      fetchFuncionariosComFerramentas();
-    }
-  }, [loadingFerramentas, ferramentas, refreshKey]);
+  // Convert ferramentas to AdminFerramenta format
+  const adminFerramentas: AdminFerramenta[] = ferramentas.map(ferramenta => ({
+    id: ferramenta.id,
+    nome: ferramenta.nome,
+    tag: ferramenta.tag,
+    categoria: ferramenta.categoria,
+    disponivel: ferramenta.quantidade > 0,
+    caracteristicas: ferramenta.caracteristicas || {}
+  }));
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    
-    try {
-      // Recarregar dados das ferramentas, materiais e funcionários
-      await Promise.all([
-        refetchFerramentas?.(),
-        refetchMateriais?.(),
-        fetchFuncionariosComFerramentas()
-      ]);
-      
-      setRefreshKey(prev => prev + 1);
-      
-      toast({
-        title: "Dados atualizados",
-        description: "As informações foram recarregadas com sucesso",
-      });
-    } catch (error) {
-      console.error('Erro ao atualizar dados:', error);
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível atualizar os dados",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // Convert materiais to AdminMaterial format
+  const adminMateriais: AdminMaterial[] = materiais.map(material => ({
+    id: material.id,
+    nome: material.nome,
+    categoria: 'Material', // Default category
+    descricao: material.nome, // Use name as description
+    unidade: material.unidade,
+    quantidade_disponivel: material.entrada - material.saida,
+    quantidade_minima: material.quantidade_minima
+  }));
 
-  const notificarFuncionario = async (funcionario: any, ferramenta: any) => {
-    if (!funcionario.numero_whatsapp) {
-      toast({
-        title: "Erro",
-        description: "Funcionário não possui número de WhatsApp cadastrado",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Calculate statistics
+  const totalFerramentas = adminFerramentas.length;
+  const ferramentasDisponiveis = adminFerramentas.filter(f => f.disponivel).length;
+  const totalMateriais = adminMateriais.length;
+  const estoquesBaixos = adminMateriais.filter(m => m.quantidade_disponivel <= m.quantidade_minima);
 
-    const notificationKey = `${funcionario.id}-${ferramenta.tag}`;
-    setIsNotifying(notificationKey);
-
-    try {
-      const webhookData = {
-        nome: funcionario.nome,
-        setor: funcionario.setor,
-        matricula: funcionario.matricula,
-        nome_ferramenta: ferramenta.nome,
-        tag_ferramenta: ferramenta.tag,
-        numero_whatsapp: funcionario.numero_whatsapp
-      };
-
-      console.log('Enviando notificação:', webhookData);
-
-      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/notificar-funcionario', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookData),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Notificação enviada",
-          description: `Funcionário ${funcionario.nome} foi notificado sobre a devolução da ${ferramenta.nome}`,
-        });
-      } else {
-        throw new Error('Erro ao enviar notificação');
-      }
-    } catch (error) {
-      console.error('Erro ao notificar funcionário:', error);
-      toast({
-        title: "Erro ao notificar",
-        description: "Não foi possível enviar a notificação. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsNotifying(null);
-    }
-  };
-
-  const handleLogin = () => {
-    if (loginData.username === "admin" && loginData.password === "admin123") {
-      setIsLoggedIn(true);
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Bem-vindo ao painel administrativo",
-      });
-    } else {
-      toast({
-        title: "Credenciais inválidas",
-        description: "Verifique usuário e senha",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setLoginData({ username: "", password: "" });
-    navigate("/");
-  };
-
-  const filteredFuncionarios = funcionariosComFerramentas.filter(
-    funcionario => 
-      funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      funcionario.matricula.includes(searchTerm) ||
-      funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      funcionario.ferramentas.some((f: any) => f.nome.toLowerCase().includes(searchTerm.toLowerCase()) || f.tag.includes(searchTerm))
-  );
-
-  const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
-  const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;
-  
-  const itensEstoqueBaixo = materiais.filter(material => {
-    const quantidadeDisponivel = (material.entrada || 0) - (material.saida || 0);
-    return quantidadeDisponivel <= (material.quantidade_minima || 0);
-  }).length;
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-full max-w-md">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <img 
-                  src="/lovable-uploads/3b7074e8-e9f6-44ab-ba68-338592581b56.png" 
-                  alt="AVB Logo" 
-                  className="w-14 h-14"
-                />
-              </div>
-              <CardTitle className="text-2xl">Painel Administrativo</CardTitle>
-              <p className="text-muted-foreground">AVB - Aço Verde Brasil</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="username">Usuário</Label>
-                <Input
-                  id="username"
-                  value={loginData.username}
-                  onChange={(e) => setLoginData({...loginData, username: e.target.value})}
-                  placeholder="Digite seu usuário"
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-                  placeholder="Digite sua senha"
-                />
-              </div>
-              <Button 
-                className="w-full" 
-                onClick={handleLogin}
-                disabled={!loginData.username || !loginData.password}
-              >
-                <img 
-                  src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
-                  alt="AVB Logo" 
-                  className="w-4 h-4 mr-2 brightness-0 invert"
-                />
-                Entrar no Sistema
-              </Button>
-              <div className="text-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate("/")}
-                >
-                  Voltar ao Sistema Principal
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  const tabs = [
+    { id: 'overview', label: 'Visão Geral', icon: Package },
+    { id: 'estoque', label: 'Gerenciar Estoque', icon: Settings }
+  ];
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="bg-primary text-primary-foreground p-4 shadow-lg">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/")}
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
             <div className="w-10 h-10 rounded-full flex items-center justify-center">
               <img 
                 src="/lovable-uploads/3b7074e8-e9f6-44ab-ba68-338592581b56.png" 
@@ -297,173 +103,159 @@ const Admin = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold">Painel Administrativo</h1>
-              <p className="text-sm text-primary-foreground/80">AVB - Sistema de Controle</p>
+              <p className="text-sm text-primary-foreground/80">Gerenciamento do Sistema</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={loadingFerramentas || loadingMateriais}
+            className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/20"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loadingFerramentas || loadingMateriais ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
       </header>
 
-      <main className="container mx-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Funcionários com Ferramentas</p>
-                  <p className="text-2xl font-bold">{totalFuncionariosComFerramentas}</p>
-                </div>
-                <Users className="w-8 h-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Emprestado</p>
-                  <p className="text-2xl font-bold">{totalFerramentasEmprestadas}</p>
-                </div>
-                <Package className="w-8 h-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Estoque Baixo</p>
-                  <p className="text-2xl font-bold text-accent">{itensEstoqueBaixo}</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-accent" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Materiais</p>
-                  <p className="text-2xl font-bold">{materiais.length}</p>
-                </div>
-                <FileText className="w-8 h-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
+      {/* Navigation Tabs */}
+      <nav className="border-b bg-card">
+        <div className="container mx-auto">
+          <div className="flex space-x-8">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+      </nav>
 
-        <Tabs defaultValue="emprestimos" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
-            <TabsTrigger value="controle">Controle de Estoque</TabsTrigger>
-          </TabsList>
+      {/* Main Content */}
+      <main className="container mx-auto p-6">
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Ferramentas</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalFerramentas}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {ferramentasDisponiveis} disponíveis
+                  </p>
+                </CardContent>
+              </Card>
 
-          <TabsContent value="emprestimos" className="space-y-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Materiais</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalMateriais}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Itens cadastrados
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Estoque Baixo</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-destructive">{estoquesBaixos.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Materiais com estoque baixo
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Funcionários</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">-</div>
+                  <p className="text-xs text-muted-foreground">
+                    Cadastrados no sistema
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Estoque Baixo Details */}
+            {estoquesBaixos.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
+                    Materiais com Estoque Baixo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {estoquesBaixos.map((material) => (
+                      <div key={material.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <h4 className="font-medium">{material.nome}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Disponível: {material.quantidade_disponivel} {material.unidade}
+                          </p>
+                        </div>
+                        <Badge variant="destructive">
+                          Mínimo: {material.quantidade_minima}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recent Activity */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Controle de Empréstimos ({totalFerramentasEmprestadas} ferramentas)
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Search className="w-4 h-4" />
-                  <Input
-                    placeholder="Buscar por funcionário, ferramenta, tag ou matrícula..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-sm"
-                  />
-                </div>
+                <CardTitle>Atividades Recentes</CardTitle>
               </CardHeader>
               <CardContent>
-                {loadingFuncionarios || loadingFerramentas ? (
-                  <div className="flex items-center justify-center p-8">
-                    <RefreshCw className="w-8 h-8 animate-spin" />
-                    <span className="ml-2">Carregando dados...</span>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredFuncionarios.map((funcionario) => (
-                      <Card key={funcionario.id} className="border-l-4 border-l-primary">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h3 className="font-semibold text-lg">{funcionario.nome}</h3>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Badge variant="outline">#{funcionario.matricula}</Badge>
-                                <span>{funcionario.setor}</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">Ferramentas em posse:</p>
-                            {funcionario.ferramentas.map((ferramenta: any, index: number) => (
-                              <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="secondary">{ferramenta.tag}</Badge>
-                                  <span className="text-sm">{ferramenta.nome}</span>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => notificarFuncionario(funcionario, ferramenta)}
-                                  disabled={isNotifying === `${funcionario.id}-${ferramenta.tag}`}
-                                  className="ml-2"
-                                >
-                                  <Bell className="w-4 h-4 mr-2" />
-                                  {isNotifying === `${funcionario.id}-${ferramenta.tag}` ? 'Notificando...' : 'Solicitar Devolução'}
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {filteredFuncionarios.length === 0 && (
-                      <div className="text-center py-8">
-                        <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                        <p className="text-muted-foreground">Nenhum funcionário encontrado com ferramentas</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="text-center py-8">
+                  <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    Nenhuma atividade recente para mostrar
+                  </p>
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="controle" className="space-y-6">
-            <EstoqueManager 
-              materiais={materiais}
-              ferramentas={ferramentas}
-              onRefresh={handleRefresh}
-              key={refreshKey}
-            />
-          </TabsContent>
-        </Tabs>
+        {activeTab === 'estoque' && (
+          <EstoqueManager
+            materiais={adminMateriais}
+            ferramentas={adminFerramentas}
+            onRefresh={handleRefresh}
+          />
+        )}
       </main>
     </div>
   );

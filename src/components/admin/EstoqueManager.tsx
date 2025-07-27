@@ -128,20 +128,18 @@ const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueManagerPro
         setorFinal = novoFuncionario.setor;
       }
 
-      // Verificar se o setor é válido ou customizado
-      const setorParaInserir = setoresPredefinidos.includes(setorFinal as SetorType) 
-        ? setorFinal as SetorType
-        : setorFinal;
+      // Criar o objeto para inserção
+      const funcionarioData = {
+        nome: novoFuncionario.nome.toUpperCase(),
+        matricula: novoFuncionario.matricula,
+        setor: setorFinal as SetorType,
+        numero_whatsapp: novoFuncionario.numero_whatsapp || null,
+        posse_ferramentas: []
+      };
 
       const { error } = await supabase
         .from('funcionarios')
-        .insert([{
-          nome: novoFuncionario.nome.toUpperCase(),
-          matricula: novoFuncionario.matricula,
-          setor: setorParaInserir,
-          numero_whatsapp: novoFuncionario.numero_whatsapp || null,
-          posse_ferramentas: []
-        }]);
+        .insert([funcionarioData]);
 
       if (error) {
         console.error('Erro ao cadastrar funcionário:', error);

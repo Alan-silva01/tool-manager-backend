@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +48,7 @@ const PegarItem = () => {
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais } = useMateriais();
   const { buscarFuncionario, adicionarFerramentaAoFuncionario } = useFuncionarios();
-  const { isNFCAvailable, readNFC, isReading } = useNFC();
+  const { readNFC, isReading, isSupported } = useNFC();
 
   // Função para verificar se é ferramenta
   const isFerramenta = (item: Ferramenta | Material): item is Ferramenta => {
@@ -75,8 +76,8 @@ const PegarItem = () => {
       const nfcData = await readNFC();
       if (nfcData) {
         console.log('Dados NFC lidos:', nfcData);
-        setFuncionarioMatricula(nfcData);
-        await buscarFuncionarioInfo(nfcData);
+        setFuncionarioMatricula(nfcData.matricula);
+        await buscarFuncionarioInfo(nfcData.matricula);
       }
     } catch (error) {
       console.error('Erro ao ler NFC:', error);
@@ -276,14 +277,14 @@ const PegarItem = () => {
                 <Label>Ou usar NFC</Label>
                 <Button
                   onClick={handleNFCRead}
-                  disabled={isReading || !isNFCAvailable}
+                  disabled={isReading || !isSupported}
                   className="w-full"
                   variant="outline"
                 >
                   <Wifi className="w-4 h-4 mr-2" />
                   {isReading ? "Lendo NFC..." : "Ler Cartão NFC"}
                 </Button>
-                {!isNFCAvailable && (
+                {!isSupported && (
                   <p className="text-sm text-muted-foreground">
                     NFC não disponível neste dispositivo
                   </p>
