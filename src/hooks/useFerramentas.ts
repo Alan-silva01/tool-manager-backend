@@ -16,54 +16,54 @@ export const useFerramentas = () => {
   const [ferramentas, setFerramentas] = useState<Ferramenta[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchFerramentas = async () => {
-      try {
-        console.log('Buscando ferramentas...');
-        
-        const { data, error } = await supabase
-          .from('ferramentas')
-          .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
+  const fetchFerramentas = async () => {
+    try {
+      console.log('Buscando ferramentas...');
+      
+      const { data, error } = await supabase
+        .from('ferramentas')
+        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
 
-        console.log('Resposta do Supabase:', { data, error });
+      console.log('Resposta do Supabase:', { data, error });
 
-        if (error) {
-          console.error('Erro ao buscar ferramentas:', error);
-          return;
-        }
-
-        if (data) {
-          console.log('Dados brutos:', data);
-          console.log('Quantidade de ferramentas encontradas:', data.length);
-          
-          const ferramentasFormatadas = data.map(ferramenta => {
-            const quantidadeTotal = Number(ferramenta.quantidade) || 0;
-            const quantidadeSaiu = Number(ferramenta.saiu) || 0;
-            const quantidadeDisponivel = quantidadeTotal - quantidadeSaiu;
-            
-            console.log(`${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}`);
-            
-            return {
-              id: ferramenta.id,
-              nome: ferramenta.nome || '',
-              tag: ferramenta.tag || '',
-              quantidade: quantidadeDisponivel,
-              categoria: ferramenta.categoria || '',
-              caracteristicas: ferramenta.caracteristicas || {},
-              saiu: quantidadeSaiu
-            };
-          });
-
-          console.log('Ferramentas formatadas:', ferramentasFormatadas);
-          setFerramentas(ferramentasFormatadas);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar ferramentas:', error);
-      } finally {
-        setLoading(false);
+      if (error) {
+        console.error('Erro ao buscar ferramentas:', error);
+        return;
       }
-    };
 
+      if (data) {
+        console.log('Dados brutos:', data);
+        console.log('Quantidade de ferramentas encontradas:', data.length);
+        
+        const ferramentasFormatadas = data.map(ferramenta => {
+          const quantidadeTotal = Number(ferramenta.quantidade) || 0;
+          const quantidadeSaiu = Number(ferramenta.saiu) || 0;
+          const quantidadeDisponivel = quantidadeTotal - quantidadeSaiu;
+          
+          console.log(`${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}`);
+          
+          return {
+            id: ferramenta.id,
+            nome: ferramenta.nome || '',
+            tag: ferramenta.tag || '',
+            quantidade: quantidadeDisponivel,
+            categoria: ferramenta.categoria || '',
+            caracteristicas: ferramenta.caracteristicas || {},
+            saiu: quantidadeSaiu
+          };
+        });
+
+        console.log('Ferramentas formatadas:', ferramentasFormatadas);
+        setFerramentas(ferramentasFormatadas);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar ferramentas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchFerramentas();
   }, []);
 
@@ -71,6 +71,7 @@ export const useFerramentas = () => {
 
   return {
     ferramentas,
-    loading
+    loading,
+    refetch: fetchFerramentas
   };
 };
