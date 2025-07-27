@@ -63,7 +63,7 @@ const PegarItem = () => {
   const { funcionarios, loading: loadingFuncionarios } = useFuncionarios();
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais } = useMateriais();
-  const { nfcData, isNFCSupported, startNFCReading, stopNFCReading } = useNFC();
+  const { readNFC, isReading, isSupported } = useNFC();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState<"todos" | "material" | "ferramenta">("todos");
@@ -114,31 +114,34 @@ const PegarItem = () => {
     return matchesSearch && matchesType && hasQuantity;
   });
 
-  // Processar dados do NFC
-  useEffect(() => {
-    if (nfcData) {
-      console.log('Dados NFC recebidos:', nfcData);
-      
-      const item = allItems.find(i => 
-        i.tag.toString() === nfcData ||
-        i.nome.toLowerCase().includes(nfcData.toLowerCase())
-      );
-      
-      if (item) {
-        setSelectedItem(item);
-        toast({
-          title: "Item encontrado via NFC",
-          description: `${item.nome} foi selecionado automaticamente`,
-        });
-      } else {
-        toast({
-          title: "Item não encontrado",
-          description: "Nenhum item foi encontrado com os dados do NFC",
-          variant: "destructive",
-        });
+  // Função para ler NFC
+  const handleNFCReading = async () => {
+    try {
+      const nfcData = await readNFC();
+      if (nfcData && nfcData.matricula) {
+        const item = allItems.find(i => 
+          i.tag.toString() === nfcData.matricula ||
+          i.nome.toLowerCase().includes(nfcData.matricula.toLowerCase())
+        );
+        
+        if (item) {
+          setSelectedItem(item);
+          toast({
+            title: "Item encontrado via NFC",
+            description: `${item.nome} foi selecionado automaticamente`,
+          });
+        } else {
+          toast({
+            title: "Item não encontrado",
+            description: "Nenhum item foi encontrado com os dados do NFC",
+            variant: "destructive",
+          });
+        }
       }
+    } catch (error) {
+      console.error('Erro ao ler NFC:', error);
     }
-  }, [nfcData, allItems]);
+  };
 
   const handleEmprestimo = async () => {
     if (!selectedItem || !selectedFuncionario) {
@@ -266,15 +269,16 @@ const PegarItem = () => {
               <p className="text-sm text-primary-foreground/80">AVB - Aço Verde Brasil</p>
             </div>
           </div>
-          {isNFCSupported && (
+          {isSupported && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={startNFCReading}
+              onClick={handleNFCReading}
+              disabled={isReading}
               className="text-primary-foreground hover:bg-primary-foreground/20"
             >
               <Zap className="w-4 h-4 mr-2" />
-              Ler NFC
+              {isReading ? "Lendo..." : "Ler NFC"}
             </Button>
           )}
         </div>

@@ -42,7 +42,7 @@ type DatabaseFuncionario = {
   id: string;
   nome: string;
   matricula: number;
-  setor: string;
+  setor: "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central";
   numero_whatsapp: string;
   posse_ferramentas: any;
 };
@@ -75,8 +75,8 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
   });
   const [novoFuncionario, setNovoFuncionario] = useState({
     nome: '',
-    matricula: '',
-    setor: '',
+    matricula: 0,
+    setor: '' as "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central",
     numero_whatsapp: '',
     posse_ferramentas: []
   });
@@ -148,14 +148,7 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
       }
 
       if (data) {
-        const funcionariosFormatados = data.map(func => ({
-          ...func,
-          matricula: func.matricula?.toString() || '',
-          posse_ferramentas: Array.isArray(func.posse_ferramentas) 
-            ? func.posse_ferramentas as string[]
-            : []
-        }));
-        setFuncionarios(funcionariosFormatados as any);
+        setFuncionarios(data);
       }
     } catch (error) {
       console.error('Erro ao carregar funcionários:', error);
@@ -432,7 +425,7 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
     try {
       const funcionarioData = {
         nome: novoFuncionario.nome,
-        matricula: Number(novoFuncionario.matricula),
+        matricula: novoFuncionario.matricula,
         setor: novoFuncionario.setor,
         numero_whatsapp: novoFuncionario.numero_whatsapp || '',
         posse_ferramentas: []
@@ -459,8 +452,8 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
 
       setNovoFuncionario({
         nome: '',
-        matricula: '',
-        setor: '',
+        matricula: 0,
+        setor: '' as any,
         numero_whatsapp: '',
         posse_ferramentas: []
       });
@@ -489,7 +482,7 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
     try {
       const funcionarioData = {
         nome: funcionarioEditando.nome,
-        matricula: Number(funcionarioEditando.matricula),
+        matricula: funcionarioEditando.matricula,
         setor: funcionarioEditando.setor,
         numero_whatsapp: funcionarioEditando.numero_whatsapp || '',
         posse_ferramentas: funcionarioEditando.posse_ferramentas || []
@@ -808,14 +801,15 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
                   <Label htmlFor="matricula">Matrícula</Label>
                   <Input
                     id="matricula"
+                    type="number"
                     value={novoFuncionario.matricula}
-                    onChange={(e) => setNovoFuncionario({...novoFuncionario, matricula: e.target.value})}
+                    onChange={(e) => setNovoFuncionario({...novoFuncionario, matricula: Number(e.target.value)})}
                     placeholder="Matrícula"
                   />
                 </div>
                 <div>
                   <Label htmlFor="setor">Setor</Label>
-                  <Select value={novoFuncionario.setor} onValueChange={(value) => setNovoFuncionario({...novoFuncionario, setor: value})}>
+                  <Select value={novoFuncionario.setor} onValueChange={(value: any) => setNovoFuncionario({...novoFuncionario, setor: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o setor" />
                     </SelectTrigger>
@@ -1026,14 +1020,15 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
               <Label htmlFor="matricula">Matrícula</Label>
               <Input
                 id="matricula"
-                value={funcionarioEditando?.matricula || ''}
-                onChange={(e) => setFuncionarioEditando({...funcionarioEditando!, matricula: e.target.value})}
+                type="number"
+                value={funcionarioEditando?.matricula || 0}
+                onChange={(e) => setFuncionarioEditando({...funcionarioEditando!, matricula: Number(e.target.value)})}
                 placeholder="Matrícula"
               />
             </div>
             <div>
               <Label htmlFor="setor">Setor</Label>
-              <Select value={funcionarioEditando?.setor || ''} onValueChange={(value) => setFuncionarioEditando({...funcionarioEditando!, setor: value})}>
+              <Select value={funcionarioEditando?.setor || ''} onValueChange={(value: any) => setFuncionarioEditando({...funcionarioEditando!, setor: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o setor" />
                 </SelectTrigger>
