@@ -1,91 +1,95 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Package, Wrench } from "lucide-react";
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Edit, Search, Package, Wrench, Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-// Tipos baseados no banco de dados
-type DatabaseMaterial = {
+interface Material {
   id: string;
   nome: string;
-  tag: number;
+  tag: string;
   entrada: number;
   quantidade_minima: number;
   data_entrada_estoque: string;
   saida: number;
   unidade: string;
-};
+}
 
-type DatabaseFerramenta = {
+interface Ferramenta {
   id: string;
   nome: string;
-  tag: string;
-  quantidade: number;
   categoria: string;
-  caracteristicas?: any;
-  data_emprestado?: string;
-  funcionario_emprestado?: string;
-  matricula?: number;
-  saiu?: number;
-  status?: string;
-};
+  quantidade: number;
+  tag: string;
+  caracteristicas: any;
+  saiu: number;
+}
 
-type DatabaseFuncionario = {
+interface Funcionario {
   id: string;
   nome: string;
   matricula: number;
-  setor: "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central";
+  setor: string;
   numero_whatsapp: string;
-  posse_ferramentas: any;
-};
-
-interface EstoqueManagerProps {
-  materiais: DatabaseMaterial[];
-  ferramentas: DatabaseFerramenta[];
-  onRefresh: () => Promise<void>;
+  posse_ferramentas: string[];
 }
 
-const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisProps, ferramentas: ferramentasProps, onRefresh }) => {
-  const [materiais, setMateriais] = useState<DatabaseMaterial[]>([]);
-  const [ferramentas, setFerramentas] = useState<DatabaseFerramenta[]>([]);
-  const [funcionarios, setFuncionarios] = useState<DatabaseFuncionario[]>([]);
+interface EstoqueManagerProps {
+  materiais: Material[];
+  ferramentas: Ferramenta[];
+  onRefresh: () => void;
+}
 
+type SetorType = "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central";
+
+export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueManagerProps) => {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddingMaterial, setIsAddingMaterial] = useState(false);
+  const [isAddingFerramenta, setIsAddingFerramenta] = useState(false);
+  const [isAddingFuncionario, setIsAddingFuncionario] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [editingFerramenta, setEditingFerramenta] = useState<Ferramenta | null>(null);
+  const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [loadingFuncionarios, setLoadingFuncionarios] = useState(false);
+
+  // Estados para novo material
   const [novoMaterial, setNovoMaterial] = useState({
-    nome: '',
-    tag: 0,
-    entrada: 0,
-    quantidade_minima: 0,
-    data_entrada_estoque: '',
-    saida: 0,
-    unidade: 'un'
+    nome: "",
+    tag: "",
+    entrada: "",
+    quantidade_minima: "",
+    unidade: "un"
   });
+
+  // Estados para nova ferramenta
   const [novaFerramenta, setNovaFerramenta] = useState({
-    nome: '',
-    tag: '',
-    quantidade: 0,
-    categoria: 'Geral'
+    nome: "",
+    categoria: "",
+    quantidade: "",
+    tag: "",
+    caracteristicas: ""
   });
+
+  // Estados para novo funcionário
   const [novoFuncionario, setNovoFuncionario] = useState({
-    nome: '',
-    matricula: 0,
-    setor: '' as "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central",
-    numero_whatsapp: '',
-    posse_ferramentas: []
+    nome: "",
+    matricula: "",
+    setor: "",
+    numero_whatsapp: ""
   });
 
-  const [materialEditando, setMaterialEditando] = useState<DatabaseMaterial | null>(null);
-  const [ferramentaEditando, setFerramentaEditando] = useState<DatabaseFerramenta | null>(null);
-  const [funcionarioEditando, setFuncionarioEditando] = useState<DatabaseFuncionario | null>(null);
-
-  const setoresPermitidos = [
+  const setores: SetorType[] = [
     "Usinagem industrial",
     "Oficina cantilever", 
     "Oficina de guias",
@@ -93,49 +97,19 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
     "Oficina de mancal",
     "Usinagem de cilindros",
     "Oficina central"
-  ] as const;
+  ];
 
-  const fetchMateriais = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('materiais')
-        .select('*')
-        .order('nome');
-
-      if (error) {
-        console.error('Erro ao buscar materiais:', error);
-        return;
-      }
-
-      if (data) {
-        setMateriais(data);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar materiais:', error);
-    }
+  // Função para formatar data no formato dd-mm-aaaa
+  const formatarDataParaBanco = (data: Date) => {
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    return `${dia}-${mes}-${ano}`;
   };
 
-  const fetchFerramentas = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ferramentas')
-        .select('*')
-        .order('nome');
-
-      if (error) {
-        console.error('Erro ao buscar ferramentas:', error);
-        return;
-      }
-
-      if (data) {
-        setFerramentas(data);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar ferramentas:', error);
-    }
-  };
-
+  // Carregar funcionários
   const fetchFuncionarios = async () => {
+    setLoadingFuncionarios(true);
     try {
       const { data, error } = await supabase
         .from('funcionarios')
@@ -148,148 +122,151 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
       }
 
       if (data) {
-        setFuncionarios(data);
+        const funcionariosFormatados = data.map(func => ({
+          id: func.id,
+          nome: func.nome || '',
+          matricula: func.matricula || 0,
+          setor: func.setor || '',
+          numero_whatsapp: func.numero_whatsapp || '',
+          posse_ferramentas: Array.isArray(func.posse_ferramentas) 
+            ? func.posse_ferramentas.filter((item: any): item is string => typeof item === 'string')
+            : []
+        }));
+        setFuncionarios(funcionariosFormatados);
       }
     } catch (error) {
       console.error('Erro ao carregar funcionários:', error);
+    } finally {
+      setLoadingFuncionarios(false);
     }
   };
 
-  useEffect(() => {
-    fetchMateriais();
-    fetchFerramentas();
-    fetchFuncionarios();
-  }, []);
+  const formatarTexto = (texto: string) => {
+    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+  };
 
-  const adicionarMaterial = async () => {
+  const formatarCaracteristicas = (texto: string) => {
+    if (!texto.trim()) return {};
+    
+    try {
+      return JSON.parse(texto);
+    } catch {
+      const linhas = texto.split('\n').filter(linha => linha.trim());
+      const caracteristicasObj: any = {};
+      
+      linhas.forEach(linha => {
+        const [chave, ...valorParts] = linha.split(':');
+        if (chave && valorParts.length > 0) {
+          const valor = valorParts.join(':').trim();
+          caracteristicasObj[chave.trim()] = valor;
+        }
+      });
+      
+      return caracteristicasObj;
+    }
+  };
+
+  const handleAddMaterial = async () => {
     if (!novoMaterial.nome || !novoMaterial.tag) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Preencha pelo menos o nome e a tag do material",
         variant: "destructive",
       });
       return;
     }
 
+    setIsAddingMaterial(true);
     try {
+      const dataEntrada = formatarDataParaBanco(new Date());
+      
       const { error } = await supabase
         .from('materiais')
-        .insert([novoMaterial]);
+        .insert({
+          nome: formatarTexto(novoMaterial.nome),
+          tag: Number(novoMaterial.tag),
+          entrada: Number(novoMaterial.entrada) || 0,
+          saida: 0,
+          quantidade_minima: Number(novoMaterial.quantidade_minima) || 0,
+          unidade: novoMaterial.unidade,
+          data_entrada_estoque: dataEntrada
+        });
 
       if (error) {
         console.error('Erro ao adicionar material:', error);
         toast({
           title: "Erro",
-          description: "Erro ao adicionar material",
+          description: "Não foi possível adicionar o material",
           variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: "Sucesso",
-        description: "Material adicionado com sucesso!",
+        title: "Material adicionado",
+        description: `${formatarTexto(novoMaterial.nome)} foi adicionado ao estoque`,
       });
 
       setNovoMaterial({
-        nome: '',
-        tag: 0,
-        entrada: 0,
-        quantidade_minima: 0,
-        data_entrada_estoque: '',
-        saida: 0,
-        unidade: 'un'
+        nome: "",
+        tag: "",
+        entrada: "",
+        quantidade_minima: "",
+        unidade: "un"
       });
 
-      await fetchMateriais();
+      onRefresh();
     } catch (error) {
       console.error('Erro ao adicionar material:', error);
       toast({
         title: "Erro",
-        description: "Erro ao adicionar material",
+        description: "Erro interno ao adicionar material",
         variant: "destructive",
       });
+    } finally {
+      setIsAddingMaterial(false);
     }
   };
 
-  const editarMaterial = async () => {
-    if (!materialEditando || !materialEditando.nome || !materialEditando.tag) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleEditMaterial = async () => {
+    if (!editingMaterial) return;
 
     try {
       const { error } = await supabase
         .from('materiais')
-        .update(materialEditando)
-        .eq('id', materialEditando.id);
+        .update({
+          nome: formatarTexto(editingMaterial.nome),
+          tag: Number(editingMaterial.tag),
+          entrada: editingMaterial.entrada,
+          quantidade_minima: editingMaterial.quantidade_minima,
+          unidade: editingMaterial.unidade
+        })
+        .eq('id', editingMaterial.id);
 
       if (error) {
         console.error('Erro ao editar material:', error);
         toast({
           title: "Erro",
-          description: "Erro ao editar material",
+          description: "Não foi possível editar o material",
           variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: "Sucesso",
-        description: "Material editado com sucesso!",
+        title: "Material editado",
+        description: `${formatarTexto(editingMaterial.nome)} foi editado com sucesso`,
       });
 
-      setMaterialEditando(null);
-      await fetchMateriais();
+      setEditingMaterial(null);
+      onRefresh();
     } catch (error) {
       console.error('Erro ao editar material:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao editar material",
-        variant: "destructive",
-      });
     }
   };
 
-  const removerMaterial = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('materiais')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Erro ao remover material:', error);
-        toast({
-          title: "Erro",
-          description: "Erro ao remover material",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Sucesso",
-        description: "Material removido com sucesso!",
-      });
-
-      await fetchMateriais();
-    } catch (error) {
-      console.error('Erro ao remover material:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao remover material",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const adicionarFerramenta = async () => {
-    if (!novaFerramenta.nome || !novaFerramenta.tag) {
+  const handleAddFerramenta = async () => {
+    if (!novaFerramenta.nome || !novaFerramenta.categoria || !novaFerramenta.tag) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -298,121 +275,101 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
       return;
     }
 
+    const caracteristicasJson = formatarCaracteristicas(novaFerramenta.caracteristicas);
+
+    setIsAddingFerramenta(true);
     try {
       const { error } = await supabase
         .from('ferramentas')
-        .insert([novaFerramenta]);
+        .insert({
+          nome: formatarTexto(novaFerramenta.nome),
+          categoria: formatarTexto(novaFerramenta.categoria),
+          tag: novaFerramenta.tag,
+          quantidade: Number(novaFerramenta.quantidade) || 0,
+          saiu: 0,
+          status: 'disponível',
+          caracteristicas: caracteristicasJson
+        });
 
       if (error) {
         console.error('Erro ao adicionar ferramenta:', error);
         toast({
           title: "Erro",
-          description: "Erro ao adicionar ferramenta",
+          description: "Não foi possível adicionar a ferramenta",
           variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: "Sucesso",
-        description: "Ferramenta adicionada com sucesso!",
+        title: "Ferramenta adicionada",
+        description: `${formatarTexto(novaFerramenta.nome)} foi adicionada ao estoque`,
       });
 
       setNovaFerramenta({
-        nome: '',
-        tag: '',
-        quantidade: 0,
-        categoria: 'Geral'
+        nome: "",
+        categoria: "",
+        quantidade: "",
+        tag: "",
+        caracteristicas: ""
       });
 
-      await fetchFerramentas();
+      onRefresh();
     } catch (error) {
       console.error('Erro ao adicionar ferramenta:', error);
       toast({
         title: "Erro",
-        description: "Erro ao adicionar ferramenta",
+        description: "Erro interno ao adicionar ferramenta",
         variant: "destructive",
       });
+    } finally {
+      setIsAddingFerramenta(false);
     }
   };
 
-  const editarFerramenta = async () => {
-    if (!ferramentaEditando || !ferramentaEditando.nome || !ferramentaEditando.tag) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
-      return;
+  const handleEditFerramenta = async () => {
+    if (!editingFerramenta) return;
+
+    let caracteristicasJson = editingFerramenta.caracteristicas;
+    if (typeof editingFerramenta.caracteristicas === 'string') {
+      caracteristicasJson = formatarCaracteristicas(editingFerramenta.caracteristicas);
     }
 
     try {
       const { error } = await supabase
         .from('ferramentas')
-        .update(ferramentaEditando)
-        .eq('id', ferramentaEditando.id);
+        .update({
+          nome: formatarTexto(editingFerramenta.nome),
+          categoria: formatarTexto(editingFerramenta.categoria),
+          quantidade: editingFerramenta.quantidade,
+          tag: editingFerramenta.tag,
+          caracteristicas: caracteristicasJson
+        })
+        .eq('id', editingFerramenta.id);
 
       if (error) {
         console.error('Erro ao editar ferramenta:', error);
         toast({
           title: "Erro",
-          description: "Erro ao editar ferramenta",
+          description: "Não foi possível editar a ferramenta",
           variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: "Sucesso",
-        description: "Ferramenta editada com sucesso!",
+        title: "Ferramenta editada",
+        description: `${formatarTexto(editingFerramenta.nome)} foi editada com sucesso`,
       });
 
-      setFerramentaEditando(null);
-      await fetchFerramentas();
+      setEditingFerramenta(null);
+      onRefresh();
     } catch (error) {
       console.error('Erro ao editar ferramenta:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao editar ferramenta",
-        variant: "destructive",
-      });
     }
   };
 
-  const removerFerramenta = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('ferramentas')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Erro ao remover ferramenta:', error);
-        toast({
-          title: "Erro",
-          description: "Erro ao remover ferramenta",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Sucesso",
-        description: "Ferramenta removida com sucesso!",
-      });
-
-      await fetchFerramentas();
-    } catch (error) {
-      console.error('Erro ao remover ferramenta:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao remover ferramenta",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const adicionarFuncionario = async () => {
+  const handleAddFuncionario = async () => {
     if (!novoFuncionario.nome || !novoFuncionario.matricula || !novoFuncionario.setor) {
       toast({
         title: "Erro",
@@ -422,640 +379,724 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais: materiaisPro
       return;
     }
 
+    setIsAddingFuncionario(true);
     try {
-      const funcionarioData = {
-        nome: novoFuncionario.nome,
-        matricula: novoFuncionario.matricula,
-        setor: novoFuncionario.setor,
-        numero_whatsapp: novoFuncionario.numero_whatsapp || '',
-        posse_ferramentas: []
-      };
-
       const { error } = await supabase
         .from('funcionarios')
-        .insert([funcionarioData]);
+        .insert({
+          nome: novoFuncionario.nome.toUpperCase(),
+          matricula: Number(novoFuncionario.matricula),
+          setor: novoFuncionario.setor as SetorType,
+          numero_whatsapp: novoFuncionario.numero_whatsapp,
+          posse_ferramentas: []
+        });
 
       if (error) {
         console.error('Erro ao adicionar funcionário:', error);
         toast({
           title: "Erro",
-          description: "Erro ao adicionar funcionário",
+          description: "Não foi possível adicionar o funcionário",
           variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: "Sucesso",
-        description: "Funcionário adicionado com sucesso!",
+        title: "Funcionário adicionado",
+        description: `${novoFuncionario.nome.toUpperCase()} foi adicionado com sucesso`,
       });
 
       setNovoFuncionario({
-        nome: '',
-        matricula: 0,
-        setor: '' as any,
-        numero_whatsapp: '',
-        posse_ferramentas: []
+        nome: "",
+        matricula: "",
+        setor: "",
+        numero_whatsapp: ""
       });
 
-      await fetchFuncionarios();
+      fetchFuncionarios();
     } catch (error) {
       console.error('Erro ao adicionar funcionário:', error);
       toast({
         title: "Erro",
-        description: "Erro ao adicionar funcionário",
+        description: "Erro interno ao adicionar funcionário",
         variant: "destructive",
       });
+    } finally {
+      setIsAddingFuncionario(false);
     }
   };
 
-  const editarFuncionario = async () => {
-    if (!funcionarioEditando || !funcionarioEditando.nome || !funcionarioEditando.matricula || !funcionarioEditando.setor) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleEditFuncionario = async () => {
+    if (!editingFuncionario) return;
 
     try {
-      const funcionarioData = {
-        nome: funcionarioEditando.nome,
-        matricula: funcionarioEditando.matricula,
-        setor: funcionarioEditando.setor,
-        numero_whatsapp: funcionarioEditando.numero_whatsapp || '',
-        posse_ferramentas: funcionarioEditando.posse_ferramentas || []
-      };
-
       const { error } = await supabase
         .from('funcionarios')
-        .update(funcionarioData)
-        .eq('id', funcionarioEditando.id);
+        .update({
+          nome: editingFuncionario.nome.toUpperCase(),
+          matricula: editingFuncionario.matricula,
+          setor: editingFuncionario.setor as SetorType,
+          numero_whatsapp: editingFuncionario.numero_whatsapp
+        })
+        .eq('id', editingFuncionario.id);
 
       if (error) {
         console.error('Erro ao editar funcionário:', error);
         toast({
           title: "Erro",
-          description: "Erro ao editar funcionário",
+          description: "Não foi possível editar o funcionário",
           variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: "Sucesso",
-        description: "Funcionário editado com sucesso!",
+        title: "Funcionário editado",
+        description: `${editingFuncionario.nome.toUpperCase()} foi editado com sucesso`,
       });
 
-      setFuncionarioEditando(null);
-      await fetchFuncionarios();
+      setEditingFuncionario(null);
+      fetchFuncionarios();
     } catch (error) {
       console.error('Erro ao editar funcionário:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao editar funcionário",
-        variant: "destructive",
-      });
     }
   };
 
-  const removerFuncionario = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('funcionarios')
-        .delete()
-        .eq('id', id);
+  const filteredMateriais = materiais.filter(material =>
+    material.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    material.tag.toString().includes(searchTerm) ||
+    material.unidade?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-      if (error) {
-        console.error('Erro ao remover funcionário:', error);
-        toast({
-          title: "Erro",
-          description: "Erro ao remover funcionário",
-          variant: "destructive",
-        });
-        return;
-      }
+  const filteredFerramentas = ferramentas.filter(ferramenta =>
+    ferramenta.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ferramenta.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ferramenta.tag.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-      toast({
-        title: "Sucesso",
-        description: "Funcionário removido com sucesso!",
-      });
-
-      await fetchFuncionarios();
-    } catch (error) {
-      console.error('Erro ao remover funcionário:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao remover funcionário",
-        variant: "destructive",
-      });
-    }
-  };
+  const filteredFuncionarios = funcionarios.filter(funcionario =>
+    funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    funcionario.matricula.toString().includes(searchTerm) ||
+    funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="materiais" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="materiais">Materiais</TabsTrigger>
-          <TabsTrigger value="ferramentas">Ferramentas</TabsTrigger>
-          <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
-        </TabsList>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Package className="w-5 h-5" />
+          Controle Geral de Estoque
+        </CardTitle>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4" />
+            <Input
+              placeholder="Buscar por nome, tag ou categoria..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="materiais" className="space-y-4" onValueChange={(value) => {
+          if (value === 'funcionarios' && funcionarios.length === 0) {
+            fetchFuncionarios();
+          }
+        }}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="materiais">Materiais</TabsTrigger>
+            <TabsTrigger value="ferramentas">Ferramentas</TabsTrigger>
+            <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
+          </TabsList>
 
-        {/* Materiais Tab */}
-        <TabsContent value="materiais" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Adicionar Material
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nome">Nome</Label>
-                  <Input
-                    id="nome"
-                    value={novoMaterial.nome}
-                    onChange={(e) => setNovoMaterial({...novoMaterial, nome: e.target.value})}
-                    placeholder="Nome do material"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tag">Tag</Label>
-                  <Input
-                    id="tag"
-                    type="number"
-                    value={novoMaterial.tag}
-                    onChange={(e) => setNovoMaterial({...novoMaterial, tag: Number(e.target.value)})}
-                    placeholder="Tag"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="entrada">Entrada</Label>
-                  <Input
-                    id="entrada"
-                    type="number"
-                    value={novoMaterial.entrada}
-                    onChange={(e) => setNovoMaterial({...novoMaterial, entrada: Number(e.target.value)})}
-                    placeholder="Entrada"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="saida">Saída</Label>
-                  <Input
-                    id="saida"
-                    type="number"
-                    value={novoMaterial.saida}
-                    onChange={(e) => setNovoMaterial({...novoMaterial, saida: Number(e.target.value)})}
-                    placeholder="Saída"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="quantidade_minima">Quantidade Mínima</Label>
-                  <Input
-                    id="quantidade_minima"
-                    type="number"
-                    value={novoMaterial.quantidade_minima}
-                    onChange={(e) => setNovoMaterial({...novoMaterial, quantidade_minima: Number(e.target.value)})}
-                    placeholder="Quantidade Mínima"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="unidade">Unidade</Label>
-                  <Input
-                    id="unidade"
-                    value={novoMaterial.unidade}
-                    onChange={(e) => setNovoMaterial({...novoMaterial, unidade: e.target.value})}
-                    placeholder="Unidade"
-                  />
-                </div>
-              </div>
-              <Button onClick={adicionarMaterial}>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Material
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Lista de Materiais
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4">
-                {materiais.map((material) => (
-                  <div key={material.id} className="flex justify-between items-center p-4 border rounded-lg">
+          <TabsContent value="materiais" className="space-y-4">
+            <div className="flex justify-end">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Material
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Novo Material</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
                     <div>
-                      <p className="font-medium">{material.nome}</p>
-                      <p className="text-sm text-muted-foreground">TAG: {material.tag}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Disponível: {(material.entrada || 0) - (material.saida || 0)} {material.unidade}
+                      <Label htmlFor="material-nome">Nome do Material</Label>
+                      <Input
+                        id="material-nome"
+                        value={novoMaterial.nome}
+                        onChange={(e) => setNovoMaterial({...novoMaterial, nome: e.target.value})}
+                        placeholder="Ex: Parafuso M8"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="material-tag">Tag (Número)</Label>
+                      <Input
+                        id="material-tag"
+                        type="number"
+                        value={novoMaterial.tag}
+                        onChange={(e) => setNovoMaterial({...novoMaterial, tag: e.target.value})}
+                        placeholder="Ex: 001"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="material-entrada">Quantidade de Entrada</Label>
+                      <Input
+                        id="material-entrada"
+                        type="number"
+                        value={novoMaterial.entrada}
+                        onChange={(e) => setNovoMaterial({...novoMaterial, entrada: e.target.value})}
+                        placeholder="100"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="material-minima">Quantidade Mínima</Label>
+                      <Input
+                        id="material-minima"
+                        type="number"
+                        value={novoMaterial.quantidade_minima}
+                        onChange={(e) => setNovoMaterial({...novoMaterial, quantidade_minima: e.target.value})}
+                        placeholder="10"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="material-unidade">Unidade de Medida</Label>
+                      <Select value={novoMaterial.unidade} onValueChange={(value) => setNovoMaterial({...novoMaterial, unidade: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a unidade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="un">Unidade</SelectItem>
+                          <SelectItem value="kg">Quilograma</SelectItem>
+                          <SelectItem value="g">Grama</SelectItem>
+                          <SelectItem value="l">Litro</SelectItem>
+                          <SelectItem value="ml">Mililitro</SelectItem>
+                          <SelectItem value="m">Metro</SelectItem>
+                          <SelectItem value="cm">Centímetro</SelectItem>
+                          <SelectItem value="mm">Milímetro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={handleAddMaterial}
+                      disabled={isAddingMaterial}
+                    >
+                      {isAddingMaterial ? 'Adicionando...' : 'Adicionar Material'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Tag</TableHead>
+                    <TableHead className="text-center">Quantidade Disponível</TableHead>
+                    <TableHead className="text-center">Quantidade Mínima</TableHead>
+                    <TableHead>Unidade</TableHead>
+                    <TableHead>Data Entrada</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMateriais.map((material) => {
+                    const quantidadeDisponivel = (material.entrada || 0) - (material.saida || 0);
+                    return (
+                      <TableRow key={material.id}>
+                        <TableCell className="font-medium">{material.nome}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{material.tag}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">{quantidadeDisponivel}</TableCell>
+                        <TableCell className="text-center">{material.quantidade_minima}</TableCell>
+                        <TableCell>{material.unidade || 'un'}</TableCell>
+                        <TableCell>{material.data_entrada_estoque}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={quantidadeDisponivel <= material.quantidade_minima ? "destructive" : "secondary"}
+                          >
+                            {quantidadeDisponivel <= material.quantidade_minima ? "Estoque Baixo" : "OK"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => setEditingMaterial({
+                                  ...material,
+                                  unidade: material.unidade || 'un'
+                                })}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Editar Material</DialogTitle>
+                              </DialogHeader>
+                              {editingMaterial && editingMaterial.id === material.id && (
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="edit-material-nome">Nome do Material</Label>
+                                    <Input
+                                      id="edit-material-nome"
+                                      value={editingMaterial.nome}
+                                      onChange={(e) => setEditingMaterial({...editingMaterial, nome: e.target.value})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-material-tag">Tag</Label>
+                                    <Input
+                                      id="edit-material-tag"
+                                      type="number"
+                                      value={editingMaterial.tag}
+                                      onChange={(e) => setEditingMaterial({...editingMaterial, tag: e.target.value})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-material-entrada">Quantidade de Entrada</Label>
+                                    <Input
+                                      id="edit-material-entrada"
+                                      type="number"
+                                      value={editingMaterial.entrada}
+                                      onChange={(e) => setEditingMaterial({...editingMaterial, entrada: Number(e.target.value)})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-material-minima">Quantidade Mínima</Label>
+                                    <Input
+                                      id="edit-material-minima"
+                                      type="number"
+                                      value={editingMaterial.quantidade_minima}
+                                      onChange={(e) => setEditingMaterial({...editingMaterial, quantidade_minima: Number(e.target.value)})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-material-unidade">Unidade</Label>
+                                    <Select 
+                                      value={editingMaterial.unidade} 
+                                      onValueChange={(value) => setEditingMaterial({...editingMaterial, unidade: value})}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="un">Unidade</SelectItem>
+                                        <SelectItem value="kg">Quilograma</SelectItem>
+                                        <SelectItem value="g">Grama</SelectItem>
+                                        <SelectItem value="l">Litro</SelectItem>
+                                        <SelectItem value="ml">Mililitro</SelectItem>
+                                        <SelectItem value="m">Metro</SelectItem>
+                                        <SelectItem value="cm">Centímetro</SelectItem>
+                                        <SelectItem value="mm">Milímetro</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <Button 
+                                    className="w-full" 
+                                    onClick={handleEditMaterial}
+                                  >
+                                    Salvar Alterações
+                                  </Button>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="ferramentas" className="space-y-4">
+            <div className="flex justify-end">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Ferramenta
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Nova Ferramenta</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="ferramenta-nome">Nome da Ferramenta</Label>
+                      <Input
+                        id="ferramenta-nome"
+                        value={novaFerramenta.nome}
+                        onChange={(e) => setNovaFerramenta({...novaFerramenta, nome: e.target.value})}
+                        placeholder="Ex: Furadeira de Bancada"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-categoria">Categoria</Label>
+                      <Input
+                        id="ferramenta-categoria"
+                        value={novaFerramenta.categoria}
+                        onChange={(e) => setNovaFerramenta({...novaFerramenta, categoria: e.target.value})}
+                        placeholder="Ex: Furadeiras"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-tag">Tag (Número)</Label>
+                      <Input
+                        id="ferramenta-tag"
+                        value={novaFerramenta.tag}
+                        onChange={(e) => setNovaFerramenta({...novaFerramenta, tag: e.target.value})}
+                        placeholder="Ex: FUR001"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-quantidade">Quantidade</Label>
+                      <Input
+                        id="ferramenta-quantidade"
+                        type="number"
+                        value={novaFerramenta.quantidade}
+                        onChange={(e) => setNovaFerramenta({...novaFerramenta, quantidade: e.target.value})}
+                        placeholder="5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-caracteristicas">Características</Label>
+                      <Textarea
+                        id="ferramenta-caracteristicas"
+                        value={novaFerramenta.caracteristicas}
+                        onChange={(e) => setNovaFerramenta({...novaFerramenta, caracteristicas: e.target.value})}
+                        placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`}
+                        rows={4}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Digite uma característica por linha no formato "nome: valor"
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        onClick={() => setMaterialEditando(material)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removerMaterial(material.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={handleAddFerramenta}
+                      disabled={isAddingFerramenta}
+                    >
+                      {isAddingFerramenta ? 'Adicionando...' : 'Adicionar Ferramenta'}
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-        {/* Ferramentas Tab */}
-        <TabsContent value="ferramentas" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wrench className="w-5 h-5" />
-                Adicionar Ferramenta
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nome">Nome</Label>
-                  <Input
-                    id="nome"
-                    value={novaFerramenta.nome}
-                    onChange={(e) => setNovaFerramenta({...novaFerramenta, nome: e.target.value})}
-                    placeholder="Nome da ferramenta"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tag">Tag</Label>
-                  <Input
-                    id="tag"
-                    value={novaFerramenta.tag}
-                    onChange={(e) => setNovaFerramenta({...novaFerramenta, tag: e.target.value})}
-                    placeholder="Tag"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="quantidade">Quantidade</Label>
-                  <Input
-                    id="quantidade"
-                    type="number"
-                    value={novaFerramenta.quantidade}
-                    onChange={(e) => setNovaFerramenta({...novaFerramenta, quantidade: Number(e.target.value)})}
-                    placeholder="Quantidade"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="categoria">Categoria</Label>
-                  <Input
-                    id="categoria"
-                    value={novaFerramenta.categoria}
-                    onChange={(e) => setNovaFerramenta({...novaFerramenta, categoria: e.target.value})}
-                    placeholder="Categoria"
-                  />
-                </div>
-              </div>
-              <Button onClick={adicionarFerramenta}>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Ferramenta
-              </Button>
-            </CardContent>
-          </Card>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Tag</TableHead>
+                    <TableHead className="text-center">Quantidade Disponível</TableHead>
+                    <TableHead>Características</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredFerramentas.map((ferramenta) => {
+                    const quantidadeDisponivel = (ferramenta.quantidade || 0) - (ferramenta.saiu || 0);
+                    return (
+                      <TableRow key={ferramenta.id}>
+                        <TableCell className="font-medium">{ferramenta.nome}</TableCell>
+                        <TableCell>{ferramenta.categoria}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{ferramenta.tag}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">{quantidadeDisponivel}</TableCell>
+                        <TableCell>
+                          {ferramenta.caracteristicas && Object.keys(ferramenta.caracteristicas).length > 0 ? (
+                            <Badge variant="secondary">Com características</Badge>
+                          ) : (
+                            <Badge variant="outline">Sem características</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => {
+                                  const caracteristicasStr = ferramenta.caracteristicas 
+                                    ? Object.entries(ferramenta.caracteristicas)
+                                        .map(([key, value]) => `${key}: ${value}`)
+                                        .join('\n')
+                                    : '';
+                                  setEditingFerramenta({
+                                    ...ferramenta,
+                                    caracteristicas: caracteristicasStr
+                                  });
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Editar Ferramenta</DialogTitle>
+                              </DialogHeader>
+                              {editingFerramenta && editingFerramenta.id === ferramenta.id && (
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-nome">Nome da Ferramenta</Label>
+                                    <Input
+                                      id="edit-ferramenta-nome"
+                                      value={editingFerramenta.nome}
+                                      onChange={(e) => setEditingFerramenta({...editingFerramenta, nome: e.target.value})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-categoria">Categoria</Label>
+                                    <Input
+                                      id="edit-ferramenta-categoria"
+                                      value={editingFerramenta.categoria}
+                                      onChange={(e) => setEditingFerramenta({...editingFerramenta, categoria: e.target.value})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-tag">Tag</Label>
+                                    <Input
+                                      id="edit-ferramenta-tag"
+                                      value={editingFerramenta.tag}
+                                      onChange={(e) => setEditingFerramenta({...editingFerramenta, tag: e.target.value})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-quantidade">Quantidade</Label>
+                                    <Input
+                                      id="edit-ferramenta-quantidade"
+                                      type="number"
+                                      value={editingFerramenta.quantidade}
+                                      onChange={(e) => setEditingFerramenta({...editingFerramenta, quantidade: Number(e.target.value)})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-caracteristicas">Características</Label>
+                                    <Textarea
+                                      id="edit-ferramenta-caracteristicas"
+                                      value={typeof editingFerramenta.caracteristicas === 'string' ? editingFerramenta.caracteristicas : ''}
+                                      onChange={(e) => setEditingFerramenta({...editingFerramenta, caracteristicas: e.target.value})}
+                                      rows={6}
+                                      placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`}
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Digite uma característica por linha no formato "nome: valor"
+                                    </p>
+                                  </div>
+                                  <Button 
+                                    className="w-full" 
+                                    onClick={handleEditFerramenta}
+                                  >
+                                    Salvar Alterações
+                                  </Button>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wrench className="w-5 h-5" />
-                Lista de Ferramentas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4">
-                {ferramentas.map((ferramenta) => (
-                  <div key={ferramenta.id} className="flex justify-between items-center p-4 border rounded-lg">
+          <TabsContent value="funcionarios" className="space-y-4">
+            <div className="flex justify-end">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Funcionário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Novo Funcionário</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
                     <div>
-                      <p className="font-medium">{ferramenta.nome}</p>
-                      <p className="text-sm text-muted-foreground">TAG: {ferramenta.tag}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Disponível: {(ferramenta.quantidade || 0) - (ferramenta.saiu || 0)}
-                      </p>
+                      <Label htmlFor="funcionario-nome">Nome do Funcionário</Label>
+                      <Input
+                        id="funcionario-nome"
+                        value={novoFuncionario.nome}
+                        onChange={(e) => setNovoFuncionario({...novoFuncionario, nome: e.target.value})}
+                        placeholder="Ex: João Silva"
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        onClick={() => setFerramentaEditando(ferramenta)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removerFerramenta(ferramenta.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Funcionários Tab */}
-        <TabsContent value="funcionarios" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Adicionar Funcionário
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nome">Nome</Label>
-                  <Input
-                    id="nome"
-                    value={novoFuncionario.nome}
-                    onChange={(e) => setNovoFuncionario({...novoFuncionario, nome: e.target.value})}
-                    placeholder="Nome do funcionário"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="matricula">Matrícula</Label>
-                  <Input
-                    id="matricula"
-                    type="number"
-                    value={novoFuncionario.matricula}
-                    onChange={(e) => setNovoFuncionario({...novoFuncionario, matricula: Number(e.target.value)})}
-                    placeholder="Matrícula"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="setor">Setor</Label>
-                  <Select value={novoFuncionario.setor} onValueChange={(value: any) => setNovoFuncionario({...novoFuncionario, setor: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o setor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {setoresPermitidos.map((setor) => (
-                        <SelectItem key={setor} value={setor}>{setor}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="whatsapp">WhatsApp</Label>
-                  <Input
-                    id="whatsapp"
-                    value={novoFuncionario.numero_whatsapp}
-                    onChange={(e) => setNovoFuncionario({...novoFuncionario, numero_whatsapp: e.target.value})}
-                    placeholder="Número do WhatsApp"
-                  />
-                </div>
-              </div>
-              <Button onClick={adicionarFuncionario}>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Funcionário
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Lista de Funcionários
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4">
-                {funcionarios.map((funcionario) => (
-                  <div key={funcionario.id} className="flex justify-between items-center p-4 border rounded-lg">
                     <div>
-                      <p className="font-medium">{funcionario.nome}</p>
-                      <p className="text-sm text-muted-foreground">Matrícula: {funcionario.matricula}</p>
-                      <p className="text-sm text-muted-foreground">Setor: {funcionario.setor}</p>
+                      <Label htmlFor="funcionario-matricula">Matrícula</Label>
+                      <Input
+                        id="funcionario-matricula"
+                        type="number"
+                        value={novoFuncionario.matricula}
+                        onChange={(e) => setNovoFuncionario({...novoFuncionario, matricula: e.target.value})}
+                        placeholder="Ex: 12345"
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        onClick={() => setFuncionarioEditando(funcionario)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removerFuncionario(funcionario.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <div>
+                      <Label htmlFor="funcionario-setor">Setor</Label>
+                      <Select value={novoFuncionario.setor} onValueChange={(value) => setNovoFuncionario({...novoFuncionario, setor: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o setor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {setores.map(setor => (
+                            <SelectItem key={setor} value={setor}>{setor}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                    <div>
+                      <Label htmlFor="funcionario-whatsapp">Número WhatsApp (opcional)</Label>
+                      <Input
+                        id="funcionario-whatsapp"
+                        value={novoFuncionario.numero_whatsapp}
+                        onChange={(e) => setNovoFuncionario({...novoFuncionario, numero_whatsapp: e.target.value})}
+                        placeholder="Ex: (11) 99999-9999"
+                      />
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={handleAddFuncionario}
+                      disabled={isAddingFuncionario}
+                    >
+                      {isAddingFuncionario ? 'Adicionando...' : 'Adicionar Funcionário'}
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-      {/* Edit Material Dialog */}
-      <Dialog open={!!materialEditando} onOpenChange={() => setMaterialEditando(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Material</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="nome">Nome</Label>
-              <Input
-                id="nome"
-                value={materialEditando?.nome || ''}
-                onChange={(e) => setMaterialEditando({...materialEditando!, nome: e.target.value})}
-                placeholder="Nome do material"
-              />
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead className="text-center">Matrícula</TableHead>
+                    <TableHead>Setor</TableHead>
+                    <TableHead>WhatsApp</TableHead>
+                    <TableHead className="text-center">Ferramentas</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingFuncionarios ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center">Carregando funcionários...</TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredFuncionarios.map((funcionario) => (
+                      <TableRow key={funcionario.id}>
+                        <TableCell className="font-medium">{funcionario.nome}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline">{funcionario.matricula}</Badge>
+                        </TableCell>
+                        <TableCell>{funcionario.setor}</TableCell>
+                        <TableCell>{funcionario.numero_whatsapp || 'Não informado'}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={funcionario.posse_ferramentas.length > 0 ? "secondary" : "outline"}>
+                            {funcionario.posse_ferramentas.length} ferramentas
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => setEditingFuncionario(funcionario)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Editar Funcionário</DialogTitle>
+                              </DialogHeader>
+                              {editingFuncionario && editingFuncionario.id === funcionario.id && (
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="edit-funcionario-nome">Nome do Funcionário</Label>
+                                    <Input
+                                      id="edit-funcionario-nome"
+                                      value={editingFuncionario.nome}
+                                      onChange={(e) => setEditingFuncionario({...editingFuncionario, nome: e.target.value})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-funcionario-matricula">Matrícula</Label>
+                                    <Input
+                                      id="edit-funcionario-matricula"
+                                      type="number"
+                                      value={editingFuncionario.matricula}
+                                      onChange={(e) => setEditingFuncionario({...editingFuncionario, matricula: Number(e.target.value)})}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-funcionario-setor">Setor</Label>
+                                    <Select 
+                                      value={editingFuncionario.setor} 
+                                      onValueChange={(value) => setEditingFuncionario({...editingFuncionario, setor: value})}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {setores.map(setor => (
+                                          <SelectItem key={setor} value={setor}>{setor}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-funcionario-whatsapp">Número WhatsApp</Label>
+                                    <Input
+                                      id="edit-funcionario-whatsapp"
+                                      value={editingFuncionario.numero_whatsapp}
+                                      onChange={(e) => setEditingFuncionario({...editingFuncionario, numero_whatsapp: e.target.value})}
+                                    />
+                                  </div>
+                                  <Button 
+                                    className="w-full" 
+                                    onClick={handleEditFuncionario}
+                                  >
+                                    Salvar Alterações
+                                  </Button>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-            <div>
-              <Label htmlFor="tag">Tag</Label>
-              <Input
-                id="tag"
-                type="number"
-                value={materialEditando?.tag || 0}
-                onChange={(e) => setMaterialEditando({...materialEditando!, tag: Number(e.target.value)})}
-                placeholder="Tag"
-              />
-            </div>
-            <div>
-              <Label htmlFor="entrada">Entrada</Label>
-              <Input
-                id="entrada"
-                type="number"
-                value={materialEditando?.entrada || 0}
-                onChange={(e) => setMaterialEditando({...materialEditando!, entrada: Number(e.target.value)})}
-                placeholder="Entrada"
-              />
-            </div>
-            <div>
-              <Label htmlFor="saida">Saída</Label>
-              <Input
-                id="saida"
-                type="number"
-                value={materialEditando?.saida || 0}
-                onChange={(e) => setMaterialEditando({...materialEditando!, saida: Number(e.target.value)})}
-                placeholder="Saída"
-              />
-            </div>
-            <div>
-              <Label htmlFor="quantidade_minima">Quantidade Mínima</Label>
-              <Input
-                id="quantidade_minima"
-                type="number"
-                value={materialEditando?.quantidade_minima || 0}
-                onChange={(e) => setMaterialEditando({...materialEditando!, quantidade_minima: Number(e.target.value)})}
-                placeholder="Quantidade Mínima"
-              />
-            </div>
-            <div>
-              <Label htmlFor="unidade">Unidade</Label>
-              <Input
-                id="unidade"
-                value={materialEditando?.unidade || ''}
-                onChange={(e) => setMaterialEditando({...materialEditando!, unidade: e.target.value})}
-                placeholder="Unidade"
-              />
-            </div>
-          </div>
-          <Button onClick={editarMaterial}>
-            Salvar
-          </Button>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Ferramenta Dialog */}
-      <Dialog open={!!ferramentaEditando} onOpenChange={() => setFerramentaEditando(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Ferramenta</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="nome">Nome</Label>
-              <Input
-                id="nome"
-                value={ferramentaEditando?.nome || ''}
-                onChange={(e) => setFerramentaEditando({...ferramentaEditando!, nome: e.target.value})}
-                placeholder="Nome da ferramenta"
-              />
-            </div>
-            <div>
-              <Label htmlFor="tag">Tag</Label>
-              <Input
-                id="tag"
-                value={ferramentaEditando?.tag || ''}
-                onChange={(e) => setFerramentaEditando({...ferramentaEditando!, tag: e.target.value})}
-                placeholder="Tag"
-              />
-            </div>
-            <div>
-              <Label htmlFor="quantidade">Quantidade</Label>
-              <Input
-                id="quantidade"
-                type="number"
-                value={ferramentaEditando?.quantidade || 0}
-                onChange={(e) => setFerramentaEditando({...ferramentaEditando!, quantidade: Number(e.target.value)})}
-                placeholder="Quantidade"
-              />
-            </div>
-            <div>
-              <Label htmlFor="categoria">Categoria</Label>
-              <Input
-                id="categoria"
-                value={ferramentaEditando?.categoria || ''}
-                onChange={(e) => setFerramentaEditando({...ferramentaEditando!, categoria: e.target.value})}
-                placeholder="Categoria"
-              />
-            </div>
-          </div>
-          <Button onClick={editarFerramenta}>
-            Salvar
-          </Button>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Funcionario Dialog */}
-      <Dialog open={!!funcionarioEditando} onOpenChange={() => setFuncionarioEditando(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Funcionário</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="nome">Nome</Label>
-              <Input
-                id="nome"
-                value={funcionarioEditando?.nome || ''}
-                onChange={(e) => setFuncionarioEditando({...funcionarioEditando!, nome: e.target.value})}
-                placeholder="Nome do funcionário"
-              />
-            </div>
-            <div>
-              <Label htmlFor="matricula">Matrícula</Label>
-              <Input
-                id="matricula"
-                type="number"
-                value={funcionarioEditando?.matricula || 0}
-                onChange={(e) => setFuncionarioEditando({...funcionarioEditando!, matricula: Number(e.target.value)})}
-                placeholder="Matrícula"
-              />
-            </div>
-            <div>
-              <Label htmlFor="setor">Setor</Label>
-              <Select value={funcionarioEditando?.setor || ''} onValueChange={(value: any) => setFuncionarioEditando({...funcionarioEditando!, setor: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o setor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {setoresPermitidos.map((setor) => (
-                    <SelectItem key={setor} value={setor}>{setor}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="whatsapp">WhatsApp</Label>
-              <Input
-                id="whatsapp"
-                value={funcionarioEditando?.numero_whatsapp || ''}
-                onChange={(e) => setFuncionarioEditando({...funcionarioEditando!, numero_whatsapp: e.target.value})}
-                placeholder="Número do WhatsApp"
-              />
-            </div>
-          </div>
-          <Button onClick={editarFuncionario}>
-            Salvar
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
-
-export default EstoqueManager;

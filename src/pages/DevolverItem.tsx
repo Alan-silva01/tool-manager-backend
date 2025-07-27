@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,14 +11,12 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
-import { useNFC } from "@/hooks/useNFC";
 
 const DevolverItem = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { buscarFuncionario, removerFerramentaDoFuncionario } = useFuncionarios();
+  const { buscarFuncionario } = useFuncionarios();
   const { ferramentas } = useFerramentas();
-  const { readNFC, isReading, isSupported } = useNFC();
   
   const [step, setStep] = useState<'matricula' | 'ferramentas' | 'confirmacao'>('matricula');
   const [matricula, setMatricula] = useState('');
@@ -76,78 +75,53 @@ const DevolverItem = () => {
     }
   };
 
-  const handleNFCScan = async () => {
-    console.log('Iniciando leitura NFC real...');
+  const handleNFCScan = () => {
+    // Simular leitura de NFC - em produção seria integrado com API de NFC
+    const nfcMatriculas = ['13812', '7203', '8854', '7679'];
+    const randomMatricula = nfcMatriculas[Math.floor(Math.random() * nfcMatriculas.length)];
+    setMatricula(randomMatricula);
     
-    if (!isSupported) {
-      toast({
-        title: "NFC não suportado",
-        description: "Este dispositivo não suporta leitura NFC",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Aproxime o crachá",
-      description: "Posicione o crachá próximo ao dispositivo para leitura",
-    });
-
-    try {
-      const nfcData = await readNFC();
+    console.log('Simulando NFC para matrícula:', randomMatricula);
+    const func = buscarFuncionario(randomMatricula);
+    
+    if (func) {
+      // Buscar as ferramentas do funcionário pelas tags
+      const ferramentasDoFuncionario = [];
       
-      if (nfcData && nfcData.matricula) {
-        console.log('Matrícula lida via NFC:', nfcData.matricula);
-        setMatricula(nfcData.matricula);
-        
-        const func = buscarFuncionario(nfcData.matricula);
-        if (func) {
-          // Buscar as ferramentas do funcionário pelas tags
-          const ferramentasDoFuncionario = [];
-          
-          if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
-            func.posse_ferramentas.forEach((tag: string) => {
-              const ferramenta = ferramentas.find(f => f.tag === tag);
-              if (ferramenta) {
-                ferramentasDoFuncionario.push({
-                  id: ferramenta.id,
-                  nome: ferramenta.nome,
-                  tag: ferramenta.tag,
-                  categoria: ferramenta.categoria,
-                  dataRetirada: new Date().toISOString()
-                });
-              }
+      if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
+        func.posse_ferramentas.forEach((tag: string) => {
+          const ferramenta = ferramentas.find(f => f.tag === tag);
+          if (ferramenta) {
+            ferramentasDoFuncionario.push({
+              id: ferramenta.id,
+              nome: ferramenta.nome,
+              tag: ferramenta.tag,
+              categoria: ferramenta.categoria,
+              dataRetirada: new Date().toISOString()
             });
           }
-          
-          if (ferramentasDoFuncionario.length === 0) {
-            toast({
-              title: "Nenhuma ferramenta em posse",
-              description: "Este funcionário não possui ferramentas para devolver",
-            });
-            return;
-          }
-          
-          setFuncionario(func);
-          setFuncionarioFerramentas(ferramentasDoFuncionario);
-          setStep('ferramentas');
-          toast({
-            title: "Crachá lido com sucesso!",
-            description: `Funcionário: ${func.nome}`,
-          });
-        } else {
-          toast({
-            title: "Funcionário não encontrado",
-            description: `Funcionário com matrícula ${nfcData.matricula} não foi encontrado no sistema`,
-            variant: "destructive",
-          });
-        }
+        });
       }
-    } catch (error) {
-      console.error('Erro na leitura NFC:', error);
+      
+      if (ferramentasDoFuncionario.length === 0) {
+        toast({
+          title: "Nenhuma ferramenta em posse",
+          description: "Este funcionário não possui ferramentas para devolver",
+        });
+        return;
+      }
+      
+      setFuncionario(func);
+      setFuncionarioFerramentas(ferramentasDoFuncionario);
+      setStep('ferramentas');
       toast({
-        title: "Erro na leitura NFC",
-        description: "Não foi possível ler o crachá. Tente novamente.",
+        title: "Crachá lido com sucesso!",
+        description: `Funcionário: ${func.nome}`,
+      });
+    } else {
+      toast({
+        title: "Funcionário não encontrado",
+        description: "Não foi possível identificar o funcionário",
         variant: "destructive",
       });
     }
@@ -193,20 +167,6 @@ const DevolverItem = () => {
     setConfirmando(true);
 
     try {
-      // Remover ferramentas do funcionário no banco de dados
-      for (const tag of selectedFerramentas) {
-        const sucesso = await removerFerramentaDoFuncionario(matricula, tag);
-        if (!sucesso) {
-          toast({
-            title: "Erro ao remover ferramenta",
-            description: `Erro ao remover ferramenta ${tag}`,
-            variant: "destructive",
-          });
-          setConfirmando(false);
-          return;
-        }
-      }
-
       const formData = new FormData();
       
       // Dados do funcionário
@@ -319,18 +279,11 @@ const DevolverItem = () => {
                     variant={tipoIdentificacao === 'nfc' ? 'default' : 'outline'}
                     onClick={() => setTipoIdentificacao('nfc')}
                     className="flex-1"
-                    disabled={!isSupported}
                   >
                     <CreditCard className="w-4 h-4 mr-2" />
                     NFC
                   </Button>
                 </div>
-
-                {!isSupported && (
-                  <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                    NFC não é suportado neste dispositivo
-                  </div>
-                )}
 
                 {tipoIdentificacao === 'matricula' ? (
                   <>
@@ -340,7 +293,7 @@ const DevolverItem = () => {
                         id="matricula"
                         value={matricula}
                         onChange={(e) => setMatricula(e.target.value)}
-                        placeholder="Digite sua matrícula"
+                        placeholder="Ex: 7679"
                         className="text-center text-lg"
                       />
                     </div>
@@ -354,16 +307,13 @@ const DevolverItem = () => {
                   </>
                 ) : (
                   <div className="text-center space-y-4">
-                    <p className="text-muted-foreground">
-                      {isReading ? 'Lendo crachá...' : 'Aproxime seu crachá do dispositivo'}
-                    </p>
+                    <p className="text-muted-foreground">Aproxime seu crachá do leitor NFC</p>
                     <Button 
                       className="w-full" 
                       onClick={handleNFCScan}
-                      disabled={isReading || !isSupported}
                     >
                       <CreditCard className="w-4 h-4 mr-2" />
-                      {isReading ? 'Lendo...' : 'Escanear Crachá'}
+                      Escanear Crachá
                     </Button>
                   </div>
                 )}
