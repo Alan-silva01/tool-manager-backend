@@ -49,14 +49,24 @@ const PegarItem = () => {
     return allItems.find(item => item.id === itemId);
   };
 
+  const getQuantidadeDisponivel = (item: any) => {
+    if (categoria === 'ferramentas') {
+      return item.quantidade || 0;
+    } else {
+      // Para materiais, calcular quantidade disponível como entrada - saida
+      return (item.entrada || 0) - (item.saida || 0);
+    }
+  };
+
   const addToCart = (item: any) => {
     const existingItem = carrinho.find(c => c.id === item.id);
     const quantidadeNoCarrinho = existingItem ? existingItem.quantidade : 0;
+    const quantidadeDisponivel = getQuantidadeDisponivel(item);
     
-    if (quantidadeNoCarrinho >= item.quantidade) {
+    if (quantidadeNoCarrinho >= quantidadeDisponivel) {
       toast({
         title: "Quantidade indisponível",
-        description: `Só há ${item.quantidade} ${item.nome} disponível(is)`,
+        description: `Só há ${quantidadeDisponivel} ${item.nome} disponível(is)`,
         variant: "destructive",
       });
       return;
@@ -72,7 +82,7 @@ const PegarItem = () => {
       setCarrinho([...carrinho, {
         id: item.id,
         nome: item.nome,
-        tag: String(item.tag), // Convert tag to string for consistency
+        tag: String(item.tag),
         quantidade: 1,
         tipo: categoria === 'ferramentas' ? 'ferramenta' : 'material'
       }]);
@@ -91,18 +101,18 @@ const PegarItem = () => {
     const itemDisponivel = getItemDisponivel(id);
     if (!itemDisponivel) return;
 
+    const quantidadeMaxima = getQuantidadeDisponivel(itemDisponivel);
+
     setCarrinho(carrinho.map(item => {
       if (item.id === id) {
         const novaQuantidade = item.quantidade + delta;
         
-        // Não permitir quantidade menor que 1
         if (novaQuantidade < 1) return item;
         
-        // Não permitir quantidade maior que o disponível
-        if (novaQuantidade > itemDisponivel.quantidade) {
+        if (novaQuantidade > quantidadeMaxima) {
           toast({
             title: "Quantidade indisponível",
-            description: `Só há ${itemDisponivel.quantidade} ${item.nome} disponível(is)`,
+            description: `Só há ${quantidadeMaxima} ${item.nome} disponível(is)`,
             variant: "destructive",
           });
           return item;
@@ -447,10 +457,11 @@ const PegarItem = () => {
             {getItensDisponiveis().map((item) => {
               const itemNoCarrinho = carrinho.find(c => c.id === item.id);
               const quantidadeNoCarrinho = itemNoCarrinho ? itemNoCarrinho.quantidade : 0;
-              const podeAdicionarMais = quantidadeNoCarrinho < item.quantidade;
+              const quantidadeDisponivel = getQuantidadeDisponivel(item);
+              const podeAdicionarMais = quantidadeNoCarrinho < quantidadeDisponivel;
               
               return (
-                <Card key={item.id} className={`hover:shadow-md transition-shadow ${item.quantidade <= 0 ? 'opacity-50' : ''}`}>
+                <Card key={item.id} className={`hover:shadow-md transition-shadow ${quantidadeDisponivel <= 0 ? 'opacity-50' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                        <div className="flex-1">
@@ -458,20 +469,20 @@ const PegarItem = () => {
                          <Badge variant="outline" className="mt-1">
                            TAG: {item.tag}
                          </Badge>
-                         <p className={`text-sm mt-1 ${item.quantidade <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                           Disponível: {item.quantidade} {categoria === 'materiais' ? (item as any).unidade || 'un' : 'un'}
+                         <p className={`text-sm mt-1 ${quantidadeDisponivel <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                           Disponível: {quantidadeDisponivel} {categoria === 'materiais' ? (item as any).unidade || 'un' : 'un'}
                          </p>
                          {quantidadeNoCarrinho > 0 && (
                            <p className="text-sm text-blue-600 mt-1">
                              No carrinho: {quantidadeNoCarrinho}
                            </p>
                          )}
-                         {item.quantidade <= 0 && (
+                         {quantidadeDisponivel <= 0 && (
                            <Badge variant="destructive" className="mt-1">
                              Sem estoque
                            </Badge>
                          )}
-                         {categoria === 'materiais' && (item as any).quantidade_minima && item.quantidade <= (item as any).quantidade_minima && item.quantidade > 0 && (
+                         {categoria === 'materiais' && (item as any).quantidade_minima && quantidadeDisponivel <= (item as any).quantidade_minima && quantidadeDisponivel > 0 && (
                            <Badge variant="destructive" className="mt-1">
                              Estoque baixo!
                            </Badge>
@@ -481,7 +492,7 @@ const PegarItem = () => {
                         onClick={() => addToCart(item)}
                         size="sm"
                         className="ml-2"
-                        disabled={item.quantidade <= 0 || !podeAdicionarMais}
+                        disabled={quantidadeDisponivel <= 0 || !podeAdicionarMais}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -503,7 +514,7 @@ const PegarItem = () => {
 
             {carrinho.map((item) => {
               const itemDisponivel = getItemDisponivel(item.id);
-              const quantidadeMaxima = itemDisponivel ? itemDisponivel.quantidade : 0;
+              const quantidadeMaxima = itemDisponivel ? getQuantidadeDisponivel(itemDisponivel) : 0;
               
               return (
                 <Card key={item.id}>
