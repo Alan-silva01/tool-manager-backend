@@ -116,8 +116,18 @@ const Admin = () => {
     try {
       console.log('Iniciando atualização dos dados...');
       
-      // Força recarregamento dos dados
-      forceReloadData();
+      // Força recarregamento incrementando refreshKey
+      setRefreshKey(prev => prev + 1);
+      
+      // Recarregar funcionários com ferramentas
+      if (ferramentas.length > 0) {
+        await fetchFuncionariosComFerramentas();
+      }
+      
+      toast({
+        title: "Dados atualizados",
+        description: "As informações foram recarregadas com sucesso",
+      });
       
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
@@ -219,19 +229,20 @@ const Admin = () => {
   const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
   const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;
   
-  // Calcular estoque baixo CORRETAMENTE - apenas itens com quantidade <= quantidade_minima
+  // Calcular estoque baixo CORRETAMENTE - quantidade disponível = entrada - saída
   const materiaisEstoqueBaixo = materiais.filter(material => {
-    const quantidadeDisponivel = material.quantidade;
+    const quantidadeDisponivel = material.entrada - material.saida;
     const quantidadeMinima = material.quantidade_minima;
-    console.log(`Material ${material.nome}: disponível=${quantidadeDisponivel}, mínima=${quantidadeMinima}, baixo=${quantidadeDisponivel <= quantidadeMinima}`);
+    console.log(`Material ${material.nome}: entrada=${material.entrada}, saida=${material.saida}, disponível=${quantidadeDisponivel}, mínima=${quantidadeMinima}, baixo=${quantidadeDisponivel <= quantidadeMinima}`);
     return quantidadeDisponivel <= quantidadeMinima;
   });
   
-  // Para ferramentas, considerar estoque baixo quando quantidade <= 2 (quantidade mínima para ferramentas)
+  // Para ferramentas, considerar estoque baixo quando quantidade disponível <= 2
   const ferramentasEstoqueBaixo = ferramentas.filter(ferramenta => {
-    const quantidadeDisponivel = ferramenta.quantidade;
+    const quantidadeTotal = Number(ferramenta.quantidade) + Number(ferramenta.saiu || 0);
+    const quantidadeDisponivel = quantidadeTotal - Number(ferramenta.saiu || 0);
     const quantidadeMinima = 2; // Quantidade mínima padrão para ferramentas
-    console.log(`Ferramenta ${ferramenta.nome}: disponível=${quantidadeDisponivel}, mínima=${quantidadeMinima}, baixo=${quantidadeDisponivel <= quantidadeMinima}`);
+    console.log(`Ferramenta ${ferramenta.nome}: total=${quantidadeTotal}, saiu=${ferramenta.saiu}, disponível=${quantidadeDisponivel}, mínima=${quantidadeMinima}, baixo=${quantidadeDisponivel <= quantidadeMinima}`);
     return quantidadeDisponivel <= quantidadeMinima;
   });
   
