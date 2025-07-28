@@ -100,26 +100,25 @@ const Admin = () => {
     }
   }, [loadingFerramentas, ferramentas, refreshKey]);
 
+  // Função para forçar recarregamento dos dados
+  const forceReloadData = () => {
+    // Força recarregamento incrementando refreshKey
+    setRefreshKey(prev => prev + 1);
+    
+    // Recarrega a página para garantir que os hooks sejam reinicializados
+    window.location.reload();
+  };
+
   // Função para atualizar dados sem recarregar a página
   const handleRefresh = async () => {
     setIsRefreshing(true);
     
     try {
-      // Incrementar a chave de refresh para forçar recarregamento dos hooks
-      setRefreshKey(prev => prev + 1);
+      console.log('Iniciando atualização dos dados...');
       
-      // Aguardar um pouco para dar tempo dos hooks recarregarem
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Força recarregamento dos dados
+      forceReloadData();
       
-      // Recarregar funcionários com ferramentas
-      if (ferramentas.length > 0) {
-        await fetchFuncionariosComFerramentas();
-      }
-      
-      toast({
-        title: "Dados atualizados",
-        description: "As informações foram recarregadas com sucesso",
-      });
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
       toast({
@@ -220,10 +219,27 @@ const Admin = () => {
   const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
   const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;
   
-  // Calcular estoque baixo com dados reais - contar apenas itens únicos
-  const materiaisEstoqueBaixo = materiais.filter(material => material.quantidade <= material.quantidade_minima);
-  const ferramentasEstoqueBaixo = ferramentas.filter(ferramenta => ferramenta.quantidade <= 1);
+  // Calcular estoque baixo CORRETAMENTE - apenas itens com quantidade <= quantidade_minima
+  const materiaisEstoqueBaixo = materiais.filter(material => {
+    const quantidadeDisponivel = material.quantidade;
+    const quantidadeMinima = material.quantidade_minima;
+    console.log(`Material ${material.nome}: disponível=${quantidadeDisponivel}, mínima=${quantidadeMinima}, baixo=${quantidadeDisponivel <= quantidadeMinima}`);
+    return quantidadeDisponivel <= quantidadeMinima;
+  });
+  
+  // Para ferramentas, considerar estoque baixo quando quantidade <= 2 (quantidade mínima para ferramentas)
+  const ferramentasEstoqueBaixo = ferramentas.filter(ferramenta => {
+    const quantidadeDisponivel = ferramenta.quantidade;
+    const quantidadeMinima = 2; // Quantidade mínima padrão para ferramentas
+    console.log(`Ferramenta ${ferramenta.nome}: disponível=${quantidadeDisponivel}, mínima=${quantidadeMinima}, baixo=${quantidadeDisponivel <= quantidadeMinima}`);
+    return quantidadeDisponivel <= quantidadeMinima;
+  });
+  
   const itensEstoqueBaixo = materiaisEstoqueBaixo.length + ferramentasEstoqueBaixo.length;
+  
+  console.log('Materiais com estoque baixo:', materiaisEstoqueBaixo);
+  console.log('Ferramentas com estoque baixo:', ferramentasEstoqueBaixo);
+  console.log('Total itens com estoque baixo:', itensEstoqueBaixo);
 
   if (!isLoggedIn) {
     return (
