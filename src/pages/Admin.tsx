@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
   Package, 
-  AlertTriangle, 
+  Wrench, 
   FileText, 
   Search,
   LogOut,
@@ -222,6 +222,7 @@ const Admin = () => {
   // Calcular estatísticas
   const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
   const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;
+  const totalFerramentasCadastradas = ferramentas.length;
   
   // Calcular estoque baixo CORRETAMENTE - quantidade disponível = entrada - saída
   const materiaisEstoqueBaixo = materiais.filter(material => {
@@ -382,10 +383,10 @@ const Admin = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Estoque Baixo</p>
-                  <p className="text-2xl font-bold text-accent">{itensEstoqueBaixo}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total de Ferramentas</p>
+                  <p className="text-2xl font-bold">{totalFerramentasCadastradas}</p>
                 </div>
-                <AlertTriangle className="w-8 h-8 text-accent" />
+                <Wrench className="w-8 h-8 text-primary" />
               </div>
             </CardContent>
           </Card>
