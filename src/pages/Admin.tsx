@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -221,11 +220,10 @@ const Admin = () => {
   const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
   const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;
   
-  // Calcular estoque baixo com dados reais
-  const itensEstoqueBaixo = [
-    ...materiais.filter(material => material.quantidade <= material.quantidade_minima),
-    ...ferramentas.filter(ferramenta => ferramenta.quantidade <= 1)
-  ].length;
+  // Calcular estoque baixo com dados reais - contar apenas itens únicos
+  const materiaisEstoqueBaixo = materiais.filter(material => material.quantidade <= material.quantidade_minima);
+  const ferramentasEstoqueBaixo = ferramentas.filter(ferramenta => ferramenta.quantidade <= 1);
+  const itensEstoqueBaixo = materiaisEstoqueBaixo.length + ferramentasEstoqueBaixo.length;
 
   if (!isLoggedIn) {
     return (
