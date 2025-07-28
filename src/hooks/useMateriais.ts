@@ -14,7 +14,7 @@ type Material = {
   unidade: string;
 };
 
-export const useMateriais = () => {
+export const useMateriais = (refreshKey?: number) => {
   const [materiais, setMateriais] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,7 +69,7 @@ export const useMateriais = () => {
     };
 
     fetchMateriais();
-  }, []);
+  }, [refreshKey]);
 
   console.log('Estado atual - materiais:', materiais, 'loading:', loading);
 

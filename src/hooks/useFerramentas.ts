@@ -12,7 +12,7 @@ type Ferramenta = {
   saiu: number;
 };
 
-export const useFerramentas = () => {
+export const useFerramentas = (refreshKey?: number) => {
   const [ferramentas, setFerramentas] = useState<Ferramenta[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +65,7 @@ export const useFerramentas = () => {
     };
 
     fetchFerramentas();
-  }, []);
+  }, [refreshKey]);
 
   console.log('Estado atual - ferramentas:', ferramentas, 'loading:', loading);
 

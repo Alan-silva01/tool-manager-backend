@@ -11,7 +11,7 @@ type Funcionario = {
   posse_ferramentas: string[];
 };
 
-export const useFuncionarios = () => {
+export const useFuncionarios = (refreshKey?: number) => {
   const [funcionarios, setFuncionarios] = useState<Record<string, Funcionario>>({});
   const [loading, setLoading] = useState(true);
 
@@ -84,7 +84,7 @@ export const useFuncionarios = () => {
     };
 
     fetchFuncionarios();
-  }, []);
+  }, [refreshKey]);
 
   const buscarFuncionario = (matricula: string) => {
     console.log('Buscando funcionário com matrícula:', matricula);

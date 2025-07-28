@@ -34,9 +34,9 @@ const Admin = () => {
   const [isNotifying, setIsNotifying] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const { funcionarios, loading: loadingFuncionarios } = useFuncionarios();
-  const { ferramentas, loading: loadingFerramentas } = useFerramentas();
-  const { materiais, loading: loadingMateriais } = useMateriais();
+  const { funcionarios, loading: loadingFuncionarios } = useFuncionarios(refreshKey);
+  const { ferramentas, loading: loadingFerramentas } = useFerramentas(refreshKey);
+  const { materiais, loading: loadingMateriais } = useMateriais(refreshKey);
 
   // Função para buscar funcionários com ferramentas
   const fetchFuncionariosComFerramentas = async () => {
@@ -100,15 +100,6 @@ const Admin = () => {
     }
   }, [loadingFerramentas, ferramentas, refreshKey]);
 
-  // Função para forçar recarregamento dos dados
-  const forceReloadData = () => {
-    // Força recarregamento incrementando refreshKey
-    setRefreshKey(prev => prev + 1);
-    
-    // Recarrega a página para garantir que os hooks sejam reinicializados
-    window.location.reload();
-  };
-
   // Função para atualizar dados sem recarregar a página
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -118,6 +109,9 @@ const Admin = () => {
       
       // Força recarregamento incrementando refreshKey
       setRefreshKey(prev => prev + 1);
+      
+      // Aguarda um pouco para os hooks processarem
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Recarregar funcionários com ferramentas
       if (ferramentas.length > 0) {
@@ -239,10 +233,9 @@ const Admin = () => {
   
   // Para ferramentas, considerar estoque baixo quando quantidade disponível <= 2
   const ferramentasEstoqueBaixo = ferramentas.filter(ferramenta => {
-    const quantidadeTotal = Number(ferramenta.quantidade) + Number(ferramenta.saiu || 0);
-    const quantidadeDisponivel = quantidadeTotal - Number(ferramenta.saiu || 0);
+    const quantidadeDisponivel = ferramenta.quantidade; // Já calculado no hook
     const quantidadeMinima = 2; // Quantidade mínima padrão para ferramentas
-    console.log(`Ferramenta ${ferramenta.nome}: total=${quantidadeTotal}, saiu=${ferramenta.saiu}, disponível=${quantidadeDisponivel}, mínima=${quantidadeMinima}, baixo=${quantidadeDisponivel <= quantidadeMinima}`);
+    console.log(`Ferramenta ${ferramenta.nome}: disponível=${quantidadeDisponivel}, mínima=${quantidadeMinima}, baixo=${quantidadeDisponivel <= quantidadeMinima}`);
     return quantidadeDisponivel <= quantidadeMinima;
   });
   
