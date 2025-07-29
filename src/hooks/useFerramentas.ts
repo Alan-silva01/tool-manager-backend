@@ -23,49 +23,26 @@ export const useFerramentas = (refreshKey?: number) => {
       try {
         console.log('Buscando ferramentas...');
         
-        const { data, error } = await supabase
+        // Primeiro tenta buscar com todas as colunas incluindo reserva e matricula_reserva
+        let { data, error } = await supabase
           .from('ferramentas')
           .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva');
 
         console.log('Resposta do Supabase:', { data, error });
 
+        // Se houve erro e é relacionado às colunas de reserva, tenta buscar sem elas
+        if (error && (error.message?.includes('reserva') || error.message?.includes('matricula_reserva'))) {
+          console.log('Tentando buscar sem as colunas de reserva...');
+          const fallbackQuery = await supabase
+            .from('ferramentas')
+            .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
+          
+          data = fallbackQuery.data;
+          error = fallbackQuery.error;
+        }
+
         if (error) {
           console.error('Erro ao buscar ferramentas:', error);
-          
-          // Se o erro é porque as colunas não existem, tenta buscar sem elas
-          if (error.message?.includes('reserva') || error.message?.includes('matricula_reserva')) {
-            console.log('Tentando buscar sem as colunas de reserva...');
-            const { data: dataFallback, error: errorFallback } = await supabase
-              .from('ferramentas')
-              .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
-            
-            if (errorFallback) {
-              console.error('Erro no fallback:', errorFallback);
-              return;
-            }
-            
-            if (dataFallback) {
-              const ferramentasFormatadas = dataFallback.map(ferramenta => {
-                const quantidadeTotal = Number(ferramenta.quantidade) || 0;
-                const quantidadeSaiu = Number(ferramenta.saiu) || 0;
-                const quantidadeDisponivel = quantidadeTotal - quantidadeSaiu;
-                
-                return {
-                  id: ferramenta.id,
-                  nome: ferramenta.nome || '',
-                  tag: ferramenta.tag || '',
-                  quantidade: quantidadeDisponivel,
-                  categoria: ferramenta.categoria || '',
-                  caracteristicas: ferramenta.caracteristicas || {},
-                  saiu: quantidadeSaiu,
-                  reserva: false,
-                  matricula_reserva: ''
-                };
-              });
-              
-              setFerramentas(ferramentasFormatadas);
-            }
-          }
           return;
         }
 
