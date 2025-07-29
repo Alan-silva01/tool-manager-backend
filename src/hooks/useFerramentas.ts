@@ -10,6 +10,8 @@ type Ferramenta = {
   categoria: string;
   caracteristicas: any;
   saiu: number;
+  reserva: boolean;
+  matricula_reserva: string;
 };
 
 export const useFerramentas = (refreshKey?: number) => {
@@ -23,7 +25,7 @@ export const useFerramentas = (refreshKey?: number) => {
         
         const { data, error } = await supabase
           .from('ferramentas')
-          .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
+          .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva');
 
         console.log('Resposta do Supabase:', { data, error });
 
@@ -50,7 +52,9 @@ export const useFerramentas = (refreshKey?: number) => {
               quantidade: quantidadeDisponivel,
               categoria: ferramenta.categoria || '',
               caracteristicas: ferramenta.caracteristicas || {},
-              saiu: quantidadeSaiu
+              saiu: quantidadeSaiu,
+              reserva: ferramenta.reserva || false,
+              matricula_reserva: ferramenta.matricula_reserva || ''
             };
           });
 

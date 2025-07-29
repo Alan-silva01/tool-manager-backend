@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Package, Wrench, ShoppingCart, Plus, Minus, Search, CreditCard, Camera, CheckCircle } from "lucide-react";
+import { ArrowLeft, Package, Wrench, ShoppingCart, Plus, Minus, Search, CreditCard, Camera, CheckCircle, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useFerramentas } from "@/hooks/useFerramentas";
@@ -18,6 +17,8 @@ type CartItem = {
   tag: string;
   quantidade: number;
   tipo: 'ferramenta' | 'material';
+  reserva?: boolean;
+  matricula_reserva?: string;
 };
 
 const PegarItem = () => {
@@ -25,7 +26,7 @@ const PegarItem = () => {
   const { toast } = useToast();
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais } = useMateriais();
-  const { buscarFuncionario, adicionarFerramentaAoFuncionario, funcionarios, loading: loadingFuncionarios } = useFuncionarios();
+  const { buscarFuncionario, buscarNomePorMatricula, adicionarFerramentaAoFuncionario, funcionarios, loading: loadingFuncionarios } = useFuncionarios();
   
   const [step, setStep] = useState<'categoria' | 'lista' | 'carrinho' | 'funcionario' | 'confirmacao'>('categoria');
   const [categoria, setCategoria] = useState<'ferramentas' | 'materiais'>('ferramentas');
@@ -71,9 +72,11 @@ const PegarItem = () => {
       setCarrinho([...carrinho, {
         id: item.id,
         nome: item.nome,
-        tag: String(item.tag), // Convert tag to string for consistency
+        tag: String(item.tag),
         quantidade: 1,
-        tipo: categoria === 'ferramentas' ? 'ferramenta' : 'material'
+        tipo: categoria === 'ferramentas' ? 'ferramenta' : 'material',
+        reserva: item.reserva || false,
+        matricula_reserva: item.matricula_reserva || ''
       }]);
     }
     toast({
@@ -233,6 +236,21 @@ const PegarItem = () => {
 
   const handleConfirmar = async () => {
     if (confirmando) return;
+
+    // Verificar se alguma ferramenta está reservada para outro funcionário
+    if (categoria === 'ferramentas') {
+      for (const item of carrinho) {
+        if (item.reserva && item.matricula_reserva && item.matricula_reserva !== matricula) {
+          toast({
+            title: "Ferramenta reservada",
+            description: `A ferramenta ${item.nome} está reservada. Infelizmente, você não pode retirar.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
     setConfirmando(true);
 
     try {
@@ -435,6 +453,9 @@ const PegarItem = () => {
               const itemNoCarrinho = carrinho.find(c => c.id === item.id);
               const quantidadeNoCarrinho = itemNoCarrinho ? itemNoCarrinho.quantidade : 0;
               const podeAdicionarMais = quantidadeNoCarrinho < item.quantidade;
+              const nomeReservado = categoria === 'ferramentas' && (item as any).reserva && (item as any).matricula_reserva 
+                ? buscarNomePorMatricula((item as any).matricula_reserva) 
+                : null;
               
               return (
                 <Card key={item.id} className={`hover:shadow-md transition-shadow ${item.quantidade <= 0 ? 'opacity-50' : ''}`}>
@@ -445,6 +466,14 @@ const PegarItem = () => {
                          <Badge variant="outline" className="mt-1">
                            TAG: {item.tag}
                          </Badge>
+                         {categoria === 'ferramentas' && (item as any).reserva && nomeReservado && (
+                           <div className="flex items-center gap-1 mt-1">
+                             <Lock className="w-3 h-3 text-orange-500" />
+                             <span className="text-xs text-orange-600">
+                               Reservada para {nomeReservado}
+                             </span>
+                           </div>
+                         )}
                          <p className={`text-sm mt-1 ${item.quantidade <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                            Disponível: {item.quantidade} {categoria === 'materiais' ? (item as any).unidade || 'un' : 'un'}
                          </p>
@@ -491,6 +520,9 @@ const PegarItem = () => {
             {carrinho.map((item) => {
               const itemDisponivel = getItemDisponivel(item.id);
               const quantidadeMaxima = itemDisponivel ? itemDisponivel.quantidade : 0;
+              const nomeReservado = item.tipo === 'ferramenta' && item.reserva && item.matricula_reserva 
+                ? buscarNomePorMatricula(item.matricula_reserva) 
+                : null;
               
               return (
                 <Card key={item.id}>
@@ -501,6 +533,14 @@ const PegarItem = () => {
                         <Badge variant="outline" className="mt-1">
                           TAG: {item.tag}
                         </Badge>
+                        {item.tipo === 'ferramenta' && item.reserva && nomeReservado && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <Lock className="w-3 h-3 text-orange-500" />
+                            <span className="text-xs text-orange-600">
+                              Reservada para {nomeReservado}
+                            </span>
+                          </div>
+                        )}
                         <p className="text-sm text-muted-foreground mt-1">
                           Máximo disponível: {quantidadeMaxima}
                         </p>
@@ -627,12 +667,34 @@ const PegarItem = () => {
 
                 <div>
                   <h3 className="font-semibold">Itens:</h3>
-                  {carrinho.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span>{item.nome}</span>
-                      <span>{item.quantidade}x</span>
-                    </div>
-                  ))}
+                  {carrinho.map((item) => {
+                    const nomeReservado = item.tipo === 'ferramenta' && item.reserva && item.matricula_reserva 
+                      ? buscarNomePorMatricula(item.matricula_reserva) 
+                      : null;
+                    const isReservadoParaOutro = item.reserva && item.matricula_reserva && item.matricula_reserva !== matricula;
+                    
+                    return (
+                      <div key={item.id} className="flex justify-between text-sm">
+                        <div className="flex-1">
+                          <span>{item.nome}</span>
+                          {item.tipo === 'ferramenta' && item.reserva && nomeReservado && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <Lock className="w-3 h-3 text-orange-500" />
+                              <span className="text-xs text-orange-600">
+                                Reservada para {nomeReservado}
+                              </span>
+                            </div>
+                          )}
+                          {isReservadoParaOutro && (
+                            <div className="text-xs text-red-600 mt-1">
+                              ⚠️ Você não pode retirar este item
+                            </div>
+                          )}
+                        </div>
+                        <span>{item.quantidade}x</span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="border-t pt-4 space-y-4">

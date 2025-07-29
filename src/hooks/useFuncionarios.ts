@@ -96,6 +96,15 @@ export const useFuncionarios = (refreshKey?: number) => {
     return funcionario;
   };
 
+  const buscarNomePorMatricula = (matricula: string) => {
+    const funcionario = funcionarios[matricula];
+    if (!funcionario) return null;
+    
+    // Retornar apenas os dois primeiros nomes
+    const nomes = funcionario.nome.split(' ');
+    return nomes.slice(0, 2).join(' ');
+  };
+
   const adicionarFerramentaAoFuncionario = async (matricula: string, tag: string) => {
     try {
       console.log('Adicionando ferramenta ao funcionário:', { matricula, tag });
@@ -146,6 +155,7 @@ export const useFuncionarios = (refreshKey?: number) => {
     funcionarios,
     loading,
     buscarFuncionario,
+    buscarNomePorMatricula,
     adicionarFerramentaAoFuncionario
   };
 };
