@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Search, Package, Wrench, Users } from "lucide-react";
+import { Plus, Edit, Search, Package, Wrench, Users, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
 interface Material {
   id: string;
   nome: string;
@@ -22,6 +23,7 @@ interface Material {
   saida: number;
   unidade: string;
 }
+
 interface Ferramenta {
   id: string;
   nome: string;
@@ -31,6 +33,7 @@ interface Ferramenta {
   caracteristicas: any;
   saiu: number;
 }
+
 interface Funcionario {
   id: string;
   nome: string;
@@ -39,20 +42,21 @@ interface Funcionario {
   numero_whatsapp: string;
   posse_ferramentas: string[];
 }
+
 interface EstoqueManagerProps {
   materiais: Material[];
   ferramentas: Ferramenta[];
   onRefresh: () => void;
 }
+
 type SetorType = "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central";
+
 export const EstoqueManager = ({
   materiais,
   ferramentas,
   onRefresh
 }: EstoqueManagerProps) => {
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
   const [isAddingFerramenta, setIsAddingFerramenta] = useState(false);
@@ -88,6 +92,12 @@ export const EstoqueManager = ({
     setor: "",
     numero_whatsapp: ""
   });
+
+  // Estados para reserva
+  const [reservandoFerramenta, setReservandoFerramenta] = useState<Ferramenta | null>(null);
+  const [matriculaReserva, setMatriculaReserva] = useState("");
+  const [isProcessingReserva, setIsProcessingReserva] = useState(false);
+
   const setores: SetorType[] = ["Usinagem industrial", "Oficina cantilever", "Oficina de guias", "Montagem de gaiola", "Oficina de mancal", "Usinagem de cilindros", "Oficina central"];
 
   // Função para formatar data no formato dd-mm-aaaa
@@ -127,9 +137,11 @@ export const EstoqueManager = ({
       setLoadingFuncionarios(false);
     }
   };
+
   const formatarTexto = (texto: string) => {
     return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
   };
+
   const formatarCaracteristicas = (texto: string) => {
     if (!texto.trim()) return {};
     try {
@@ -147,6 +159,75 @@ export const EstoqueManager = ({
       return caracteristicasObj;
     }
   };
+
+  // Função para fazer/cancelar reserva
+  const handleReserva = async () => {
+    if (!reservandoFerramenta) return;
+    
+    setIsProcessingReserva(true);
+    
+    try {
+      let updateData;
+      
+      if (reservandoFerramenta.reserva) {
+        // Cancelar reserva
+        updateData = {
+          reserva: false,
+          matricula_reserva: null
+        };
+      } else {
+        // Fazer reserva
+        if (!matriculaReserva.trim()) {
+          toast({
+            title: "Erro",
+            description: "Informe a matrícula para fazer a reserva",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        updateData = {
+          reserva: true,
+          matricula_reserva: matriculaReserva.trim()
+        };
+      }
+      
+      const { error } = await supabase
+        .from('ferramentas')
+        .update(updateData)
+        .eq('id', reservandoFerramenta.id);
+      
+      if (error) {
+        console.error('Erro ao processar reserva:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível processar a reserva",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: reservandoFerramenta.reserva ? "Reserva cancelada" : "Reserva realizada",
+        description: `A ferramenta ${reservandoFerramenta.nome} ${reservandoFerramenta.reserva ? 'não está mais reservada' : 'foi reservada com sucesso'}`
+      });
+      
+      setReservandoFerramenta(null);
+      setMatriculaReserva("");
+      onRefresh();
+      
+    } catch (error) {
+      console.error('Erro ao processar reserva:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao processar reserva",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingReserva(false);
+    }
+  };
+
   const handleAddMaterial = async () => {
     if (!novoMaterial.nome || !novoMaterial.tag) {
       toast({
@@ -202,6 +283,7 @@ export const EstoqueManager = ({
       setIsAddingMaterial(false);
     }
   };
+
   const handleEditMaterial = async () => {
     if (!editingMaterial) return;
     try {
@@ -233,6 +315,7 @@ export const EstoqueManager = ({
       console.error('Erro ao editar material:', error);
     }
   };
+
   const handleAddFerramenta = async () => {
     if (!novaFerramenta.nome || !novaFerramenta.categoria || !novaFerramenta.tag) {
       toast({
@@ -288,6 +371,7 @@ export const EstoqueManager = ({
       setIsAddingFerramenta(false);
     }
   };
+
   const handleEditFerramenta = async () => {
     if (!editingFerramenta) return;
     let caracteristicasJson = editingFerramenta.caracteristicas;
@@ -323,6 +407,7 @@ export const EstoqueManager = ({
       console.error('Erro ao editar ferramenta:', error);
     }
   };
+
   const handleAddFuncionario = async () => {
     if (!novoFuncionario.nome || !novoFuncionario.matricula || !novoFuncionario.setor) {
       toast({
@@ -374,6 +459,7 @@ export const EstoqueManager = ({
       setIsAddingFuncionario(false);
     }
   };
+
   const handleEditFuncionario = async () => {
     if (!editingFuncionario) return;
     try {
@@ -404,9 +490,11 @@ export const EstoqueManager = ({
       console.error('Erro ao editar funcionário:', error);
     }
   };
+
   const filteredMateriais = materiais.filter(material => material.nome.toLowerCase().includes(searchTerm.toLowerCase()) || material.tag.toString().includes(searchTerm) || material.unidade?.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredFerramentas = ferramentas.filter(ferramenta => ferramenta.nome.toLowerCase().includes(searchTerm.toLowerCase()) || ferramenta.categoria.toLowerCase().includes(searchTerm.toLowerCase()) || ferramenta.tag.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredFuncionarios = funcionarios.filter(funcionario => funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) || funcionario.matricula.toString().includes(searchTerm) || funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -680,8 +768,9 @@ export const EstoqueManager = ({
                     <TableHead>Categoria</TableHead>
                     <TableHead>Tag</TableHead>
                     <TableHead className="text-center">Quantidade Disponível</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Características</TableHead>
-                    <TableHead>Editar</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -695,26 +784,37 @@ export const EstoqueManager = ({
                         </TableCell>
                         <TableCell className="text-center">{quantidadeDisponivel}</TableCell>
                         <TableCell>
+                          {ferramenta.reserva ? (
+                            <Badge variant="destructive">
+                              <Shield className="w-3 h-3 mr-1" />
+                              Reservada
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Disponível</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           {ferramenta.caracteristicas && Object.keys(ferramenta.caracteristicas).length > 0 ? <Badge variant="secondary">Com características</Badge> : <Badge variant="outline">Sem características</Badge>}
                         </TableCell>
                         <TableCell>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => {
-                            const caracteristicasStr = ferramenta.caracteristicas ? Object.entries(ferramenta.caracteristicas).map(([key, value]) => `${key}: ${value}`).join('\n') : '';
-                            setEditingFerramenta({
-                              ...ferramenta,
-                              caracteristicas: caracteristicasStr
-                            });
-                          }}>
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>Editar Ferramenta</DialogTitle>
-                              </DialogHeader>
-                              {editingFerramenta && editingFerramenta.id === ferramenta.id && <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" variant="ghost" onClick={() => {
+                                const caracteristicasStr = ferramenta.caracteristicas ? Object.entries(ferramenta.caracteristicas).map(([key, value]) => `${key}: ${value}`).join('\n') : '';
+                                setEditingFerramenta({
+                                  ...ferramenta,
+                                  caracteristicas: caracteristicasStr
+                                });
+                              }}>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Editar Ferramenta</DialogTitle>
+                                </DialogHeader>
+                                {editingFerramenta && editingFerramenta.id === ferramenta.id && <div className="space-y-4">
                                   <div>
                                     <Label htmlFor="edit-ferramenta-nome">Nome da Ferramenta</Label>
                                     <Input id="edit-ferramenta-nome" value={editingFerramenta.nome} onChange={e => setEditingFerramenta({
@@ -757,8 +857,78 @@ export const EstoqueManager = ({
                                     Salvar Alterações
                                   </Button>
                                 </div>}
-                            </DialogContent>
-                          </Dialog>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant={ferramenta.reserva ? "destructive" : "outline"}
+                                  onClick={() => {
+                                    setReservandoFerramenta(ferramenta);
+                                    setMatriculaReserva(ferramenta.matricula_reserva || "");
+                                  }}
+                                >
+                                  <Shield className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>
+                                    {ferramenta.reserva ? 'Cancelar Reserva' : 'Fazer Reserva'}
+                                  </DialogTitle>
+                                </DialogHeader>
+                                {reservandoFerramenta && reservandoFerramenta.id === ferramenta.id && (
+                                  <div className="space-y-4">
+                                    <div>
+                                      <p className="text-sm text-muted-foreground mb-2">
+                                        Ferramenta: <strong>{ferramenta.nome}</strong>
+                                      </p>
+                                      <p className="text-sm text-muted-foreground mb-4">
+                                        Tag: <strong>{ferramenta.tag}</strong>
+                                      </p>
+                                    </div>
+                                    
+                                    {ferramenta.reserva ? (
+                                      <div className="space-y-2">
+                                        <p className="text-sm">
+                                          Esta ferramenta está reservada para a matrícula: <strong>{ferramenta.matricula_reserva}</strong>
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                          Deseja cancelar a reserva?
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <Label htmlFor="matricula-reserva">Matrícula do Funcionário</Label>
+                                        <Input
+                                          id="matricula-reserva"
+                                          value={matriculaReserva}
+                                          onChange={(e) => setMatriculaReserva(e.target.value)}
+                                          placeholder="Digite a matrícula"
+                                        />
+                                      </div>
+                                    )}
+                                    
+                                    <Button 
+                                      className="w-full" 
+                                      variant={ferramenta.reserva ? "destructive" : "default"}
+                                      onClick={handleReserva}
+                                      disabled={isProcessingReserva}
+                                    >
+                                      {isProcessingReserva 
+                                        ? 'Processando...' 
+                                        : ferramenta.reserva 
+                                          ? 'Cancelar Reserva' 
+                                          : 'Confirmar Reserva'
+                                      }
+                                    </Button>
+                                  </div>
+                                )}
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </TableCell>
                       </TableRow>;
                 })}
