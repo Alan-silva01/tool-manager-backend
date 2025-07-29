@@ -32,6 +32,8 @@ interface Ferramenta {
   tag: string;
   caracteristicas: any;
   saiu: number;
+  reserva?: boolean;
+  matricula_reserva?: string;
 }
 
 interface Funcionario {

@@ -10,8 +10,8 @@ type Ferramenta = {
   categoria: string;
   caracteristicas: any;
   saiu: number;
-  reserva: boolean;
-  matricula_reserva: string;
+  reserva?: boolean;
+  matricula_reserva?: string;
 };
 
 export const useFerramentas = (refreshKey?: number) => {
@@ -31,6 +31,41 @@ export const useFerramentas = (refreshKey?: number) => {
 
         if (error) {
           console.error('Erro ao buscar ferramentas:', error);
+          
+          // Se o erro é porque as colunas não existem, tenta buscar sem elas
+          if (error.message?.includes('reserva') || error.message?.includes('matricula_reserva')) {
+            console.log('Tentando buscar sem as colunas de reserva...');
+            const { data: dataFallback, error: errorFallback } = await supabase
+              .from('ferramentas')
+              .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
+            
+            if (errorFallback) {
+              console.error('Erro no fallback:', errorFallback);
+              return;
+            }
+            
+            if (dataFallback) {
+              const ferramentasFormatadas = dataFallback.map(ferramenta => {
+                const quantidadeTotal = Number(ferramenta.quantidade) || 0;
+                const quantidadeSaiu = Number(ferramenta.saiu) || 0;
+                const quantidadeDisponivel = quantidadeTotal - quantidadeSaiu;
+                
+                return {
+                  id: ferramenta.id,
+                  nome: ferramenta.nome || '',
+                  tag: ferramenta.tag || '',
+                  quantidade: quantidadeDisponivel,
+                  categoria: ferramenta.categoria || '',
+                  caracteristicas: ferramenta.caracteristicas || {},
+                  saiu: quantidadeSaiu,
+                  reserva: false,
+                  matricula_reserva: ''
+                };
+              });
+              
+              setFerramentas(ferramentasFormatadas);
+            }
+          }
           return;
         }
 
