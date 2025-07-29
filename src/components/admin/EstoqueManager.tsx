@@ -68,6 +68,7 @@ export const EstoqueManager = ({
   const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loadingFuncionarios, setLoadingFuncionarios] = useState(false);
+  const [currentTab, setCurrentTab] = useState("materiais");
 
   // Estados para novo material
   const [novoMaterial, setNovoMaterial] = useState({
@@ -99,6 +100,7 @@ export const EstoqueManager = ({
   const [reservandoFerramenta, setReservandoFerramenta] = useState<Ferramenta | null>(null);
   const [matriculaReserva, setMatriculaReserva] = useState("");
   const [isProcessingReserva, setIsProcessingReserva] = useState(false);
+  const [dialogReservaOpen, setDialogReservaOpen] = useState(false);
 
   const setores: SetorType[] = ["Usinagem industrial", "Oficina cantilever", "Oficina de guias", "Montagem de gaiola", "Oficina de mancal", "Usinagem de cilindros", "Oficina central"];
 
@@ -216,6 +218,7 @@ export const EstoqueManager = ({
       
       setReservandoFerramenta(null);
       setMatriculaReserva("");
+      setDialogReservaOpen(false);
       onRefresh();
       
     } catch (error) {
@@ -511,11 +514,7 @@ export const EstoqueManager = ({
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="materiais" className="space-y-4" onValueChange={value => {
-        if (value === 'funcionarios' && funcionarios.length === 0) {
-          fetchFuncionarios();
-        }
-      }}>
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="materiais">Materiais</TabsTrigger>
             <TabsTrigger value="ferramentas">Ferramentas</TabsTrigger>
@@ -772,19 +771,19 @@ export const EstoqueManager = ({
                     <TableHead className="text-center">Quantidade Disponível</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Características</TableHead>
+                    <TableHead>Reservar</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredFerramentas.map(ferramenta => {
-                  const quantidadeDisponivel = (ferramenta.quantidade || 0) - (ferramenta.saiu || 0);
                   return <TableRow key={ferramenta.id}>
                         <TableCell className="font-medium">{ferramenta.nome}</TableCell>
                         <TableCell>{ferramenta.categoria}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{ferramenta.tag}</Badge>
                         </TableCell>
-                        <TableCell className="text-center">{quantidadeDisponivel}</TableCell>
+                        <TableCell className="text-center">{ferramenta.quantidade}</TableCell>
                         <TableCell>
                           {ferramenta.reserva ? (
                             <Badge variant="destructive">
@@ -799,138 +798,145 @@ export const EstoqueManager = ({
                           {ferramenta.caracteristicas && Object.keys(ferramenta.caracteristicas).length > 0 ? <Badge variant="secondary">Com características</Badge> : <Badge variant="outline">Sem características</Badge>}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button size="sm" variant="ghost" onClick={() => {
+                          <Dialog open={dialogReservaOpen && reservandoFerramenta?.id === ferramenta.id} onOpenChange={(open) => {
+                            setDialogReservaOpen(open);
+                            if (!open) {
+                              setReservandoFerramenta(null);
+                              setMatriculaReserva("");
+                            }
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant={ferramenta.reserva ? "destructive" : "outline"}
+                                onClick={() => {
+                                  setReservandoFerramenta(ferramenta);
+                                  setMatriculaReserva(ferramenta.matricula_reserva || "");
+                                  setDialogReservaOpen(true);
+                                }}
+                              >
+                                <Shield className="w-4 h-4 mr-1" />
+                                Reservar
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                              <DialogHeader>
+                                <DialogTitle>
+                                  {ferramenta.reserva ? 'Cancelar Reserva' : 'Fazer Reserva'}
+                                </DialogTitle>
+                              </DialogHeader>
+                              {reservandoFerramenta && reservandoFerramenta.id === ferramenta.id && (
+                                <div className="space-y-4">
+                                  <div>
+                                    <p className="text-sm text-muted-foreground mb-2">
+                                      Ferramenta: <strong>{ferramenta.nome}</strong>
+                                    </p>
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                      Tag: <strong>{ferramenta.tag}</strong>
+                                    </p>
+                                  </div>
+                                  
+                                  {ferramenta.reserva ? (
+                                    <div className="space-y-2">
+                                      <p className="text-sm">
+                                        Esta ferramenta está reservada para a matrícula: <strong>{ferramenta.matricula_reserva}</strong>
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        Deseja cancelar a reserva?
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <Label htmlFor="matricula-reserva">Matrícula do Funcionário</Label>
+                                      <Input
+                                        id="matricula-reserva"
+                                        value={matriculaReserva}
+                                        onChange={(e) => setMatriculaReserva(e.target.value)}
+                                        placeholder="Digite a matrícula"
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  <Button 
+                                    className="w-full" 
+                                    variant={ferramenta.reserva ? "destructive" : "default"}
+                                    onClick={handleReserva}
+                                    disabled={isProcessingReserva}
+                                  >
+                                    {isProcessingReserva 
+                                      ? 'Processando...' 
+                                      : ferramenta.reserva 
+                                        ? 'Cancelar Reserva' 
+                                        : 'Confirmar Reserva'
+                                    }
+                                  </Button>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => {
                                 const caracteristicasStr = ferramenta.caracteristicas ? Object.entries(ferramenta.caracteristicas).map(([key, value]) => `${key}: ${value}`).join('\n') : '';
                                 setEditingFerramenta({
                                   ...ferramenta,
                                   caracteristicas: caracteristicasStr
                                 });
                               }}>
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-md">
-                                <DialogHeader>
-                                  <DialogTitle>Editar Ferramenta</DialogTitle>
-                                </DialogHeader>
-                                {editingFerramenta && editingFerramenta.id === ferramenta.id && <div className="space-y-4">
-                                  <div>
-                                    <Label htmlFor="edit-ferramenta-nome">Nome da Ferramenta</Label>
-                                    <Input id="edit-ferramenta-nome" value={editingFerramenta.nome} onChange={e => setEditingFerramenta({
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                              <DialogHeader>
+                                <DialogTitle>Editar Ferramenta</DialogTitle>
+                              </DialogHeader>
+                              {editingFerramenta && editingFerramenta.id === ferramenta.id && <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="edit-ferramenta-nome">Nome da Ferramenta</Label>
+                                  <Input id="edit-ferramenta-nome" value={editingFerramenta.nome} onChange={e => setEditingFerramenta({
                                 ...editingFerramenta,
                                 nome: e.target.value
                               })} />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="edit-ferramenta-categoria">Categoria</Label>
-                                    <Input id="edit-ferramenta-categoria" value={editingFerramenta.categoria} onChange={e => setEditingFerramenta({
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-ferramenta-categoria">Categoria</Label>
+                                  <Input id="edit-ferramenta-categoria" value={editingFerramenta.categoria} onChange={e => setEditingFerramenta({
                                 ...editingFerramenta,
                                 categoria: e.target.value
                               })} />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="edit-ferramenta-tag">Tag</Label>
-                                    <Input id="edit-ferramenta-tag" value={editingFerramenta.tag} onChange={e => setEditingFerramenta({
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-ferramenta-tag">Tag</Label>
+                                  <Input id="edit-ferramenta-tag" value={editingFerramenta.tag} onChange={e => setEditingFerramenta({
                                 ...editingFerramenta,
                                 tag: e.target.value
                               })} />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="edit-ferramenta-quantidade">Quantidade</Label>
-                                    <Input id="edit-ferramenta-quantidade" type="number" value={editingFerramenta.quantidade} onChange={e => setEditingFerramenta({
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-ferramenta-quantidade">Quantidade</Label>
+                                  <Input id="edit-ferramenta-quantidade" type="number" value={editingFerramenta.quantidade} onChange={e => setEditingFerramenta({
                                 ...editingFerramenta,
                                 quantidade: Number(e.target.value)
                               })} />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="edit-ferramenta-caracteristicas">Características</Label>
-                                    <Textarea id="edit-ferramenta-caracteristicas" value={typeof editingFerramenta.caracteristicas === 'string' ? editingFerramenta.caracteristicas : ''} onChange={e => setEditingFerramenta({
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-ferramenta-caracteristicas">Características</Label>
+                                  <Textarea id="edit-ferramenta-caracteristicas" value={typeof editingFerramenta.caracteristicas === 'string' ? editingFerramenta.caracteristicas : ''} onChange={e => setEditingFerramenta({
                                 ...editingFerramenta,
                                 caracteristicas: e.target.value
                               })} rows={6} placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`} />
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      Digite uma característica por linha no formato "nome: valor"
-                                    </p>
-                                  </div>
-                                  <Button className="w-full" onClick={handleEditFerramenta}>
-                                    Salvar Alterações
-                                  </Button>
-                                </div>}
-                              </DialogContent>
-                            </Dialog>
-                            
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  size="sm" 
-                                  variant={ferramenta.reserva ? "destructive" : "outline"}
-                                  onClick={() => {
-                                    setReservandoFerramenta(ferramenta);
-                                    setMatriculaReserva(ferramenta.matricula_reserva || "");
-                                  }}
-                                >
-                                  <Shield className="w-4 h-4" />
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Digite uma característica por linha no formato "nome: valor"
+                                  </p>
+                                </div>
+                                <Button className="w-full" onClick={handleEditFerramenta}>
+                                  Salvar Alterações
                                 </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-md">
-                                <DialogHeader>
-                                  <DialogTitle>
-                                    {ferramenta.reserva ? 'Cancelar Reserva' : 'Fazer Reserva'}
-                                  </DialogTitle>
-                                </DialogHeader>
-                                {reservandoFerramenta && reservandoFerramenta.id === ferramenta.id && (
-                                  <div className="space-y-4">
-                                    <div>
-                                      <p className="text-sm text-muted-foreground mb-2">
-                                        Ferramenta: <strong>{ferramenta.nome}</strong>
-                                      </p>
-                                      <p className="text-sm text-muted-foreground mb-4">
-                                        Tag: <strong>{ferramenta.tag}</strong>
-                                      </p>
-                                    </div>
-                                    
-                                    {ferramenta.reserva ? (
-                                      <div className="space-y-2">
-                                        <p className="text-sm">
-                                          Esta ferramenta está reservada para a matrícula: <strong>{ferramenta.matricula_reserva}</strong>
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                          Deseja cancelar a reserva?
-                                        </p>
-                                      </div>
-                                    ) : (
-                                      <div>
-                                        <Label htmlFor="matricula-reserva">Matrícula do Funcionário</Label>
-                                        <Input
-                                          id="matricula-reserva"
-                                          value={matriculaReserva}
-                                          onChange={(e) => setMatriculaReserva(e.target.value)}
-                                          placeholder="Digite a matrícula"
-                                        />
-                                      </div>
-                                    )}
-                                    
-                                    <Button 
-                                      className="w-full" 
-                                      variant={ferramenta.reserva ? "destructive" : "default"}
-                                      onClick={handleReserva}
-                                      disabled={isProcessingReserva}
-                                    >
-                                      {isProcessingReserva 
-                                        ? 'Processando...' 
-                                        : ferramenta.reserva 
-                                          ? 'Cancelar Reserva' 
-                                          : 'Confirmar Reserva'
-                                      }
-                                    </Button>
-                                  </div>
-                                )}
-                              </DialogContent>
-                            </Dialog>
-                          </div>
+                              </div>}
+                            </DialogContent>
+                          </Dialog>
                         </TableCell>
                       </TableRow>;
                 })}
@@ -1004,7 +1010,7 @@ export const EstoqueManager = ({
                     <TableHead className="text-center">Matrícula</TableHead>
                     <TableHead>Setor</TableHead>
                     <TableHead>WhatsApp</TableHead>
-                    <TableHead className="text-center">Em posse </TableHead>
+                    <TableHead className="text-center">Em posse </TableHead>
                     <TableHead>Editar</TableHead>
                   </TableRow>
                 </TableHeader>

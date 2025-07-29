@@ -50,10 +50,10 @@ export const useFerramentas = (refreshKey?: number) => {
           console.log('Dados brutos:', data);
           console.log('Quantidade de ferramentas encontradas:', data.length);
           
-          const ferramentasFormatadas = data.map(ferramenta => {
+          const ferramentasFormatadas = data.map((ferramenta: any) => {
             const quantidadeTotal = Number(ferramenta.quantidade) || 0;
             const quantidadeSaiu = Number(ferramenta.saiu) || 0;
-            const quantidadeDisponivel = quantidadeTotal - quantidadeSaiu;
+            const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu); // Garante que não seja negativo
             
             console.log(`${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}`);
             
