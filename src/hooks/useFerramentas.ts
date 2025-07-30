@@ -23,21 +23,10 @@ export const useFerramentas = (refreshKey: number = 0) => {
     try {
       console.log('Buscando ferramentas...');
       
-      // Primeira tentativa: buscar com colunas de reserva
-      let { data, error } = await supabase
+      // Buscar apenas as colunas que existem na tabela
+      const { data, error } = await supabase
         .from('ferramentas')
-        .select('*, reserva, matricula_reserva');
-
-      // Se der erro por causa das colunas de reserva não existirem, buscar sem elas
-      if (error && error.message?.includes("column")) {
-        console.log('Colunas de reserva não existem, buscando sem elas...');
-        const { data: dataWithoutReserva, error: errorWithoutReserva } = await supabase
-          .from('ferramentas')
-          .select('*');
-        
-        data = dataWithoutReserva;
-        error = errorWithoutReserva;
-      }
+        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
 
       if (error) {
         console.error('Erro ao buscar ferramentas:', error);
@@ -61,8 +50,8 @@ export const useFerramentas = (refreshKey: number = 0) => {
             categoria: ferramenta.categoria,
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
-            reserva: ferramenta.reserva || false,
-            matricula_reserva: ferramenta.matricula_reserva || undefined
+            reserva: false, // Default value since column doesn't exist
+            matricula_reserva: undefined // Default value since column doesn't exist
           } as Ferramenta;
         });
 
