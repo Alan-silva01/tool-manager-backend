@@ -28,7 +28,7 @@ const PegarItem = () => {
   const { materiais, loading: loadingMateriais } = useMateriais();
   const { buscarFuncionario, buscarNomePorMatricula, adicionarFerramentaAoFuncionario, funcionarios, loading: loadingFuncionarios } = useFuncionarios();
   
-  const [step, setStep] = useState<'categoria' | 'lista' | 'carrinho' | 'funcionario' | 'confirmacao'>('categoria');
+  const [step, setStep] = useState<'categoria' | 'lista' | 'carrinho' | 'funcionario' | 'fotos' | 'confirmacao'>('categoria');
   const [categoria, setCategoria] = useState<'ferramentas' | 'materiais'>('ferramentas');
   const [carrinho, setCarrinho] = useState<CartItem[]>([]);
   const [matricula, setMatricula] = useState('');
@@ -36,7 +36,7 @@ const PegarItem = () => {
   const [filtroFerramentas, setFiltroFerramentas] = useState('');
   const [filtroMateriais, setFiltroMateriais] = useState('');
   const [tipoIdentificacao, setTipoIdentificacao] = useState<'matricula' | 'nfc'>('matricula');
-  const [foto, setFoto] = useState<File | null>(null);
+  const [fotosItens, setFotosItens] = useState<Record<string, File>>({});
   const [confirmando, setConfirmando] = useState(false);
 
   const handleSelectCategoria = (cat: 'ferramentas' | 'materiais') => {
@@ -87,6 +87,10 @@ const PegarItem = () => {
 
   const removeFromCart = (id: string) => {
     setCarrinho(carrinho.filter(item => item.id !== id));
+    // Remove foto do item se existir
+    const newFotos = { ...fotosItens };
+    delete newFotos[id];
+    setFotosItens(newFotos);
   };
 
   const updateCartQuantity = (id: string, delta: number) => {
@@ -97,10 +101,8 @@ const PegarItem = () => {
       if (item.id === id) {
         const novaQuantidade = item.quantidade + delta;
         
-        // Não permitir quantidade menor que 1
         if (novaQuantidade < 1) return item;
         
-        // Não permitir quantidade maior que o disponível
         if (novaQuantidade > itemDisponivel.quantidade) {
           toast({
             title: "Quantidade indisponível",
@@ -134,7 +136,7 @@ const PegarItem = () => {
     
     if (func) {
       setFuncionario(func);
-      setStep('confirmacao');
+      setStep('fotos');
       toast({
         title: "Funcionário encontrado!",
         description: `${func.nome} - ${func.setor}`,
@@ -151,7 +153,6 @@ const PegarItem = () => {
   const handleNFCScan = () => {
     console.log('Simulando leitura NFC...');
     
-    // Pegar uma matrícula aleatória dos funcionários disponíveis
     const matriculasDisponiveis = Object.keys(funcionarios);
     console.log('Matrículas disponíveis para NFC:', matriculasDisponiveis);
     
@@ -172,7 +173,7 @@ const PegarItem = () => {
     const func = buscarFuncionario(randomMatricula);
     if (func) {
       setFuncionario(func);
-      setStep('confirmacao');
+      setStep('fotos');
       toast({
         title: "Crachá lido com sucesso!",
         description: `Funcionário: ${func.nome} - ${func.setor}`,
@@ -216,7 +217,7 @@ const PegarItem = () => {
     }
   };
 
-  const handleTirarFoto = () => {
+  const handleTirarFotoItem = (itemId: string, itemNome: string) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -224,10 +225,19 @@ const PegarItem = () => {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        setFoto(file);
+        // Renomear arquivo com o nome do item
+        const newFile = new File([file], `${itemNome.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.jpg`, {
+          type: file.type,
+        });
+        
+        setFotosItens(prev => ({
+          ...prev,
+          [itemId]: newFile
+        }));
+        
         toast({
           title: "Foto capturada!",
-          description: "Foto adicionada à retirada",
+          description: `Foto de ${itemNome} adicionada`,
         });
       }
     };
@@ -236,6 +246,17 @@ const PegarItem = () => {
 
   const handleConfirmar = async () => {
     if (confirmando) return;
+
+    // Verificar se todos os itens têm foto
+    const itensSemFoto = carrinho.filter(item => !fotosItens[item.id]);
+    if (itensSemFoto.length > 0) {
+      toast({
+        title: "Fotos obrigatórias",
+        description: `É necessário tirar foto de todos os itens. Faltam: ${itensSemFoto.map(i => i.nome).join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Verificar se alguma ferramenta está reservada para outro funcionário
     if (categoria === 'ferramentas') {
@@ -270,7 +291,7 @@ const PegarItem = () => {
         }
       }
 
-      // Enviar dados para o webhook
+      // Enviar dados principais para o webhook
       const formData = new FormData();
       
       formData.append('funcionario_matricula', matricula);
@@ -290,40 +311,32 @@ const PegarItem = () => {
       formData.append('total_itens', carrinho.length.toString());
       formData.append('categoria', categoria);
 
-      console.log('Dados enviados para webhook:', {
-        funcionario_matricula: matricula,
-        funcionario_nome: funcionario.nome,
-        funcionario_setor: funcionario.setor,
-        categoria: categoria,
-        total_itens: carrinho.length,
-        itens: carrinho.map((item, index) => ({
-          [`item_${index}_id`]: item.id,
-          [`item_${index}_nome`]: item.nome,
-          [`item_${index}_tag`]: item.tag,
-          [`item_${index}_quantidade`]: item.quantidade,
-          [`item_${index}_tipo`]: item.tipo
-        }))
-      });
-
       await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/pegar-ferramenta', {
         method: 'POST',
         mode: 'no-cors',
         body: formData,
       });
 
-      if (foto) {
-        const fotoFormData = new FormData();
-        fotoFormData.append('funcionario_matricula', matricula);
-        fotoFormData.append('funcionario_nome', funcionario.nome);
-        fotoFormData.append('foto', foto, 'ferramenta_retirada.jpg');
-        fotoFormData.append('timestamp', new Date().toISOString());
-        fotoFormData.append('categoria', categoria);
+      // Enviar cada foto individualmente com o nome do item
+      for (const item of carrinho) {
+        const foto = fotosItens[item.id];
+        if (foto) {
+          const fotoFormData = new FormData();
+          fotoFormData.append('funcionario_matricula', matricula);
+          fotoFormData.append('funcionario_nome', funcionario.nome);
+          fotoFormData.append('item_nome', item.nome);
+          fotoFormData.append('item_tag', item.tag);
+          fotoFormData.append('item_tipo', item.tipo);
+          fotoFormData.append('foto', foto, foto.name);
+          fotoFormData.append('timestamp', new Date().toISOString());
+          fotoFormData.append('categoria', categoria);
 
-        await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/pegar-ferramenta-imagem', {
-          method: 'POST',
-          mode: 'no-cors',
-          body: fotoFormData,
-        });
+          await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/pegar-ferramenta-imagem', {
+            method: 'POST',
+            mode: 'no-cors',
+            body: fotoFormData,
+          });
+        }
       }
 
       toast({
@@ -367,7 +380,8 @@ const PegarItem = () => {
               else if (step === 'lista') setStep('categoria');
               else if (step === 'carrinho') setStep('lista');
               else if (step === 'funcionario') setStep('carrinho');
-              else if (step === 'confirmacao') setStep('funcionario');
+              else if (step === 'fotos') setStep('funcionario');
+              else if (step === 'confirmacao') setStep('fotos');
             }}
           >
             <ArrowLeft className="w-5 h-5" />
@@ -379,6 +393,7 @@ const PegarItem = () => {
               {step === 'lista' && `Escolha ${categoria}`}
               {step === 'carrinho' && 'Revise os itens'}
               {step === 'funcionario' && 'Identificação'}
+              {step === 'fotos' && 'Fotografe os itens'}
               {step === 'confirmacao' && 'Confirme a retirada'}
             </p>
           </div>
@@ -649,6 +664,86 @@ const PegarItem = () => {
           </div>
         )}
 
+        {/* Nova etapa: Fotografar os itens */}
+        {step === 'fotos' && funcionario && (
+          <div className="space-y-4 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Fotografe os Itens</CardTitle>
+                <div className="text-sm text-muted-foreground">
+                  <p><strong>{funcionario.nome}</strong></p>
+                  <p>{funcionario.setor} - Matrícula: {matricula}</p>
+                  <p className="text-xs mt-1">É obrigatório fotografar cada item individualmente</p>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {carrinho.map((item) => {
+              const temFoto = fotosItens[item.id];
+              const nomeReservado = item.tipo === 'ferramenta' && item.reserva && item.matricula_reserva 
+                ? buscarNomePorMatricula(item.matricula_reserva) 
+                : null;
+              
+              return (
+                <Card key={item.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="font-semibold">{item.nome}</h3>
+                        <Badge variant="outline" className="mt-1">
+                          TAG: {item.tag}
+                        </Badge>
+                        {item.quantidade > 1 && (
+                          <Badge variant="secondary" className="mt-1 ml-2">
+                            Qtd: {item.quantidade}
+                          </Badge>
+                        )}
+                        {item.tipo === 'ferramenta' && item.reserva && nomeReservado && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <Lock className="w-3 h-3 text-orange-500" />
+                            <span className="text-xs text-orange-600">
+                              Reservada para {nomeReservado}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {temFoto ? (
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Foto capturada ({temFoto.name})</span>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleTirarFotoItem(item.id, item.nome)}
+                          className="w-full"
+                        >
+                          <Camera className="w-4 h-4 mr-2" />
+                          Tirar Foto do {item.nome}
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            <div className="mt-6">
+              <Button 
+                className="w-full" 
+                onClick={() => setStep('confirmacao')}
+                disabled={carrinho.some(item => !fotosItens[item.id])}
+              >
+                {carrinho.every(item => fotosItens[item.id]) 
+                  ? 'Continuar para Confirmação' 
+                  : `Faltam ${carrinho.filter(item => !fotosItens[item.id]).length} foto(s)`
+                }
+              </Button>
+            </div>
+          </div>
+        )}
+
         {step === 'confirmacao' && funcionario && (
           <div className="space-y-4 mt-6">
             <Card>
@@ -672,11 +767,23 @@ const PegarItem = () => {
                       ? buscarNomePorMatricula(item.matricula_reserva) 
                       : null;
                     const isReservadoParaOutro = item.reserva && item.matricula_reserva && item.matricula_reserva !== matricula;
+                    const temFoto = fotosItens[item.id];
                     
                     return (
-                      <div key={item.id} className="flex justify-between text-sm">
+                      <div key={item.id} className="flex justify-between items-center text-sm border-b pb-2 mb-2">
                         <div className="flex-1">
-                          <span>{item.nome}</span>
+                          <span className="font-medium">{item.nome}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              TAG: {item.tag}
+                            </Badge>
+                            {temFoto && (
+                              <div className="flex items-center gap-1 text-green-600">
+                                <CheckCircle className="w-3 h-3" />
+                                <span className="text-xs">Foto OK</span>
+                              </div>
+                            )}
+                          </div>
                           {item.tipo === 'ferramenta' && item.reserva && nomeReservado && (
                             <div className="flex items-center gap-1 mt-1">
                               <Lock className="w-3 h-3 text-orange-500" />
@@ -691,40 +798,22 @@ const PegarItem = () => {
                             </div>
                           )}
                         </div>
-                        <span>{item.quantidade}x</span>
+                        <span className="font-medium">{item.quantidade}x</span>
                       </div>
                     );
                   })}
                 </div>
 
-                <div className="border-t pt-4 space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Data: {new Date().toLocaleDateString('pt-BR')}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Hora: {new Date().toLocaleTimeString('pt-BR')}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Foto da ferramenta:</h4>
-                    {foto ? (
-                      <div className="text-sm text-green-600 flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" />
-                        Foto capturada ({foto.name})
-                      </div>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        onClick={handleTirarFoto}
-                        className="w-full"
-                      >
-                        <Camera className="w-4 h-4 mr-2" />
-                        Tirar Foto da Ferramenta
-                      </Button>
-                    )}
-                  </div>
+                <div className="border-t pt-4 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Data: {new Date().toLocaleDateString('pt-BR')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Hora: {new Date().toLocaleTimeString('pt-BR')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Total de fotos: {Object.keys(fotosItens).length}
+                  </p>
                 </div>
 
                 <Button 

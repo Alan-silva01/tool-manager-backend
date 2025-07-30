@@ -11,8 +11,8 @@ interface Ferramenta {
   categoria: string;
   caracteristicas: Json;
   saiu: number;
-  reserva?: boolean | null;
-  matricula_reserva?: string | null;
+  reserva?: boolean;
+  matricula_reserva?: string;
 }
 
 export const useFerramentas = (refreshKey: number = 0) => {
@@ -29,7 +29,7 @@ export const useFerramentas = (refreshKey: number = 0) => {
         .select('*, reserva, matricula_reserva');
 
       // Se der erro por causa das colunas de reserva não existirem, buscar sem elas
-      if (error && error.message?.includes("column 'reserva' does not exist")) {
+      if (error && error.message?.includes("column")) {
         console.log('Colunas de reserva não existem, buscando sem elas...');
         const { data: dataWithoutReserva, error: errorWithoutReserva } = await supabase
           .from('ferramentas')
@@ -62,7 +62,7 @@ export const useFerramentas = (refreshKey: number = 0) => {
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
             reserva: ferramenta.reserva || false,
-            matricula_reserva: ferramenta.matricula_reserva || null
+            matricula_reserva: ferramenta.matricula_reserva || undefined
           } as Ferramenta;
         });
 

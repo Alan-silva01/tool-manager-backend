@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,13 +17,13 @@ const DevolverItem = () => {
   const { buscarFuncionario } = useFuncionarios();
   const { ferramentas } = useFerramentas();
   
-  const [step, setStep] = useState<'matricula' | 'ferramentas' | 'confirmacao'>('matricula');
+  const [step, setStep] = useState<'matricula' | 'ferramentas' | 'fotos' | 'confirmacao'>('matricula');
   const [matricula, setMatricula] = useState('');
   const [funcionario, setFuncionario] = useState<any>(null);
   const [funcionarioFerramentas, setFuncionarioFerramentas] = useState<any[]>([]);
   const [selectedFerramentas, setSelectedFerramentas] = useState<string[]>([]);
   const [tipoIdentificacao, setTipoIdentificacao] = useState<'matricula' | 'nfc'>('matricula');
-  const [foto, setFoto] = useState<File | null>(null);
+  const [fotosFerramentas, setFotosFerramentas] = useState<Record<string, File>>({});
   const [confirmando, setConfirmando] = useState(false);
 
   const handleMatriculaSubmit = () => {
@@ -35,7 +34,6 @@ const DevolverItem = () => {
       console.log('Funcionário encontrado:', func);
       console.log('Ferramentas em posse:', func.posse_ferramentas);
       
-      // Buscar as ferramentas do funcionário pelas tags
       const ferramentasDoFuncionario = [];
       
       if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
@@ -47,7 +45,7 @@ const DevolverItem = () => {
               nome: ferramenta.nome,
               tag: ferramenta.tag,
               categoria: ferramenta.categoria,
-              dataRetirada: new Date().toISOString() // Placeholder - em produção viria do histórico
+              dataRetirada: new Date().toISOString()
             });
           }
         });
@@ -76,7 +74,6 @@ const DevolverItem = () => {
   };
 
   const handleNFCScan = () => {
-    // Simular leitura de NFC - em produção seria integrado com API de NFC
     const nfcMatriculas = ['13812', '7203', '8854', '7679'];
     const randomMatricula = nfcMatriculas[Math.floor(Math.random() * nfcMatriculas.length)];
     setMatricula(randomMatricula);
@@ -85,7 +82,6 @@ const DevolverItem = () => {
     const func = buscarFuncionario(randomMatricula);
     
     if (func) {
-      // Buscar as ferramentas do funcionário pelas tags
       const ferramentasDoFuncionario = [];
       
       if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
@@ -135,7 +131,7 @@ const DevolverItem = () => {
     );
   };
 
-  const handleTirarFoto = () => {
+  const handleTirarFotoFerramenta = (ferramentaId: string, ferramentaNome: string) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -143,10 +139,18 @@ const DevolverItem = () => {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        setFoto(file);
+        const newFile = new File([file], `${ferramentaNome.replace(/[^a-zA-Z0-9]/g, '_')}_devolucao_${Date.now()}.jpg`, {
+          type: file.type,
+        });
+        
+        setFotosFerramentas(prev => ({
+          ...prev,
+          [ferramentaId]: newFile
+        }));
+        
         toast({
           title: "Foto capturada!",
-          description: "Foto adicionada à devolução",
+          description: `Foto de ${ferramentaNome} adicionada à devolução`,
         });
       }
     };
@@ -163,19 +167,29 @@ const DevolverItem = () => {
       return;
     }
 
+    // Verificar se todas as ferramentas selecionadas têm foto
+    const ferramentasSelecionadas = funcionarioFerramentas.filter(f => selectedFerramentas.includes(f.tag));
+    const ferramentasSemFoto = ferramentasSelecionadas.filter(f => !fotosFerramentas[f.id]);
+    
+    if (ferramentasSemFoto.length > 0) {
+      toast({
+        title: "Fotos obrigatórias",
+        description: `É necessário fotografar todas as ferramentas. Faltam: ${ferramentasSemFoto.map(f => f.nome).join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (confirmando) return;
     setConfirmando(true);
 
     try {
       const formData = new FormData();
       
-      // Dados do funcionário
       formData.append('funcionario_matricula', matricula);
       formData.append('funcionario_nome', funcionario.nome);
       formData.append('funcionario_setor', funcionario.setor);
       
-      // Dados das ferramentas selecionadas
-      const ferramentasSelecionadas = funcionarioFerramentas.filter(f => selectedFerramentas.includes(f.tag));
       ferramentasSelecionadas.forEach((ferramenta, index) => {
         formData.append(`ferramenta_${index}_id`, ferramenta.id);
         formData.append(`ferramenta_${index}_nome`, ferramenta.nome);
@@ -184,7 +198,6 @@ const DevolverItem = () => {
         formData.append(`ferramenta_${index}_dataRetirada`, ferramenta.dataRetirada);
       });
       
-      // Dados de controle
       formData.append('data', new Date().toISOString());
       formData.append('timestamp', new Date().toISOString());
       formData.append('total_ferramentas', ferramentasSelecionadas.length.toString());
@@ -195,19 +208,24 @@ const DevolverItem = () => {
         body: formData,
       });
 
-      // Enviar foto separadamente se existir
-      if (foto) {
-        const fotoFormData = new FormData();
-        fotoFormData.append('funcionario_matricula', matricula);
-        fotoFormData.append('funcionario_nome', funcionario.nome);
-        fotoFormData.append('foto', foto, 'ferramenta_devolucao.jpg');
-        fotoFormData.append('timestamp', new Date().toISOString());
+      // Enviar cada foto individualmente com o nome da ferramenta
+      for (const ferramenta of ferramentasSelecionadas) {
+        const foto = fotosFerramentas[ferramenta.id];
+        if (foto) {
+          const fotoFormData = new FormData();
+          fotoFormData.append('funcionario_matricula', matricula);
+          fotoFormData.append('funcionario_nome', funcionario.nome);
+          fotoFormData.append('ferramenta_nome', ferramenta.nome);
+          fotoFormData.append('ferramenta_tag', ferramenta.tag);
+          fotoFormData.append('foto', foto, foto.name);
+          fotoFormData.append('timestamp', new Date().toISOString());
 
-        await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/devolver-ferramenta-imagem', {
-          method: 'POST',
-          mode: 'no-cors',
-          body: fotoFormData,
-        });
+          await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/devolver-ferramenta-imagem', {
+            method: 'POST',
+            mode: 'no-cors',
+            body: fotoFormData,
+          });
+        }
       }
 
       toast({
@@ -239,7 +257,8 @@ const DevolverItem = () => {
             onClick={() => {
               if (step === 'matricula') navigate('/');
               else if (step === 'ferramentas') setStep('matricula');
-              else if (step === 'confirmacao') setStep('ferramentas');
+              else if (step === 'fotos') setStep('ferramentas');
+              else if (step === 'confirmacao') setStep('fotos');
             }}
           >
             <ArrowLeft className="w-5 h-5" />
@@ -249,6 +268,7 @@ const DevolverItem = () => {
             <p className="text-sm text-primary-foreground/80">
               {step === 'matricula' && 'Digite sua matrícula'}
               {step === 'ferramentas' && 'Selecione as ferramentas'}
+              {step === 'fotos' && 'Fotografe as ferramentas'}
               {step === 'confirmacao' && 'Confirme a devolução'}
             </p>
           </div>
@@ -371,9 +391,9 @@ const DevolverItem = () => {
                 {selectedFerramentas.length > 0 && (
                   <Button 
                     className="w-full" 
-                    onClick={() => setStep('confirmacao')}
+                    onClick={() => setStep('fotos')}
                   >
-                    Devolver {selectedFerramentas.length} ferramenta(s)
+                    Fotografar {selectedFerramentas.length} ferramenta(s)
                   </Button>
                 )}
               </>
@@ -384,6 +404,75 @@ const DevolverItem = () => {
                 </CardContent>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* Nova etapa: Fotografar ferramentas */}
+        {step === 'fotos' && funcionario && (
+          <div className="space-y-4 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Fotografe as Ferramentas</CardTitle>
+                <div className="text-sm text-muted-foreground">
+                  <p><strong>{funcionario.nome}</strong></p>
+                  <p>{funcionario.setor} - Matrícula: {matricula}</p>
+                  <p className="text-xs mt-1">É obrigatório fotografar cada ferramenta antes da devolução</p>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {ferramentasSelecionadas.map((ferramenta) => {
+              const temFoto = fotosFerramentas[ferramenta.id];
+              
+              return (
+                <Card key={ferramenta.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="font-semibold">{ferramenta.nome}</h3>
+                        <Badge variant="outline" className="mt-1">
+                          TAG: {ferramenta.tag}
+                        </Badge>
+                        {ferramenta.categoria && (
+                          <Badge variant="secondary" className="mt-1 ml-2">
+                            {ferramenta.categoria}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {temFoto ? (
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Foto capturada ({temFoto.name})</span>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleTirarFotoFerramenta(ferramenta.id, ferramenta.nome)}
+                          className="w-full"
+                        >
+                          <Camera className="w-4 h-4 mr-2" />
+                          Tirar Foto do {ferramenta.nome}
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            <div className="mt-6">
+              <Button 
+                className="w-full" 
+                onClick={() => setStep('confirmacao')}
+                disabled={ferramentasSelecionadas.some(f => !fotosFerramentas[f.id])}
+              >
+                {ferramentasSelecionadas.every(f => fotosFerramentas[f.id]) 
+                  ? 'Continuar para Confirmação' 
+                  : `Faltam ${ferramentasSelecionadas.filter(f => !fotosFerramentas[f.id]).length} foto(s)`
+                }
+              </Button>
+            </div>
           </div>
         )}
 
@@ -409,46 +498,40 @@ const DevolverItem = () => {
 
                 <div>
                   <h3 className="font-semibold">Ferramentas a devolver:</h3>
-                  {ferramentasSelecionadas.map((ferramenta) => (
-                    <div key={ferramenta.id} className="flex justify-between items-center py-2">
-                      <div>
-                        <span className="font-medium">{ferramenta.nome}</span>
-                        <Badge variant="outline" className="ml-2">
-                          {ferramenta.tag}
-                        </Badge>
+                  {ferramentasSelecionadas.map((ferramenta) => {
+                    const temFoto = fotosFerramentas[ferramenta.id];
+                    
+                    return (
+                      <div key={ferramenta.id} className="flex justify-between items-center py-2 border-b">
+                        <div className="flex-1">
+                          <span className="font-medium">{ferramenta.nome}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              TAG: {ferramenta.tag}
+                            </Badge>
+                            {temFoto && (
+                              <div className="flex items-center gap-1 text-green-600">
+                                <CheckCircle className="w-3 h-3" />
+                                <span className="text-xs">Foto OK</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                <div className="border-t pt-4 space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Data da devolução: {new Date().toLocaleDateString('pt-BR')}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Hora: {new Date().toLocaleTimeString('pt-BR')}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Foto da ferramenta:</h4>
-                    {foto ? (
-                      <div className="text-sm text-green-600 flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" />
-                        Foto capturada ({foto.name})
-                      </div>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        onClick={handleTirarFoto}
-                        className="w-full"
-                      >
-                        <Camera className="w-4 h-4 mr-2" />
-                        Tirar Foto da Ferramenta
-                      </Button>
-                    )}
-                  </div>
+                <div className="border-t pt-4 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Data da devolução: {new Date().toLocaleDateString('pt-BR')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Hora: {new Date().toLocaleTimeString('pt-BR')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Total de fotos: {Object.keys(fotosFerramentas).length}
+                  </p>
                 </div>
 
                 <Button 
