@@ -318,7 +318,7 @@ const Admin = () => {
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center">
               <img 
-                src="/lovable-uploads/3b7074e8-e9f6-44ab-ba68-338592581b56.png" 
+                src="/lovable-uploads/0b81087d-9590-4c4a-86ad-0eb91b54f8c3.png" 
                 alt="AVB Logo" 
                 className="w-8 h-8"
               />
