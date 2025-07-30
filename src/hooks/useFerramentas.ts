@@ -11,7 +11,7 @@ interface Ferramenta {
   categoria: string;
   caracteristicas: Json;
   saiu: number;
-  reserva?: string | null;
+  reserva?: boolean | null;
   matricula_reserva?: string | null;
 }
 
@@ -45,7 +45,7 @@ export const useFerramentas = (refreshKey: number = 0) => {
       }
 
       if (data && Array.isArray(data)) {
-        const ferramentasFormatadas = data.map((ferramenta) => {
+        const ferramentasFormatadas = data.map((ferramenta: any) => {
           // Calcular quantidade disponível corretamente
           const quantidadeTotal = ferramenta.quantidade || 0;
           const quantidadeSaiu = ferramenta.saiu || 0;
@@ -61,9 +61,9 @@ export const useFerramentas = (refreshKey: number = 0) => {
             categoria: ferramenta.categoria,
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
-            reserva: ferramenta.reserva || null,
+            reserva: ferramenta.reserva || false,
             matricula_reserva: ferramenta.matricula_reserva || null
-          };
+          } as Ferramenta;
         });
 
         console.log('Ferramentas formatadas:', ferramentasFormatadas);
