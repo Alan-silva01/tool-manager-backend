@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Search, Package, Wrench, Users, Shield } from "lucide-react";
+import { Plus, Edit, Search, Package, Wrench, Users, Shield, PackagePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -101,6 +101,12 @@ export const EstoqueManager = ({
   const [matriculaReserva, setMatriculaReserva] = useState("");
   const [isProcessingReserva, setIsProcessingReserva] = useState(false);
   const [dialogReservaOpen, setDialogReservaOpen] = useState(false);
+
+  // Estados para adicionar entrada de material
+  const [materialParaEntrada, setMaterialParaEntrada] = useState<Material | null>(null);
+  const [quantidadeEntrada, setQuantidadeEntrada] = useState("");
+  const [isAddingEntrada, setIsAddingEntrada] = useState(false);
+  const [dialogEntradaOpen, setDialogEntradaOpen] = useState(false);
 
   const setores: SetorType[] = ["Usinagem industrial", "Oficina cantilever", "Oficina de guias", "Montagem de gaiola", "Oficina de mancal", "Usinagem de cilindros", "Oficina central"];
 
@@ -527,6 +533,73 @@ export const EstoqueManager = ({
     }
   };
 
+  // Função para adicionar entrada ao material
+  const handleAddEntrada = async () => {
+    if (!materialParaEntrada || !quantidadeEntrada.trim()) {
+      toast({
+        title: "Erro",
+        description: "Informe a quantidade para adicionar ao estoque",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const novaQuantidade = Number(quantidadeEntrada);
+    if (novaQuantidade <= 0) {
+      toast({
+        title: "Erro", 
+        description: "A quantidade deve ser maior que zero",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsAddingEntrada(true);
+    
+    try {
+      const novaEntrada = materialParaEntrada.entrada + novaQuantidade;
+      const dataEntrada = formatarDataParaBanco(new Date());
+      
+      const { error } = await supabase
+        .from('materiais')
+        .update({
+          entrada: novaEntrada,
+          data_entrada_estoque: dataEntrada
+        })
+        .eq('id', materialParaEntrada.id);
+
+      if (error) {
+        console.error('Erro ao adicionar entrada:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível adicionar a entrada",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Entrada adicionada",
+        description: `${novaQuantidade} ${materialParaEntrada.unidade} de ${materialParaEntrada.nome} foram adicionadas ao estoque`
+      });
+
+      setMaterialParaEntrada(null);
+      setQuantidadeEntrada("");
+      setDialogEntradaOpen(false);
+      onRefresh();
+      
+    } catch (error) {
+      console.error('Erro ao adicionar entrada:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao adicionar entrada",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAddingEntrada(false);
+    }
+  };
+
   const filteredMateriais = materiais.filter(material => 
     material.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
     material.tag.toString().includes(searchTerm) || 
@@ -689,21 +762,91 @@ export const EstoqueManager = ({
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={() => setEditingMaterial({...material, unidade: material.unidade || 'un'})}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Editar Material</DialogTitle>
-                              </DialogHeader>
-                              {editingMaterial && editingMaterial.id === material.id && <div className="space-y-4">
+                          <div className="flex gap-2">
+                            {/* Botão para adicionar entrada */}
+                            <Dialog 
+                              open={dialogEntradaOpen && materialParaEntrada?.id === material.id} 
+                              onOpenChange={(open) => {
+                                setDialogEntradaOpen(open);
+                                if (!open) {
+                                  setMaterialParaEntrada(null);
+                                  setQuantidadeEntrada("");
+                                }
+                              }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    setMaterialParaEntrada(material);
+                                    setDialogEntradaOpen(true);
+                                  }}
+                                >
+                                  <PackagePlus className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Adicionar Entrada de Estoque</DialogTitle>
+                                </DialogHeader>
+                                {materialParaEntrada && materialParaEntrada.id === material.id && (
+                                  <div className="space-y-4">
+                                    <div>
+                                      <p className="text-sm text-muted-foreground mb-2">
+                                        Material: <strong>{material.nome}</strong>
+                                      </p>
+                                      <p className="text-sm text-muted-foreground mb-2">
+                                        Quantidade atual: <strong>{quantidadeDisponivel} {material.unidade}</strong>
+                                      </p>
+                                      <p className="text-sm text-muted-foreground mb-4">
+                                        Tag: <strong>{material.tag}</strong>
+                                      </p>
+                                    </div>
+                                    
+                                    <div>
+                                      <Label htmlFor="quantidade-entrada">Quantidade a adicionar</Label>
+                                      <Input
+                                        id="quantidade-entrada"
+                                        type="number"
+                                        min="1"
+                                        value={quantidadeEntrada}
+                                        onChange={(e) => setQuantidadeEntrada(e.target.value)}
+                                        placeholder={`Ex: 10 ${material.unidade}`}
+                                      />
+                                    </div>
+                                    
+                                    <Button 
+                                      className="w-full" 
+                                      onClick={handleAddEntrada}
+                                      disabled={isAddingEntrada}
+                                    >
+                                      {isAddingEntrada 
+                                        ? 'Adicionando...' 
+                                        : `Adicionar ${quantidadeEntrada || '0'} ${material.unidade} ao estoque`
+                                      }
+                                    </Button>
+                                  </div>
+                                )}
+                              </DialogContent>
+                            </Dialog>
+
+                            {/* Botão de editar existente */}
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => setEditingMaterial({...material, unidade: material.unidade || 'un'})}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Editar Material</DialogTitle>
+                                </DialogHeader>
+                                {editingMaterial && editingMaterial.id === material.id && <div className="space-y-4">
                                   <div>
                                     <Label htmlFor="edit-material-nome">Nome do Material</Label>
                                     <Input 
@@ -764,8 +907,9 @@ export const EstoqueManager = ({
                                     Salvar Alterações
                                   </Button>
                                 </div>}
-                            </DialogContent>
-                          </Dialog>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </TableCell>
                       </TableRow>;
                   })}
