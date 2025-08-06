@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useFerramentas } from '@/hooks/useFerramentas';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ interface FormData {
 }
 
 const EstoqueManager = () => {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('ferramentas');
   const [formData, setFormData] = useState<FormData>({
     ferramenta: {
@@ -95,16 +97,21 @@ const capitalizarTexto = (texto: string): string => {
   const handleSubmitFerramenta = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.ferramenta.nome || !formData.ferramenta.categoria || !formData.ferramenta.tag) {
-      toast.error('Preencha todos os campos obrigatórios');
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
       return;
     }
 
     try {
       // Capitalizar nome e categoria antes de salvar
       const dadosFormatados = {
-        ...formData.ferramenta,
         nome: capitalizarTexto(formData.ferramenta.nome),
         categoria: capitalizarTexto(formData.ferramenta.categoria),
+        tag: formData.ferramenta.tag,
+        quantidade: parseInt(formData.ferramenta.quantidade) || 0,
         caracteristicas: formData.ferramenta.caracteristicas || {}
       };
 
@@ -114,7 +121,11 @@ const capitalizarTexto = (texto: string): string => {
 
       if (error) throw error;
 
-      toast.success('Ferramenta adicionada com sucesso!');
+      toast({
+        title: "Sucesso",
+        description: "Ferramenta adicionada com sucesso!"
+      });
+      
       setFormData({
         ...formData,
         ferramenta: {
@@ -128,7 +139,11 @@ const capitalizarTexto = (texto: string): string => {
       setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error('Erro ao adicionar ferramenta:', error);
-      toast.error('Erro ao adicionar ferramenta');
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar ferramenta",
+        variant: "destructive"
+      });
     }
   };
 
@@ -141,11 +156,18 @@ const capitalizarTexto = (texto: string): string => {
 
       if (error) throw error;
 
-      toast.success('Ferramenta removida com sucesso!');
+      toast({
+        title: "Sucesso",
+        description: "Ferramenta removida com sucesso!"
+      });
       setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error('Erro ao remover ferramenta:', error);
-      toast.error('Erro ao remover ferramenta');
+      toast({
+        title: "Erro",
+        description: "Erro ao remover ferramenta",
+        variant: "destructive"
+      });
     }
   };
 
