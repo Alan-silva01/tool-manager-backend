@@ -204,19 +204,51 @@ export const EstoqueManager = ({
 
   const formatarCaracteristicas = (texto: string) => {
     if (!texto.trim()) return null;
+    
     try {
-      return JSON.parse(texto);
+      // Tentar fazer parse direto se já for JSON válido
+      const parsed = JSON.parse(texto);
+      return parsed;
     } catch {
+      // Se não for JSON, tentar converter texto para JSON
       const linhas = texto.split('\n').filter(linha => linha.trim());
+      
       if (linhas.length === 0) return null;
+      
       const caracteristicasObj: any = {};
+      
       linhas.forEach(linha => {
         const [chave, ...valorParts] = linha.split(':');
         if (chave && valorParts.length > 0) {
           const valor = valorParts.join(':').trim();
-          caracteristicasObj[chave.trim()] = valor;
+          
+          // Tentar converter valores para tipos apropriados
+          let valorConvertido: any = valor;
+          
+          // Se for número
+          if (!isNaN(Number(valor)) && valor !== '') {
+            valorConvertido = Number(valor);
+          }
+          // Se for boolean
+          else if (valor.toLowerCase() === 'true') {
+            valorConvertido = true;
+          }
+          else if (valor.toLowerCase() === 'false') {
+            valorConvertido = false;
+          }
+          // Se for objeto aninhado (básico)
+          else if (valor.includes('{') || valor.includes('[')) {
+            try {
+              valorConvertido = JSON.parse(valor);
+            } catch {
+              // Manter como string se não conseguir fazer parse
+            }
+          }
+          
+          caracteristicasObj[chave.trim()] = valorConvertido;
         }
       });
+      
       return Object.keys(caracteristicasObj).length > 0 ? caracteristicasObj : null;
     }
   };
@@ -568,6 +600,7 @@ export const EstoqueManager = ({
       });
       setEditingFerramenta(null);
       setEditFerramentaDialogOpen(false);
+      // NÃO mudar a aba - manter em ferramentas
       onRefresh();
     } catch (error) {
       console.error('Erro ao editar ferramenta:', error);
@@ -1145,16 +1178,16 @@ export const EstoqueManager = ({
                       />
                     </div>
                     <div>
-                      <Label htmlFor="ferramenta-caracteristicas">Características</Label>
+                      <Label htmlFor="ferramenta-caracteristicas">Características (Opcional)</Label>
                       <Textarea 
                         id="ferramenta-caracteristicas" 
                         value={novaFerramenta.caracteristicas} 
                         onChange={e => setNovaFerramenta({...novaFerramenta, caracteristicas: e.target.value})} 
-                        placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`} 
-                        rows={4} 
+                        placeholder={`Exemplo de formatação:\ncor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg\n\nOu JSON:\n{"cor": "Preta", "uso": "Perfuração", "potência": "500W"}`} 
+                        rows={6} 
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Digite uma característica por linha no formato "nome: valor"
+                        Digite uma característica por linha no formato "nome: valor" ou JSON válido. Deixe em branco se não houver características.
                       </p>
                     </div>
                     <Button 
@@ -1352,10 +1385,10 @@ export const EstoqueManager = ({
                                       value={typeof editingFerramenta.caracteristicas === 'string' ? editingFerramenta.caracteristicas : ''} 
                                       onChange={e => setEditingFerramenta({...editingFerramenta, caracteristicas: e.target.value})} 
                                       rows={6} 
-                                      placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`} 
+                                      placeholder={`Exemplo:\ncor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg\n\nOu JSON:\n{"cor": "Preta", "uso": "Perfuração"}`} 
                                     />
                                     <p className="text-xs text-muted-foreground mt-1">
-                                      Digite uma característica por linha no formato "nome: valor"
+                                      Digite uma característica por linha no formato "nome: valor" ou JSON válido
                                     </p>
                                   </div>
                                   <Button className="w-full" onClick={handleEditFerramenta}>
