@@ -203,11 +203,12 @@ export const EstoqueManager = ({
   };
 
   const formatarCaracteristicas = (texto: string) => {
-    if (!texto.trim()) return {};
+    if (!texto.trim()) return null;
     try {
       return JSON.parse(texto);
     } catch {
       const linhas = texto.split('\n').filter(linha => linha.trim());
+      if (linhas.length === 0) return null;
       const caracteristicasObj: any = {};
       linhas.forEach(linha => {
         const [chave, ...valorParts] = linha.split(':');
@@ -216,7 +217,7 @@ export const EstoqueManager = ({
           caracteristicasObj[chave.trim()] = valor;
         }
       });
-      return caracteristicasObj;
+      return Object.keys(caracteristicasObj).length > 0 ? caracteristicasObj : null;
     }
   };
 
