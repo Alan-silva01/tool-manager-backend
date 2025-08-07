@@ -1183,11 +1183,11 @@ export const EstoqueManager = ({
                         id="ferramenta-caracteristicas" 
                         value={novaFerramenta.caracteristicas} 
                         onChange={e => setNovaFerramenta({...novaFerramenta, caracteristicas: e.target.value})} 
-                        placeholder={`Exemplo de formatação:\ncor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg\n\nOu JSON:\n{"cor": "Preta", "uso": "Perfuração", "potência": "500W"}`} 
+                        placeholder={`Exemplo de formatação:\ncor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`} 
                         rows={6} 
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Digite uma característica por linha no formato "nome: valor" ou JSON válido. Deixe em branco se não houver características.
+                        Digite uma característica por linha no formato "nome: valor" válido. Deixe em branco se não houver características.
                       </p>
                     </div>
                     <Button 
