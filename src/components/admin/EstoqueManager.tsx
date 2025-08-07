@@ -1,80 +1,61 @@
-
-import React, { useState } from 'react';
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   Package, 
   Wrench, 
-  Users, 
+  Users,
   Plus,
   Edit,
   Trash2,
-  AlertTriangle
+  Search
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Material {
-  id: string;
-  nome: string;
-  tag?: number;
-  entrada: number;
-  saida: number;
-  quantidade_minima: number;
-  unidade?: string;
-  data_entrada_estoque?: string;
-}
-
-interface Ferramenta {
-  id: string;
-  nome: string;
-  tag: string;
-  quantidade: number;
-  categoria: string;
-  caracteristicas: any;
-  saiu: number;
-}
-
 interface EstoqueManagerProps {
-  materiais: Material[];
-  ferramentas: Ferramenta[];
+  materiais: any[];
+  ferramentas: any[];
   onRefresh: () => void;
 }
 
-const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais, ferramentas, onRefresh }) => {
+const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueManagerProps) => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("ferramentas");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  
-  // Form states
-  const [formData, setFormData] = useState({
-    nome: '',
-    categoria: '',
-    tag: '',
-    quantidade: '',
-    caracteristicas: ''
+  const [activeTab, setActiveTab] = useState("materiais");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<any>({});
+  const [novoItem, setNovoItem] = useState({
+    nome: "",
+    quantidade: "",
+    categoria: "",
+    tag: "",
+    caracteristicas: ""
   });
+  const [showNovoForm, setShowNovoForm] = useState<string | null>(null);
 
-  const resetForm = () => {
-    setFormData({
-      nome: '',
-      categoria: '',
-      tag: '',
-      quantidade: '',
-      caracteristicas: ''
-    });
-    setEditingItem(null);
-  };
+  const filteredMateriais = materiais.filter(material => 
+    material.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    material.tag?.toString().includes(searchTerm)
+  ).sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const filteredFerramentas = ferramentas.filter(ferramenta => 
+    ferramenta.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ferramenta.tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ferramenta.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+  ).sort((a, b) => a.nome.localeCompare(b.nome));
 
   const formatarCaracteristicas = (texto: string) => {
-    if (!texto || texto.trim() === '') {
+    console.log('Formatando características:', texto);
+    
+    if (!texto || !texto.trim()) {
+      console.log('Texto vazio, retornando null');
       return null;
     }
 
@@ -83,453 +64,725 @@ const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais, ferramentas,
     // Tentar parsear como JSON primeiro
     try {
       const parsed = JSON.parse(textoLimpo);
+      console.log('JSON válido encontrado:', parsed);
       return parsed;
-    } catch (e) {
-      // Se não for JSON válido, tentar converter formato chave:valor
-      try {
-        const obj: Record<string, string> = {};
-        const linhas = textoLimpo.split(/[\n,]/);
+    } catch {
+      console.log('Não é JSON válido, tentando converter texto');
+      
+      // Tentar converter texto em formato chave: valor
+      const linhas = textoLimpo.split('\n').filter(linha => linha.trim());
+      
+      if (linhas.length === 0) {
+        console.log('Nenhuma linha válida encontrada');
+        return null;
+      }
+      
+      const caracteristicasObj: any = {};
+      
+      linhas.forEach(linha => {
+        const separadores = [': ', ':', ' - ', ' = '];
+        let chave = '';
+        let valor = '';
         
-        let hasValidPairs = false;
-        for (const linha of linhas) {
-          const partes = linha.split(':');
-          if (partes.length >= 2) {
-            const chave = partes[0].trim();
-            const valor = partes.slice(1).join(':').trim();
-            if (chave && valor) {
-              obj[chave] = valor;
-              hasValidPairs = true;
-            }
+        for (const sep of separadores) {
+          if (linha.includes(sep)) {
+            const partes = linha.split(sep);
+            chave = partes[0]?.trim();
+            valor = partes.slice(1).join(sep).trim();
+            break;
           }
         }
         
-        return hasValidPairs ? obj : null;
-      } catch (error) {
-        console.error('Erro ao formatar características:', error);
-        return null;
-      }
+        if (chave && valor) {
+          caracteristicasObj[chave] = valor;
+        }
+      });
+      
+      const resultado = Object.keys(caracteristicasObj).length > 0 ? caracteristicasObj : null;
+      console.log('Resultado final da conversão:', resultado);
+      return resultado;
     }
   };
 
-  const handleAddFerramenta = async () => {
+  const adicionarFerramenta = async () => {
+    console.log('Iniciando adição de ferramenta:', novoItem);
+    
+    if (!novoItem.nome || !novoItem.quantidade || !novoItem.categoria || !novoItem.tag) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      console.log('Dados do formulário:', formData);
-      
-      const caracteristicasFormatadas = formatarCaracteristicas(formData.caracteristicas);
+      const caracteristicasFormatadas = formatarCaracteristicas(novoItem.caracteristicas);
       console.log('Características formatadas:', caracteristicasFormatadas);
-
-      const dadosParaInserir = {
-        nome: formData.nome.trim(),
-        categoria: formData.categoria.trim(),
-        tag: formData.tag.trim(),
-        quantidade: parseInt(formData.quantidade),
-        caracteristicas: caracteristicasFormatadas,
+      
+      const dadosFerramenta = {
+        nome: novoItem.nome,
+        quantidade: Number(novoItem.quantidade),
+        categoria: novoItem.categoria,
+        tag: novoItem.tag,
         saiu: 0,
-        status: 'Disponível'
+        caracteristicas: caracteristicasFormatadas
       };
+      
+      console.log('Dados para inserção:', dadosFerramenta);
 
-      console.log('Dados para inserir:', dadosParaInserir);
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('ferramentas')
-        .insert([dadosParaInserir])
-        .select();
+        .insert(dadosFerramenta);
 
       if (error) {
-        console.error('Erro do Supabase:', error);
-        throw error;
+        console.error('Erro ao adicionar ferramenta:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível adicionar a ferramenta",
+          variant: "destructive",
+        });
+        return;
       }
-
-      console.log('Ferramenta inserida com sucesso:', data);
 
       toast({
         title: "Sucesso",
         description: "Ferramenta adicionada com sucesso",
       });
 
-      resetForm();
-      setIsDialogOpen(false);
+      setNovoItem({ nome: "", quantidade: "", categoria: "", tag: "", caracteristicas: "" });
+      setShowNovoForm(null);
       onRefresh();
+      
+      // Manter na aba de ferramentas
+      setActiveTab("ferramentas");
     } catch (error) {
-      console.error('Erro ao adicionar ferramenta:', error);
+      console.error('Erro inesperado:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar a ferramenta",
+        description: "Erro inesperado ao adicionar ferramenta",
         variant: "destructive",
       });
     }
   };
 
-  const handleEditFerramenta = async () => {
-    try {
-      const caracteristicasFormatadas = formatarCaracteristicas(formData.caracteristicas);
+  const adicionarMaterial = async () => {
+    if (!novoItem.nome || !novoItem.quantidade) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    try {
       const { error } = await supabase
-        .from('ferramentas')
-        .update({
-          nome: formData.nome.trim(),
-          categoria: formData.categoria.trim(),
-          tag: formData.tag.trim(),
-          quantidade: parseInt(formData.quantidade),
-          caracteristicas: caracteristicasFormatadas
-        })
-        .eq('id', editingItem.id);
+        .from('materiais')
+        .insert({
+          nome: novoItem.nome,
+          entrada: Number(novoItem.quantidade),
+          saida: 0,
+          quantidade_minima: 5,
+          tag: novoItem.tag ? Number(novoItem.tag) : null
+        });
 
       if (error) {
-        console.error('Erro ao editar ferramenta:', error);
-        throw error;
+        console.error('Erro ao adicionar material:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível adicionar o material",
+          variant: "destructive",
+        });
+        return;
       }
 
       toast({
         title: "Sucesso",
-        description: "Ferramenta atualizada com sucesso",
+        description: "Material adicionado com sucesso",
       });
 
-      resetForm();
-      setIsDialogOpen(false);
+      setNovoItem({ nome: "", quantidade: "", categoria: "", tag: "", caracteristicas: "" });
+      setShowNovoForm(null);
       onRefresh();
     } catch (error) {
-      console.error('Erro ao editar ferramenta:', error);
+      console.error('Erro inesperado:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível editar a ferramenta",
+        description: "Erro inesperado ao adicionar material",
         variant: "destructive",
       });
     }
   };
 
-  const openEditDialog = (ferramenta: Ferramenta) => {
-    setEditingItem(ferramenta);
+  const editarFerramenta = async () => {
+    console.log('Iniciando edição de ferramenta:', editingData);
     
-    let caracteristicasTexto = '';
-    if (ferramenta.caracteristicas && typeof ferramenta.caracteristicas === 'object') {
-      try {
-        caracteristicasTexto = Object.entries(ferramenta.caracteristicas)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('\n');
-      } catch (e) {
-        caracteristicasTexto = JSON.stringify(ferramenta.caracteristicas, null, 2);
+    try {
+      let caracteristicasFormatadas = editingData.caracteristicas;
+      
+      // Se características foi modificada como string, formatar
+      if (typeof editingData.caracteristicas === 'string') {
+        caracteristicasFormatadas = formatarCaracteristicas(editingData.caracteristicas);
+        console.log('Características formatadas na edição:', caracteristicasFormatadas);
       }
-    }
+      
+      const dadosAtualizacao = {
+        nome: editingData.nome,
+        quantidade: Number(editingData.quantidade),
+        categoria: editingData.categoria,
+        tag: editingData.tag,
+        caracteristicas: caracteristicasFormatadas
+      };
+      
+      console.log('Dados para atualização:', dadosAtualizacao);
 
-    setFormData({
-      nome: ferramenta.nome,
-      categoria: ferramenta.categoria,
-      tag: ferramenta.tag,
-      quantidade: ferramenta.quantidade.toString(),
-      caracteristicas: caracteristicasTexto
-    });
-    
-    setIsDialogOpen(true);
+      const { error } = await supabase
+        .from('ferramentas')
+        .update(dadosAtualizacao)
+        .eq('id', editingData.id);
+
+      if (error) {
+        console.error('Erro ao editar ferramenta:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível editar a ferramenta",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Ferramenta editada com sucesso",
+      });
+
+      setIsEditing(null);
+      setEditingData({});
+      onRefresh();
+      
+      // IMPORTANTE: Manter na aba de ferramentas após edição
+      setTimeout(() => {
+        setActiveTab("ferramentas");
+      }, 100);
+      
+    } catch (error) {
+      console.error('Erro inesperado na edição:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao editar ferramenta",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteFerramenta = async (id: string) => {
+  const editarMaterial = async () => {
+    try {
+      const { error } = await supabase
+        .from('materiais')
+        .update({
+          nome: editingData.nome,
+          entrada: Number(editingData.entrada),
+          quantidade_minima: Number(editingData.quantidade_minima),
+          tag: editingData.tag ? Number(editingData.tag) : null
+        })
+        .eq('id', editingData.id);
+
+      if (error) {
+        console.error('Erro ao editar material:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível editar o material",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Material editado com sucesso",
+      });
+
+      setIsEditing(null);
+      setEditingData({});
+      onRefresh();
+    } catch (error) {
+      console.error('Erro inesperado:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao editar material",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const excluirMaterial = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('materiais')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erro ao excluir material:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir o material",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Material excluído com sucesso",
+      });
+
+      onRefresh();
+    } catch (error) {
+      console.error('Erro inesperado:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao excluir material",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const excluirFerramenta = async (id: string) => {
     try {
       const { error } = await supabase
         .from('ferramentas')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir ferramenta:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir a ferramenta",
+          variant: "destructive",
+        });
+        return;
+      }
 
       toast({
         title: "Sucesso",
-        description: "Ferramenta removida com sucesso",
+        description: "Ferramenta excluída com sucesso",
       });
 
       onRefresh();
     } catch (error) {
-      console.error('Erro ao deletar ferramenta:', error);
+      console.error('Erro inesperado:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível remover a ferramenta",
+        description: "Erro inesperado ao excluir ferramenta",
         variant: "destructive",
       });
     }
   };
 
-  // Calcular estoque baixo
-  const materiaisEstoqueBaixo = materiais.filter(material => {
-    const quantidadeDisponivel = material.entrada - material.saida;
-    return quantidadeDisponivel <= material.quantidade_minima;
-  });
-  
-  const ferramentasEstoqueBaixo = ferramentas.filter(ferramenta => {
-    return ferramenta.quantidade <= 2; // Quantidade mínima padrão para ferramentas
-  });
+  const startEdit = (item: any, tipo: string) => {
+    setIsEditing(`${tipo}-${item.id}`);
+    if (tipo === 'ferramenta') {
+      setEditingData({
+        ...item,
+        caracteristicas: typeof item.caracteristicas === 'object' && item.caracteristicas !== null 
+          ? JSON.stringify(item.caracteristicas, null, 2)
+          : item.caracteristicas || ""
+      });
+    } else {
+      setEditingData({...item});
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Alertas de Estoque Baixo */}
-      {(materiaisEstoqueBaixo.length > 0 || ferramentasEstoqueBaixo.length > 0) && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <AlertTriangle className="w-5 h-5" />
-              Alertas de Estoque Baixo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {materiaisEstoqueBaixo.length > 0 && (
-              <div className="mb-4">
-                <p className="font-medium text-orange-800 mb-2">Materiais com estoque baixo:</p>
-                <div className="flex flex-wrap gap-2">
-                  {materiaisEstoqueBaixo.map((material) => (
-                    <Badge key={material.id} variant="destructive">
-                      {material.nome} (Disponível: {material.entrada - material.saida})
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {ferramentasEstoqueBaixo.length > 0 && (
-              <div>
-                <p className="font-medium text-orange-800 mb-2">Ferramentas com estoque baixo:</p>
-                <div className="flex flex-wrap gap-2">
-                  {ferramentasEstoqueBaixo.map((ferramenta) => (
-                    <Badge key={ferramenta.id} variant="destructive">
-                      {ferramenta.nome} (Disponível: {ferramenta.quantidade})
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <div className="flex items-center gap-2 mb-4">
+        <Search className="w-4 h-4" />
+        <Input
+          placeholder="Buscar itens..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
 
-      {/* Tabs de Controle */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="ferramentas">Ferramentas</TabsTrigger>
-          <TabsTrigger value="materiais">Materiais</TabsTrigger>
-          <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="materiais">
+            <Package className="w-4 h-4 mr-2" />
+            Materiais ({materiais.length})
+          </TabsTrigger>
+          <TabsTrigger value="ferramentas">
+            <Wrench className="w-4 h-4 mr-2" />
+            Ferramentas ({ferramentas.length})
+          </TabsTrigger>
         </TabsList>
-
-        {/* Aba Ferramentas */}
-        <TabsContent value="ferramentas" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Wrench className="w-5 h-5" />
-                Gerenciar Ferramentas ({ferramentas.length})
-              </CardTitle>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => { resetForm(); setActiveTab("ferramentas"); }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Ferramenta
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingItem ? 'Editar Ferramenta' : 'Adicionar Nova Ferramenta'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="nome">Nome da Ferramenta</Label>
-                      <Input
-                        id="nome"
-                        value={formData.nome}
-                        onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                        placeholder="Ex: Furadeira elétrica"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="categoria">Categoria</Label>
-                      <Input
-                        id="categoria"
-                        value={formData.categoria}
-                        onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-                        placeholder="Ex: Elétrica"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="tag">Tag (Número)</Label>
-                      <Input
-                        id="tag"
-                        value={formData.tag}
-                        onChange={(e) => setFormData({...formData, tag: e.target.value})}
-                        placeholder="Ex: 001234567890"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="quantidade">Quantidade</Label>
-                      <Input
-                        id="quantidade"
-                        type="number"
-                        value={formData.quantidade}
-                        onChange={(e) => setFormData({...formData, quantidade: e.target.value})}
-                        placeholder="Ex: 1"
-                        min="1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="caracteristicas">Características (Opcional)</Label>
-                      <Textarea
-                        id="caracteristicas"
-                        value={formData.caracteristicas}
-                        onChange={(e) => setFormData({...formData, caracteristicas: e.target.value})}
-                        placeholder="Digite uma característica por linha no formato 'nome: valor' ou JSON válido. Deixe em branco se não houver características."
-                        className="h-20"
-                      />
-                    </div>
-                    <Button 
-                      onClick={editingItem ? handleEditFerramenta : handleAddFerramenta}
-                      className="w-full"
-                      disabled={!formData.nome || !formData.categoria || !formData.tag || !formData.quantidade}
-                    >
-                      {editingItem ? 'Atualizar Ferramenta' : 'Adicionar Ferramenta'}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Nome</th>
-                      <th className="text-left p-2">Categoria</th>
-                      <th className="text-left p-2">Tag</th>
-                      <th className="text-left p-2">Quantidade</th>
-                      <th className="text-left p-2">Características</th>
-                      <th className="text-left p-2">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ferramentas.map((ferramenta) => (
-                      <tr key={ferramenta.id} className="border-b">
-                        <td className="p-2">{ferramenta.nome}</td>
-                        <td className="p-2">
-                          <Badge variant="outline">{ferramenta.categoria}</Badge>
-                        </td>
-                        <td className="p-2">
-                          <Badge variant="secondary">{ferramenta.tag}</Badge>
-                        </td>
-                        <td className="p-2">
-                          <Badge variant={ferramenta.quantidade <= 2 ? "destructive" : "default"}>
-                            {ferramenta.quantidade}
-                          </Badge>
-                        </td>
-                        <td className="p-2">
-                          {ferramenta.caracteristicas ? (
-                            <Badge variant="outline">Com características</Badge>
-                          ) : (
-                            <Badge variant="outline">Sem características</Badge>
-                          )}
-                        </td>
-                        <td className="p-2">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditDialog(ferramenta)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteFerramenta(ferramenta.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {ferramentas.length === 0 && (
-                  <div className="text-center py-8">
-                    <Wrench className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Nenhuma ferramenta cadastrada</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Aba Materiais */}
         <TabsContent value="materiais" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Gerenciar Materiais ({materiais.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Nome</th>
-                      <th className="text-left p-2">Tag</th>
-                      <th className="text-left p-2">Disponível</th>
-                      <th className="text-left p-2">Mínimo</th>
-                      <th className="text-left p-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {materiais.map((material) => {
-                      const disponivel = material.entrada - material.saida;
-                      const isLow = disponivel <= material.quantidade_minima;
-                      
-                      return (
-                        <tr key={material.id} className="border-b">
-                          <td className="p-2">{material.nome}</td>
-                          <td className="p-2">
-                            {material.tag && <Badge variant="secondary">{material.tag}</Badge>}
-                          </td>
-                          <td className="p-2">
-                            <Badge variant={isLow ? "destructive" : "default"}>
-                              {disponivel} {material.unidade || 'un'}
-                            </Badge>
-                          </td>
-                          <td className="p-2">{material.quantidade_minima}</td>
-                          <td className="p-2">
-                            <Badge variant={isLow ? "destructive" : "default"}>
-                              {isLow ? "Estoque Baixo" : "Normal"}
-                            </Badge>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {materiais.length === 0 && (
-                  <div className="text-center py-8">
-                    <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Nenhum material cadastrado</p>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Controle de Materiais</h3>
+            <Button 
+              onClick={() => setShowNovoForm("material")}
+              disabled={showNovoForm === "material"}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Material
+            </Button>
+          </div>
+
+          {showNovoForm === "material" && (
+            <Card className="border-dashed">
+              <CardHeader>
+                <CardTitle className="text-base">Adicionar Novo Material</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Nome do Material</Label>
+                    <Input
+                      value={novoItem.nome}
+                      onChange={(e) => setNovoItem({...novoItem, nome: e.target.value})}
+                      placeholder="Nome do material"
+                    />
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <div>
+                    <Label>Quantidade Inicial</Label>
+                    <Input
+                      type="number"
+                      value={novoItem.quantidade}
+                      onChange={(e) => setNovoItem({...novoItem, quantidade: e.target.value})}
+                      placeholder="Quantidade"
+                    />
+                  </div>
+                  <div>
+                    <Label>Tag (Opcional)</Label>
+                    <Input
+                      type="number"
+                      value={novoItem.tag}
+                      onChange={(e) => setNovoItem({...novoItem, tag: e.target.value})}
+                      placeholder="Número da tag"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={adicionarMaterial}>Adicionar Material</Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowNovoForm(null);
+                      setNovoItem({ nome: "", quantidade: "", categoria: "", tag: "", caracteristicas: "" });
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-3">
+            {filteredMateriais.map((material) => (
+              <Card key={material.id}>
+                <CardContent className="p-4">
+                  {isEditing === `material-${material.id}` ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Nome</Label>
+                          <Input
+                            value={editingData.nome || ""}
+                            onChange={(e) => setEditingData({...editingData, nome: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Quantidade Entrada</Label>
+                          <Input
+                            type="number"
+                            value={editingData.entrada || ""}
+                            onChange={(e) => setEditingData({...editingData, entrada: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Quantidade Mínima</Label>
+                          <Input
+                            type="number"
+                            value={editingData.quantidade_minima || ""}
+                            onChange={(e) => setEditingData({...editingData, quantidade_minima: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Tag</Label>
+                          <Input
+                            type="number"
+                            value={editingData.tag || ""}
+                            onChange={(e) => setEditingData({...editingData, tag: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={editarMaterial}>Salvar</Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setIsEditing(null);
+                            setEditingData({});
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <h4 className="font-semibold">{material.nome}</h4>
+                        <div className="flex gap-2 text-sm text-muted-foreground">
+                          <Badge variant="outline">Entrada: {material.entrada}</Badge>
+                          <Badge variant="outline">Saída: {material.saida}</Badge>
+                          <Badge variant="outline">Disponível: {material.entrada - material.saida}</Badge>
+                          <Badge variant="outline">Mínimo: {material.quantidade_minima}</Badge>
+                          {material.tag && <Badge variant="outline">Tag: {material.tag}</Badge>}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEdit(material, 'material')}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir o material "{material.nome}"? 
+                                Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => excluirMaterial(material.id)}>
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
-        {/* Aba Funcionários */}
-        <TabsContent value="funcionarios" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Informações dos Funcionários
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Para gerenciar funcionários, use a aba "Empréstimos" no menu principal.
-              </p>
-            </CardContent>
-          </Card>
+        {/* Aba Ferramentas */}
+        <TabsContent value="ferramentas" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Controle de Ferramentas</h3>
+            <Button 
+              onClick={() => setShowNovoForm("ferramenta")}
+              disabled={showNovoForm === "ferramenta"}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Ferramenta
+            </Button>
+          </div>
+
+          {showNovoForm === "ferramenta" && (
+            <Card className="border-dashed">
+              <CardHeader>
+                <CardTitle className="text-base">Adicionar Nova Ferramenta</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Nome da Ferramenta</Label>
+                    <Input
+                      value={novoItem.nome}
+                      onChange={(e) => setNovoItem({...novoItem, nome: e.target.value})}
+                      placeholder="Nome da ferramenta"
+                    />
+                  </div>
+                  <div>
+                    <Label>Quantidade</Label>
+                    <Input
+                      type="number"
+                      value={novoItem.quantidade}
+                      onChange={(e) => setNovoItem({...novoItem, quantidade: e.target.value})}
+                      placeholder="Quantidade"
+                    />
+                  </div>
+                  <div>
+                    <Label>Categoria</Label>
+                    <Input
+                      value={novoItem.categoria}
+                      onChange={(e) => setNovoItem({...novoItem, categoria: e.target.value})}
+                      placeholder="Categoria"
+                    />
+                  </div>
+                  <div>
+                    <Label>Tag</Label>
+                    <Input
+                      value={novoItem.tag}
+                      onChange={(e) => setNovoItem({...novoItem, tag: e.target.value})}
+                      placeholder="Tag da ferramenta"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Características (Opcional)</Label>
+                  <Textarea
+                    value={novoItem.caracteristicas}
+                    onChange={(e) => setNovoItem({...novoItem, caracteristicas: e.target.value})}
+                    placeholder='Pode ser JSON ou texto simples. Ex: {"cor": "Preta", "potência": "500W"} ou simplesmente cor: Preta'
+                    rows={4}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Você pode usar formato JSON ou texto simples (uma característica por linha)
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={adicionarFerramenta}>Adicionar Ferramenta</Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowNovoForm(null);
+                      setNovoItem({ nome: "", quantidade: "", categoria: "", tag: "", caracteristicas: "" });
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-3">
+            {filteredFerramentas.map((ferramenta) => (
+              <Card key={ferramenta.id}>
+                <CardContent className="p-4">
+                  {isEditing === `ferramenta-${ferramenta.id}` ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Nome</Label>
+                          <Input
+                            value={editingData.nome || ""}
+                            onChange={(e) => setEditingData({...editingData, nome: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Quantidade</Label>
+                          <Input
+                            type="number"
+                            value={editingData.quantidade || ""}
+                            onChange={(e) => setEditingData({...editingData, quantidade: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Categoria</Label>
+                          <Input
+                            value={editingData.categoria || ""}
+                            onChange={(e) => setEditingData({...editingData, categoria: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Tag</Label>
+                          <Input
+                            value={editingData.tag || ""}
+                            onChange={(e) => setEditingData({...editingData, tag: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Características</Label>
+                        <Textarea
+                          value={editingData.caracteristicas || ""}
+                          onChange={(e) => setEditingData({...editingData, caracteristicas: e.target.value})}
+                          rows={4}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={editarFerramenta}>Salvar</Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setIsEditing(null);
+                            setEditingData({});
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <h4 className="font-semibold">{ferramenta.nome}</h4>
+                        <div className="flex gap-2 text-sm text-muted-foreground">
+                          <Badge variant="outline">Tag: {ferramenta.tag}</Badge>
+                          <Badge variant="outline">Categoria: {ferramenta.categoria}</Badge>
+                          <Badge variant="outline">Disponível: {ferramenta.quantidade}</Badge>
+                        </div>
+                        {ferramenta.caracteristicas && (
+                          <div className="text-xs text-muted-foreground">
+                            <strong>Características:</strong>
+                            <pre className="mt-1 text-xs bg-muted p-2 rounded max-w-md overflow-auto">
+                              {typeof ferramenta.caracteristicas === 'object' 
+                                ? JSON.stringify(ferramenta.caracteristicas, null, 2)
+                                : ferramenta.caracteristicas}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEdit(ferramenta, 'ferramenta')}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a ferramenta "{ferramenta.nome}"? 
+                                Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => excluirFerramenta(ferramenta.id)}>
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
