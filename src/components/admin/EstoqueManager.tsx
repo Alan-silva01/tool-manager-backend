@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Search, Package, Wrench, Users, Shield, PackagePlus } from "lucide-react";
+import { Plus, Edit, Search, Package, Wrench, Users, Shield, PackagePlus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -108,6 +108,11 @@ export const EstoqueManager = ({
   const [isAddingEntrada, setIsAddingEntrada] = useState(false);
   const [dialogEntradaOpen, setDialogEntradaOpen] = useState(false);
 
+  // Estados para controlar abertura dos diálogos de edição
+  const [editMaterialDialogOpen, setEditMaterialDialogOpen] = useState(false);
+  const [editFerramentaDialogOpen, setEditFerramentaDialogOpen] = useState(false);
+  const [editFuncionarioDialogOpen, setEditFuncionarioDialogOpen] = useState(false);
+
   const setores: SetorType[] = ["Usinagem industrial", "Oficina cantilever", "Oficina de guias", "Montagem de gaiola", "Oficina de mancal", "Usinagem de cilindros", "Oficina central"];
 
   // Carregar funcionários sempre que o componente for montado ou quando mudar para a aba funcionários
@@ -198,6 +203,82 @@ export const EstoqueManager = ({
         }
       });
       return caracteristicasObj;
+    }
+  };
+
+  // Função para excluir funcionário
+  const handleDeleteFuncionario = async (funcionario: Funcionario) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o funcionário ${funcionario.nome}?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('funcionarios')
+        .delete()
+        .eq('id', funcionario.id);
+
+      if (error) {
+        console.error('Erro ao excluir funcionário:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir o funcionário",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Funcionário excluído",
+        description: `${funcionario.nome} foi excluído com sucesso`
+      });
+
+      fetchFuncionarios(); // Atualizar lista
+    } catch (error) {
+      console.error('Erro ao excluir funcionário:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao excluir funcionário",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Função para excluir ferramenta
+  const handleDeleteFerramenta = async (ferramenta: Ferramenta) => {
+    if (!window.confirm(`Tem certeza que deseja excluir a ferramenta ${ferramenta.nome}?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('ferramentas')
+        .delete()
+        .eq('id', ferramenta.id);
+
+      if (error) {
+        console.error('Erro ao excluir ferramenta:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir a ferramenta",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Ferramenta excluída",
+        description: `${ferramenta.nome} foi excluída com sucesso`
+      });
+
+      onRefresh(); // Atualizar lista
+    } catch (error) {
+      console.error('Erro ao excluir ferramenta:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao excluir ferramenta",
+        variant: "destructive"
+      });
     }
   };
 
@@ -352,6 +433,7 @@ export const EstoqueManager = ({
         description: `${formatarTexto(editingMaterial.nome)} foi editado com sucesso`
       });
       setEditingMaterial(null);
+      setEditMaterialDialogOpen(false);
       onRefresh();
     } catch (error) {
       console.error('Erro ao editar material:', error);
@@ -444,6 +526,7 @@ export const EstoqueManager = ({
         description: `${formatarTexto(editingFerramenta.nome)} foi editada com sucesso`
       });
       setEditingFerramenta(null);
+      setEditFerramentaDialogOpen(false);
       onRefresh();
     } catch (error) {
       console.error('Erro ao editar ferramenta:', error);
@@ -527,6 +610,7 @@ export const EstoqueManager = ({
         description: `${editingFuncionario.nome.toUpperCase()} foi editado com sucesso`
       });
       setEditingFuncionario(null);
+      setEditFuncionarioDialogOpen(false);
       fetchFuncionarios();
     } catch (error) {
       console.error('Erro ao editar funcionário:', error);
@@ -832,12 +916,18 @@ export const EstoqueManager = ({
                             </Dialog>
 
                             {/* Botão de editar existente */}
-                            <Dialog>
+                            <Dialog open={editMaterialDialogOpen && editingMaterial?.id === material.id} onOpenChange={(open) => {
+                              setEditMaterialDialogOpen(open);
+                              if (!open) setEditingMaterial(null);
+                            }}>
                               <DialogTrigger asChild>
                                 <Button 
                                   size="sm" 
                                   variant="ghost" 
-                                  onClick={() => setEditingMaterial({...material, unidade: material.unidade || 'un'})}
+                                  onClick={() => {
+                                    setEditingMaterial({...material, unidade: material.unidade || 'un'});
+                                    setEditMaterialDialogOpen(true);
+                                  }}
                                 >
                                   <Edit className="w-4 h-4" />
                                 </Button>
@@ -1112,78 +1202,92 @@ export const EstoqueManager = ({
                           </Dialog>
                         </TableCell>
                         <TableCell>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={() => {
-                                  const caracteristicasStr = ferramenta.caracteristicas 
-                                    ? Object.entries(ferramenta.caracteristicas).map(([key, value]) => `${key}: ${value}`).join('\n') 
-                                    : '';
-                                  setEditingFerramenta({...ferramenta, caracteristicas: caracteristicasStr});
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>Editar Ferramenta</DialogTitle>
-                              </DialogHeader>
-                              {editingFerramenta && editingFerramenta.id === ferramenta.id && <div className="space-y-4">
-                                <div>
-                                  <Label htmlFor="edit-ferramenta-nome">Nome da Ferramenta</Label>
-                                  <Input 
-                                    id="edit-ferramenta-nome" 
-                                    value={editingFerramenta.nome} 
-                                    onChange={e => setEditingFerramenta({...editingFerramenta, nome: e.target.value})} 
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="edit-ferramenta-categoria">Categoria</Label>
-                                  <Input 
-                                    id="edit-ferramenta-categoria" 
-                                    value={editingFerramenta.categoria} 
-                                    onChange={e => setEditingFerramenta({...editingFerramenta, categoria: e.target.value})} 
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="edit-ferramenta-tag">Tag</Label>
-                                  <Input 
-                                    id="edit-ferramenta-tag" 
-                                    value={editingFerramenta.tag} 
-                                    onChange={e => setEditingFerramenta({...editingFerramenta, tag: e.target.value})} 
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="edit-ferramenta-quantidade">Quantidade</Label>
-                                  <Input 
-                                    id="edit-ferramenta-quantidade" 
-                                    type="number" 
-                                    value={editingFerramenta.quantidade} 
-                                    onChange={e => setEditingFerramenta({...editingFerramenta, quantidade: Number(e.target.value)})} 
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="edit-ferramenta-caracteristicas">Características</Label>
-                                  <Textarea 
-                                    id="edit-ferramenta-caracteristicas" 
-                                    value={typeof editingFerramenta.caracteristicas === 'string' ? editingFerramenta.caracteristicas : ''} 
-                                    onChange={e => setEditingFerramenta({...editingFerramenta, caracteristicas: e.target.value})} 
-                                    rows={6} 
-                                    placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`} 
-                                  />
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Digite uma característica por linha no formato "nome: valor"
-                                  </p>
-                                </div>
-                                <Button className="w-full" onClick={handleEditFerramenta}>
-                                  Salvar Alterações
+                          <div className="flex gap-2">
+                            <Dialog open={editFerramentaDialogOpen && editingFerramenta?.id === ferramenta.id} onOpenChange={(open) => {
+                              setEditFerramentaDialogOpen(open);
+                              if (!open) setEditingFerramenta(null);
+                            }}>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => {
+                                    const caracteristicasStr = ferramenta.caracteristicas 
+                                      ? Object.entries(ferramenta.caracteristicas).map(([key, value]) => `${key}: ${value}`).join('\n') 
+                                      : '';
+                                    setEditingFerramenta({...ferramenta, caracteristicas: caracteristicasStr});
+                                    setEditFerramentaDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4" />
                                 </Button>
-                              </div>}
-                            </DialogContent>
-                          </Dialog>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Editar Ferramenta</DialogTitle>
+                                </DialogHeader>
+                                {editingFerramenta && editingFerramenta.id === ferramenta.id && <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-nome">Nome da Ferramenta</Label>
+                                    <Input 
+                                      id="edit-ferramenta-nome" 
+                                      value={editingFerramenta.nome} 
+                                      onChange={e => setEditingFerramenta({...editingFerramenta, nome: e.target.value})} 
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-categoria">Categoria</Label>
+                                    <Input 
+                                      id="edit-ferramenta-categoria" 
+                                      value={editingFerramenta.categoria} 
+                                      onChange={e => setEditingFerramenta({...editingFerramenta, categoria: e.target.value})} 
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-tag">Tag</Label>
+                                    <Input 
+                                      id="edit-ferramenta-tag" 
+                                      value={editingFerramenta.tag} 
+                                      onChange={e => setEditingFerramenta({...editingFerramenta, tag: e.target.value})} 
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-quantidade">Quantidade</Label>
+                                    <Input 
+                                      id="edit-ferramenta-quantidade" 
+                                      type="number" 
+                                      value={editingFerramenta.quantidade} 
+                                      onChange={e => setEditingFerramenta({...editingFerramenta, quantidade: Number(e.target.value)})} 
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-caracteristicas">Características</Label>
+                                    <Textarea 
+                                      id="edit-ferramenta-caracteristicas" 
+                                      value={typeof editingFerramenta.caracteristicas === 'string' ? editingFerramenta.caracteristicas : ''} 
+                                      onChange={e => setEditingFerramenta({...editingFerramenta, caracteristicas: e.target.value})} 
+                                      rows={6} 
+                                      placeholder={`cor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`} 
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Digite uma característica por linha no formato "nome: valor"
+                                    </p>
+                                  </div>
+                                  <Button className="w-full" onClick={handleEditFerramenta}>
+                                    Salvar Alterações
+                                  </Button>
+                                </div>}
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleDeleteFerramenta(ferramenta)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>;
                   })}
@@ -1271,7 +1375,7 @@ export const EstoqueManager = ({
                     <TableHead>Setor</TableHead>
                     <TableHead>WhatsApp</TableHead>
                     <TableHead className="text-center">Em posse</TableHead>
-                    <TableHead>Editar</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1300,70 +1404,86 @@ export const EstoqueManager = ({
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={() => setEditingFuncionario(funcionario)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Editar Funcionário</DialogTitle>
-                              </DialogHeader>
-                              {editingFuncionario && editingFuncionario.id === funcionario.id && (
-                                <div className="space-y-4">
-                                  <div>
-                                    <Label htmlFor="edit-funcionario-nome">Nome do Funcionário</Label>
-                                    <Input 
-                                      id="edit-funcionario-nome" 
-                                      value={editingFuncionario.nome} 
-                                      onChange={e => setEditingFuncionario({...editingFuncionario, nome: e.target.value})} 
-                                    />
+                          <div className="flex gap-2">
+                            <Dialog open={editFuncionarioDialogOpen && editingFuncionario?.id === funcionario.id} onOpenChange={(open) => {
+                              setEditFuncionarioDialogOpen(open);
+                              if (!open) setEditingFuncionario(null);
+                            }}>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => {
+                                    setEditingFuncionario(funcionario);
+                                    setEditFuncionarioDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Editar Funcionário</DialogTitle>
+                                </DialogHeader>
+                                {editingFuncionario && editingFuncionario.id === funcionario.id && (
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label htmlFor="edit-funcionario-nome">Nome do Funcionário</Label>
+                                      <Input 
+                                        id="edit-funcionario-nome" 
+                                        value={editingFuncionario.nome} 
+                                        onChange={e => setEditingFuncionario({...editingFuncionario, nome: e.target.value})} 
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-funcionario-matricula">Matrícula</Label>
+                                      <Input 
+                                        id="edit-funcionario-matricula" 
+                                        type="number" 
+                                        value={editingFuncionario.matricula} 
+                                        onChange={e => setEditingFuncionario({...editingFuncionario, matricula: Number(e.target.value)})} 
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-funcionario-setor">Setor</Label>
+                                      <Select 
+                                        value={editingFuncionario.setor} 
+                                        onValueChange={value => setEditingFuncionario({...editingFuncionario, setor: value})}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {setores.map(setor => (
+                                            <SelectItem key={setor} value={setor}>{setor}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-funcionario-whatsapp">Número WhatsApp</Label>
+                                      <Input 
+                                        id="edit-funcionario-whatsapp" 
+                                        value={editingFuncionario.numero_whatsapp} 
+                                        onChange={e => setEditingFuncionario({...editingFuncionario, numero_whatsapp: e.target.value})} 
+                                      />
+                                    </div>
+                                    <Button className="w-full" onClick={handleEditFuncionario}>
+                                      Salvar Alterações
+                                    </Button>
                                   </div>
-                                  <div>
-                                    <Label htmlFor="edit-funcionario-matricula">Matrícula</Label>
-                                    <Input 
-                                      id="edit-funcionario-matricula" 
-                                      type="number" 
-                                      value={editingFuncionario.matricula} 
-                                      onChange={e => setEditingFuncionario({...editingFuncionario, matricula: Number(e.target.value)})} 
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="edit-funcionario-setor">Setor</Label>
-                                    <Select 
-                                      value={editingFuncionario.setor} 
-                                      onValueChange={value => setEditingFuncionario({...editingFuncionario, setor: value})}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {setores.map(setor => (
-                                          <SelectItem key={setor} value={setor}>{setor}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="edit-funcionario-whatsapp">Número WhatsApp</Label>
-                                    <Input 
-                                      id="edit-funcionario-whatsapp" 
-                                      value={editingFuncionario.numero_whatsapp} 
-                                      onChange={e => setEditingFuncionario({...editingFuncionario, numero_whatsapp: e.target.value})} 
-                                    />
-                                  </div>
-                                  <Button className="w-full" onClick={handleEditFuncionario}>
-                                    Salvar Alterações
-                                  </Button>
-                                </div>
-                              )}
-                            </DialogContent>
-                          </Dialog>
+                                )}
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleDeleteFuncionario(funcionario)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
