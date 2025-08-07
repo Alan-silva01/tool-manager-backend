@@ -12,6 +12,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Search, Package, Wrench, Users, Shield, PackagePlus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Material {
   id: string;
@@ -169,6 +180,9 @@ export const EstoqueManager = ({
             : []
         }));
         
+        // Ordenar por nome alfabeticamente
+        funcionariosFormatados.sort((a, b) => a.nome.localeCompare(b.nome));
+        
         console.log('Funcionários formatados:', funcionariosFormatados);
         setFuncionarios(funcionariosFormatados);
       }
@@ -206,12 +220,42 @@ export const EstoqueManager = ({
     }
   };
 
+  // Função para excluir material
+  const handleDeleteMaterial = async (material: Material) => {
+    try {
+      const { error } = await supabase
+        .from('materiais')
+        .delete()
+        .eq('id', material.id);
+
+      if (error) {
+        console.error('Erro ao excluir material:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir o material",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Material excluído",
+        description: `${material.nome} foi excluído com sucesso`
+      });
+
+      onRefresh(); // Atualizar lista
+    } catch (error) {
+      console.error('Erro ao excluir material:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao excluir material",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Função para excluir funcionário
   const handleDeleteFuncionario = async (funcionario: Funcionario) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o funcionário ${funcionario.nome}?`)) {
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('funcionarios')
@@ -246,10 +290,6 @@ export const EstoqueManager = ({
 
   // Função para excluir ferramenta
   const handleDeleteFerramenta = async (ferramenta: Ferramenta) => {
-    if (!window.confirm(`Tem certeza que deseja excluir a ferramenta ${ferramenta.nome}?`)) {
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('ferramentas')
@@ -684,23 +724,30 @@ export const EstoqueManager = ({
     }
   };
 
-  const filteredMateriais = materiais.filter(material => 
-    material.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    material.tag.toString().includes(searchTerm) || 
-    material.unidade?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Ordenar listas alfabeticamente
+  const filteredMateriais = materiais
+    .filter(material => 
+      material.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      material.tag.toString().includes(searchTerm) || 
+      material.unidade?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.nome.localeCompare(b.nome));
   
-  const filteredFerramentas = ferramentas.filter(ferramenta => 
-    ferramenta.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    ferramenta.categoria.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    ferramenta.tag.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFerramentas = ferramentas
+    .filter(ferramenta => 
+      ferramenta.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      ferramenta.categoria.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      ferramenta.tag.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.nome.localeCompare(b.nome));
   
-  const filteredFuncionarios = funcionarios.filter(funcionario => 
-    funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    funcionario.matricula.toString().includes(searchTerm) || 
-    funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFuncionarios = funcionarios
+    .filter(funcionario => 
+      funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      funcionario.matricula.toString().includes(searchTerm) || 
+      funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 
   return <Card>
       <CardHeader>
@@ -999,6 +1046,43 @@ export const EstoqueManager = ({
                                 </div>}
                               </DialogContent>
                             </Dialog>
+
+                            {/* Botão de excluir material */}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir o material <strong>{material.nome}</strong>?
+                                    <br />
+                                    <span className="text-sm text-muted-foreground">
+                                      Tag: {material.tag} | Quantidade disponível: {quantidadeDisponivel} {material.unidade}
+                                    </span>
+                                    <br />
+                                    <span className="text-destructive font-semibold">
+                                      Esta ação não pode ser desfeita.
+                                    </span>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteMaterial(material)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Excluir Material
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>;
@@ -1280,13 +1364,46 @@ export const EstoqueManager = ({
                               </DialogContent>
                             </Dialog>
                             
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => handleDeleteFerramenta(ferramenta)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir a ferramenta <strong>{ferramenta.nome}</strong>?
+                                    <br />
+                                    <span className="text-sm text-muted-foreground">
+                                      Tag: {ferramenta.tag} | Categoria: {ferramenta.categoria} | Quantidade: {ferramenta.quantidade}
+                                    </span>
+                                    {ferramenta.reserva && (
+                                      <span className="block text-yellow-600 font-semibold mt-1">
+                                        ⚠️ Esta ferramenta está reservada para a matrícula {ferramenta.matricula_reserva}
+                                      </span>
+                                    )}
+                                    <br />
+                                    <span className="text-destructive font-semibold">
+                                      Esta ação não pode ser desfeita.
+                                    </span>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteFerramenta(ferramenta)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Excluir Ferramenta
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>;
@@ -1476,13 +1593,46 @@ export const EstoqueManager = ({
                               </DialogContent>
                             </Dialog>
                             
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => handleDeleteFuncionario(funcionario)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir o funcionário <strong>{funcionario.nome}</strong>?
+                                    <br />
+                                    <span className="text-sm text-muted-foreground">
+                                      Matrícula: {funcionario.matricula} | Setor: {funcionario.setor}
+                                    </span>
+                                    {funcionario.posse_ferramentas.length > 0 && (
+                                      <span className="block text-yellow-600 font-semibold mt-1">
+                                        ⚠️ Este funcionário possui {funcionario.posse_ferramentas.length} ferramenta(s) em posse
+                                      </span>
+                                    )}
+                                    <br />
+                                    <span className="text-destructive font-semibold">
+                                      Esta ação não pode ser desfeita.
+                                    </span>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteFuncionario(funcionario)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Excluir Funcionário
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
