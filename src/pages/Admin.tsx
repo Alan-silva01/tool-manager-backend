@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -119,7 +118,6 @@ const Admin = () => {
               materiais={materiais}
               ferramentas={ferramentas}
               onRefresh={handleRefresh}
-              key={refreshKey}
             />
           </TabsContent>
         </Tabs>
