@@ -23,10 +23,10 @@ export const useFerramentas = (refreshKey: number = 0) => {
     try {
       console.log('Buscando ferramentas...');
       
-      // Buscar apenas as colunas que existem na tabela
+      // Buscar todas as colunas incluindo reserva e matricula_reserva
       const { data, error } = await supabase
         .from('ferramentas')
-        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu');
+        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva');
 
       if (error) {
         console.error('Erro ao buscar ferramentas:', error);
@@ -40,7 +40,7 @@ export const useFerramentas = (refreshKey: number = 0) => {
           const quantidadeSaiu = ferramenta.saiu || 0;
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu);
 
-          console.log(`Ferramenta ${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}`);
+          console.log(`Ferramenta ${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}, reserva=${ferramenta.reserva}, matricula_reserva=${ferramenta.matricula_reserva}`);
 
           return {
             id: ferramenta.id,
@@ -50,8 +50,8 @@ export const useFerramentas = (refreshKey: number = 0) => {
             categoria: ferramenta.categoria,
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
-            reserva: false, // Default value since column doesn't exist
-            matricula_reserva: undefined // Default value since column doesn't exist
+            reserva: ferramenta.reserva || false,
+            matricula_reserva: ferramenta.matricula_reserva || undefined
           } as Ferramenta;
         });
 

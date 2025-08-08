@@ -136,6 +136,41 @@ const PegarItem = () => {
     
     if (func) {
       setFuncionario(func);
+      
+      // Verificar se há ferramentas reservadas para outro funcionário
+      const ferramentasReservadasParaOutro = carrinho.filter(item => 
+        item.tipo === 'ferramenta' && 
+        item.reserva && 
+        item.matricula_reserva && 
+        item.matricula_reserva !== matricula.trim()
+      );
+
+      if (ferramentasReservadasParaOutro.length > 0) {
+        // Mostrar aviso sobre ferramentas reservadas
+        const mensagens = ferramentasReservadasParaOutro.map(item => {
+          const nomeReservado = buscarNomePorMatricula(item.matricula_reserva || '');
+          const primeiroNome = nomeReservado ? nomeReservado.split(' ')[0] : 'Outro funcionário';
+          return `${item.nome} está reservada para: ${primeiroNome}`;
+        });
+        
+        toast({
+          title: "Ferramentas reservadas encontradas",
+          description: mensagens.join('. ') + '. Essas ferramentas serão removidas do carrinho.',
+          variant: "destructive",
+          duration: 5000,
+        });
+
+        // Remover ferramentas reservadas para outro funcionário do carrinho
+        setCarrinho(prevCarrinho => 
+          prevCarrinho.filter(item => 
+            !(item.tipo === 'ferramenta' && 
+              item.reserva && 
+              item.matricula_reserva && 
+              item.matricula_reserva !== matricula.trim())
+          )
+        );
+      }
+
       setStep('fotos');
       toast({
         title: "Funcionário encontrado!",
@@ -258,13 +293,16 @@ const PegarItem = () => {
       return;
     }
 
-    // Verificar se alguma ferramenta está reservada para outro funcionário
+    // Verificação final: se alguma ferramenta está reservada para outro funcionário (dupla verificação)
     if (categoria === 'ferramentas') {
       for (const item of carrinho) {
         if (item.reserva && item.matricula_reserva && item.matricula_reserva !== matricula) {
+          const nomeReservado = buscarNomePorMatricula(item.matricula_reserva);
+          const primeiroNome = nomeReservado ? nomeReservado.split(' ')[0] : 'outro funcionário';
+          
           toast({
             title: "Ferramenta reservada",
-            description: `A ferramenta ${item.nome} está reservada. Infelizmente, você não pode retirar.`,
+            description: `A ferramenta ${item.nome} está reservada para: ${primeiroNome}. Você não pode retirá-la.`,
             variant: "destructive",
           });
           return;
@@ -471,6 +509,7 @@ const PegarItem = () => {
               const nomeReservado = categoria === 'ferramentas' && (item as any).reserva && (item as any).matricula_reserva 
                 ? buscarNomePorMatricula((item as any).matricula_reserva) 
                 : null;
+              const primeiroNomeReservado = nomeReservado ? nomeReservado.split(' ')[0] : null;
               
               return (
                 <Card key={item.id} className={`hover:shadow-md transition-shadow ${item.quantidade <= 0 ? 'opacity-50' : ''}`}>
@@ -481,11 +520,11 @@ const PegarItem = () => {
                          <Badge variant="outline" className="mt-1">
                            TAG: {item.tag}
                          </Badge>
-                         {categoria === 'ferramentas' && (item as any).reserva && nomeReservado && (
+                         {categoria === 'ferramentas' && (item as any).reserva && primeiroNomeReservado && (
                            <div className="flex items-center gap-1 mt-1">
                              <Lock className="w-3 h-3 text-orange-500" />
                              <span className="text-xs text-orange-600">
-                               Reservada para {nomeReservado}
+                               Reservada para: {primeiroNomeReservado}
                              </span>
                            </div>
                          )}
