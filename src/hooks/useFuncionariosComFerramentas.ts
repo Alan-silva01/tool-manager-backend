@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { formatWhatsAppForDisplay } from '@/utils/whatsappFormatter';
 
 interface FuncionarioComFerramentas {
   id: string;
@@ -59,7 +60,7 @@ export const useFuncionariosComFerramentas = (ferramentas: any[], refreshKey: nu
               nome: func.nome,
               matricula: func.matricula?.toString() || '',
               setor: func.setor || '',
-              numero_whatsapp: func.numero_whatsapp || '',
+              numero_whatsapp: formatWhatsAppForDisplay(func.numero_whatsapp || ''),
               ferramentas: ferramentasDetalhadas
             };
           });

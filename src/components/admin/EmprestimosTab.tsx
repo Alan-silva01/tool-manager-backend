@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Package, Search, Bell, RefreshCw } from "lucide-react";
+import { Users, Package, Search, Bell, RefreshCw, Phone } from "lucide-react";
 
 interface FuncionarioComFerramentas {
   id: string;
@@ -78,6 +78,12 @@ export const EmprestimosTab = ({
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Badge variant="outline">#{funcionario.matricula}</Badge>
                         <span>{funcionario.setor}</span>
+                        {funcionario.numero_whatsapp && (
+                          <div className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            <span className="font-mono">{funcionario.numero_whatsapp}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -94,7 +100,7 @@ export const EmprestimosTab = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onNotificarFuncionario(funcionario, ferramenta)}
-                          disabled={isNotifying === `${funcionario.id}-${ferramenta.tag}`}
+                          disabled={isNotifying === `${funcionario.id}-${ferramenta.tag}` || !funcionario.numero_whatsapp}
                           className="ml-2"
                         >
                           <Bell className="w-4 h-4 mr-2" />

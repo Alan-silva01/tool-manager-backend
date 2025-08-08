@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { formatWhatsAppForDisplay, formatWhatsAppForSave } from '@/utils/whatsappFormatter';
 
 type Funcionario = {
   id: string;
@@ -93,6 +94,14 @@ export const useFuncionarios = (refreshKey?: number) => {
     const funcionario = funcionarios[matricula] || null;
     console.log('Funcionário encontrado:', funcionario);
     
+    // Se encontrou funcionário, formata o WhatsApp para exibição
+    if (funcionario) {
+      return {
+        ...funcionario,
+        numero_whatsapp: formatWhatsAppForDisplay(funcionario.numero_whatsapp)
+      };
+    }
+    
     return funcionario;
   };
 
@@ -145,6 +154,41 @@ export const useFuncionarios = (refreshKey?: number) => {
     }
   };
 
+  const atualizarNumeroWhatsApp = async (matricula: string, numeroWhatsApp: string) => {
+    try {
+      console.log('Atualizando número WhatsApp:', { matricula, numeroWhatsApp });
+      
+      // Formata o número para salvar no banco
+      const numeroFormatadoParaSalvar = formatWhatsAppForSave(numeroWhatsApp);
+      console.log('Número formatado para salvar:', numeroFormatadoParaSalvar);
+
+      const { error } = await supabase
+        .from('funcionarios')
+        .update({ numero_whatsapp: numeroFormatadoParaSalvar })
+        .eq('matricula', parseInt(matricula));
+
+      if (error) {
+        console.error('Erro ao atualizar número WhatsApp:', error);
+        throw error;
+      }
+
+      // Atualizar o estado local
+      setFuncionarios(prev => ({
+        ...prev,
+        [matricula]: {
+          ...prev[matricula],
+          numero_whatsapp: numeroFormatadoParaSalvar
+        }
+      }));
+
+      console.log('Número WhatsApp atualizado com sucesso');
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar número WhatsApp:', error);
+      return false;
+    }
+  };
+
   console.log('Estado atual useFuncionarios:', { 
     totalFuncionarios: Object.keys(funcionarios).length, 
     loading,
@@ -156,6 +200,7 @@ export const useFuncionarios = (refreshKey?: number) => {
     loading,
     buscarFuncionario,
     buscarNomePorMatricula,
-    adicionarFerramentaAoFuncionario
+    adicionarFerramentaAoFuncionario,
+    atualizarNumeroWhatsApp
   };
 };
