@@ -26,7 +26,7 @@ export const useNotificacoes = () => {
         matricula: funcionario.matricula,
         nome_ferramenta: ferramenta.nome,
         tag_ferramenta: ferramenta.tag,
-        numero_whatsapp: funcionario.numero_whatsapp
+        numero_whatsapp: funcionario.numero_whatsapp // Enviando exatamente como está no banco (com 55)
       };
 
       console.log('Enviando notificação:', webhookData);
