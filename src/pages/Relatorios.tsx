@@ -117,9 +117,7 @@ const Relatorios = () => {
               </CardContent>
             </Card>
 
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary" onClick={() => setView('estoque')}>
-              
-            </Card>
+            
           </div>}
 
         {/* Busca de Funcionário */}
