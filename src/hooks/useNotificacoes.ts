@@ -1,0 +1,66 @@
+
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+
+export const useNotificacoes = () => {
+  const { toast } = useToast();
+  const [isNotifying, setIsNotifying] = useState<string | null>(null);
+
+  const notificarFuncionario = async (funcionario: any, ferramenta: any) => {
+    if (!funcionario.numero_whatsapp) {
+      toast({
+        title: "Erro",
+        description: "Funcionário não possui número de WhatsApp cadastrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const notificationKey = `${funcionario.id}-${ferramenta.tag}`;
+    setIsNotifying(notificationKey);
+
+    try {
+      const webhookData = {
+        nome: funcionario.nome,
+        setor: funcionario.setor,
+        matricula: funcionario.matricula,
+        nome_ferramenta: ferramenta.nome,
+        tag_ferramenta: ferramenta.tag,
+        numero_whatsapp: funcionario.numero_whatsapp
+      };
+
+      console.log('Enviando notificação:', webhookData);
+
+      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/notificar-funcionario', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Notificação enviada",
+          description: `Funcionário ${funcionario.nome} foi notificado sobre a devolução da ${ferramenta.nome}`,
+        });
+      } else {
+        throw new Error('Erro ao enviar notificação');
+      }
+    } catch (error) {
+      console.error('Erro ao notificar funcionário:', error);
+      toast({
+        title: "Erro ao notificar",
+        description: "Não foi possível enviar a notificação. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsNotifying(null);
+    }
+  };
+
+  return {
+    notificarFuncionario,
+    isNotifying
+  };
+};
