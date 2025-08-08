@@ -136,41 +136,6 @@ const PegarItem = () => {
     
     if (func) {
       setFuncionario(func);
-      
-      // Verificar se há ferramentas reservadas para outro funcionário
-      const ferramentasReservadasParaOutro = carrinho.filter(item => 
-        item.tipo === 'ferramenta' && 
-        item.reserva && 
-        item.matricula_reserva && 
-        item.matricula_reserva !== matricula.trim()
-      );
-
-      if (ferramentasReservadasParaOutro.length > 0) {
-        // Mostrar aviso sobre ferramentas reservadas
-        const mensagens = ferramentasReservadasParaOutro.map(item => {
-          const nomeReservado = buscarNomePorMatricula(item.matricula_reserva || '');
-          const primeiroNome = nomeReservado ? nomeReservado.split(' ')[0] : 'Outro funcionário';
-          return `${item.nome} está reservada para: ${primeiroNome}`;
-        });
-        
-        toast({
-          title: "Ferramentas reservadas encontradas",
-          description: mensagens.join('. ') + '. Essas ferramentas serão removidas do carrinho.',
-          variant: "destructive",
-          duration: 5000,
-        });
-
-        // Remover ferramentas reservadas para outro funcionário do carrinho
-        setCarrinho(prevCarrinho => 
-          prevCarrinho.filter(item => 
-            !(item.tipo === 'ferramenta' && 
-              item.reserva && 
-              item.matricula_reserva && 
-              item.matricula_reserva !== matricula.trim())
-          )
-        );
-      }
-
       setStep('fotos');
       toast({
         title: "Funcionário encontrado!",
@@ -293,10 +258,10 @@ const PegarItem = () => {
       return;
     }
 
-    // Verificação final: se alguma ferramenta está reservada para outro funcionário (dupla verificação)
+    // Verificação final: se alguma ferramenta está reservada para outro funcionário
     if (categoria === 'ferramentas') {
       for (const item of carrinho) {
-        if (item.reserva && item.matricula_reserva && item.matricula_reserva !== matricula) {
+        if (item.reserva && item.matricula_reserva && item.matricula_reserva !== matricula.trim()) {
           const nomeReservado = buscarNomePorMatricula(item.matricula_reserva);
           const primeiroNome = nomeReservado ? nomeReservado.split(' ')[0] : 'outro funcionário';
           
