@@ -13,7 +13,7 @@ import { AdminLogin } from "@/components/admin/AdminLogin";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { EmprestimosTab } from "@/components/admin/EmprestimosTab";
-import EstoqueManager from "@/components/admin/EstoqueManager";
+import { EstoqueManager } from "@/components/admin/EstoqueManager";
 import { calculateAdminStats } from "@/utils/adminCalculations";
 
 const Admin = () => {
