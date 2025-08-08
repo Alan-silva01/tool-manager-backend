@@ -10,37 +10,43 @@ import { useToast } from "@/hooks/use-toast";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
-
 const Relatorios = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { buscarFuncionario, loading: loadingFuncionarios } = useFuncionarios();
-  const { ferramentas, loading: loadingFerramentas } = useFerramentas();
-  const { materiais, loading: loadingMateriais } = useMateriais();
-  
+  const {
+    toast
+  } = useToast();
+  const {
+    buscarFuncionario,
+    loading: loadingFuncionarios
+  } = useFuncionarios();
+  const {
+    ferramentas,
+    loading: loadingFerramentas
+  } = useFerramentas();
+  const {
+    materiais,
+    loading: loadingMateriais
+  } = useMateriais();
   const [view, setView] = useState<'menu' | 'funcionario' | 'estoque'>('menu');
   const [matricula, setMatricula] = useState('');
   const [funcionario, setFuncionario] = useState<any>(null);
   const [ferramentasEmPosse, setFerramentasEmPosse] = useState<any[]>([]);
-
   const handleRefresh = () => {
     window.location.reload();
   };
-
   const handleBuscarFuncionario = () => {
     if (!matricula.trim()) {
       toast({
         title: "Erro",
         description: "Digite a matrícula do funcionário",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     const func = buscarFuncionario(matricula);
     if (func) {
       setFuncionario(func);
-      
+
       // Buscar ferramentas em posse
       const ferramentasDoFuncionario = [];
       if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
@@ -51,14 +57,13 @@ const Relatorios = () => {
           }
         }
       }
-      
       setFerramentasEmPosse(ferramentasDoFuncionario);
       setView('funcionario');
     } else {
       toast({
         title: "Matrícula não encontrada",
         description: "Verifique a matrícula digitada",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -69,24 +74,15 @@ const Relatorios = () => {
     const minimo = Number(material.quantidade_minima) || 0;
     return quantidade <= minimo;
   });
-
   const isLoading = loadingFuncionarios || loadingFerramentas || loadingMateriais;
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-primary text-primary-foreground p-4 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-              onClick={() => {
-                if (view === 'menu') navigate('/');
-                else setView('menu');
-              }}
-            >
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20" onClick={() => {
+            if (view === 'menu') navigate('/');else setView('menu');
+          }}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
@@ -98,13 +94,7 @@ const Relatorios = () => {
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-primary-foreground hover:bg-primary-foreground/20"
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
+          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20" onClick={handleRefresh} disabled={isLoading}>
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
@@ -112,12 +102,8 @@ const Relatorios = () => {
 
       <main className="container mx-auto p-4 max-w-md">
         {/* Menu Principal */}
-        {view === 'menu' && (
-          <div className="space-y-4 mt-6">
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
-              onClick={() => setView('funcionario')}
-            >
+        {view === 'menu' && <div className="space-y-4 mt-6">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary" onClick={() => setView('funcionario')}>
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
                   <User className="w-6 h-6 text-primary-foreground" />
@@ -131,28 +117,13 @@ const Relatorios = () => {
               </CardContent>
             </Card>
 
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
-              onClick={() => setView('estoque')}
-            >
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 bg-destructive rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-destructive-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Alertas de Estoque</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Itens com estoque baixo
-                  </p>
-                </div>
-              </CardContent>
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary" onClick={() => setView('estoque')}>
+              
             </Card>
-          </div>
-        )}
+          </div>}
 
         {/* Busca de Funcionário */}
-        {view === 'funcionario' && !funcionario && (
-          <div className="space-y-4 mt-6">
+        {view === 'funcionario' && !funcionario && <div className="space-y-4 mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -163,29 +134,17 @@ const Relatorios = () => {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="matricula">Matrícula</Label>
-                  <Input
-                    id="matricula"
-                    value={matricula}
-                    onChange={(e) => setMatricula(e.target.value)}
-                    placeholder="Ex: 13812"
-                    disabled={isLoading}
-                  />
+                  <Input id="matricula" value={matricula} onChange={e => setMatricula(e.target.value)} placeholder="Ex: 13812" disabled={isLoading} />
                 </div>
-                <Button 
-                  className="w-full" 
-                  onClick={handleBuscarFuncionario}
-                  disabled={!matricula || isLoading}
-                >
+                <Button className="w-full" onClick={handleBuscarFuncionario} disabled={!matricula || isLoading}>
                   {isLoading ? 'Carregando...' : 'Buscar Histórico'}
                 </Button>
               </CardContent>
             </Card>
-          </div>
-        )}
+          </div>}
 
         {/* Relatório do Funcionário */}
-        {view === 'funcionario' && funcionario && (
-          <div className="space-y-4 mt-6">
+        {view === 'funcionario' && funcionario && <div className="space-y-4 mt-6">
             <Card>
               <CardHeader>
                 <CardTitle>Dados do Funcionário</CardTitle>
@@ -200,16 +159,14 @@ const Relatorios = () => {
             </Card>
 
             {/* Ferramentas em Posse */}
-            {ferramentasEmPosse.length > 0 && (
-              <Card>
+            {ferramentasEmPosse.length > 0 && <Card>
                 <CardHeader>
                   <CardTitle className="text-destructive">
                     Ferramentas em Posse ({ferramentasEmPosse.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {ferramentasEmPosse.map((ferramenta) => (
-                    <div key={ferramenta.id} className="border-l-4 border-destructive pl-4">
+                  {ferramentasEmPosse.map(ferramenta => <div key={ferramenta.id} className="border-l-4 border-destructive pl-4">
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-semibold">{ferramenta.nome}</p>
@@ -219,39 +176,29 @@ const Relatorios = () => {
                           </p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
 
-            {ferramentasEmPosse.length === 0 && (
-              <Card>
+            {ferramentasEmPosse.length === 0 && <Card>
                 <CardContent className="p-6 text-center">
                   <p className="text-muted-foreground">
                     Este funcionário não possui ferramentas em sua posse no momento
                   </p>
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
 
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                setFuncionario(null);
-                setMatricula('');
-                setFerramentasEmPosse([]);
-              }}
-            >
+            <Button variant="outline" className="w-full" onClick={() => {
+          setFuncionario(null);
+          setMatricula('');
+          setFerramentasEmPosse([]);
+        }}>
               Buscar Outro Funcionário
             </Button>
-          </div>
-        )}
+          </div>}
 
         {/* Alertas de Estoque */}
-        {view === 'estoque' && (
-          <div className="space-y-4 mt-6">
+        {view === 'estoque' && <div className="space-y-4 mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-destructive">
@@ -261,16 +208,12 @@ const Relatorios = () => {
               </CardHeader>
             </Card>
 
-            {isLoading ? (
-              <Card>
+            {isLoading ? <Card>
                 <CardContent className="p-6 text-center">
                   <p className="text-muted-foreground">Carregando alertas...</p>
                 </CardContent>
-              </Card>
-            ) : (
-              <>
-                {estoqueBaixo.map((item) => (
-                  <Card key={item.id} className="border-destructive/50">
+              </Card> : <>
+                {estoqueBaixo.map(item => <Card key={item.id} className="border-destructive/50">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-center">
                         <div>
@@ -287,25 +230,18 @@ const Relatorios = () => {
                         </Badge>
                       </div>
                     </CardContent>
-                  </Card>
-                ))}
+                  </Card>)}
 
-                {estoqueBaixo.length === 0 && (
-                  <Card>
+                {estoqueBaixo.length === 0 && <Card>
                     <CardContent className="p-6 text-center">
                       <p className="text-muted-foreground">
                         Nenhum item com estoque baixo no momento
                       </p>
                     </CardContent>
-                  </Card>
-                )}
-              </>
-            )}
-          </div>
-        )}
+                  </Card>}
+              </>}
+          </div>}
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Relatorios;
