@@ -1,13 +1,16 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 export const useCadastroFerramenta = () => {
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const formatCaracteristicas = (caracteristicasText: string): Record<string, string> => {
-    if (!caracteristicasText.trim()) return {};
+    if (!caracteristicasText.trim()) {
+      return {}; // Retorna objeto vazio se não houver características
+    }
 
     const caracteristicas: Record<string, string> = {};
     
@@ -38,19 +41,19 @@ export const useCadastroFerramenta = () => {
     try {
       console.log('Criando nova ferramenta:', dados);
 
-      // Formatar características para JSONB
+      // Formatar características para JSONB (permite objeto vazio)
       const caracteristicasFormatadas = formatCaracteristicas(dados.caracteristicas);
       
       console.log('Características formatadas:', caracteristicasFormatadas);
 
-      // Dados para inserção com valores padrão
+      // Dados para inserção com valores padrão obrigatórios
       const dadosInsercao = {
         nome: dados.nome,
         tag: dados.tag,
         quantidade: dados.quantidade,
         categoria: dados.categoria,
-        caracteristicas: caracteristicasFormatadas,
-        saiu: 0,
+        caracteristicas: caracteristicasFormatadas, // Pode ser {} se vazio
+        saiu: 0, // Valor padrão
         funcionario_emprestado: null,
         matricula: null,
         data_emprestado: null,
@@ -68,18 +71,29 @@ export const useCadastroFerramenta = () => {
 
       if (error) {
         console.error('Erro ao criar ferramenta:', error);
-        toast.error('Erro ao criar ferramenta: ' + error.message);
+        toast({
+          title: "Erro",
+          description: `Erro ao criar ferramenta: ${error.message}`,
+          variant: "destructive",
+        });
         return { success: false, error };
       }
 
       console.log('Ferramenta criada com sucesso:', data);
-      toast.success('Ferramenta criada com sucesso!');
+      toast({
+        title: "Sucesso",
+        description: "Ferramenta criada com sucesso!",
+      });
       
       return { success: true, data: data[0] };
 
     } catch (error) {
       console.error('Erro inesperado ao criar ferramenta:', error);
-      toast.error('Erro inesperado ao criar ferramenta');
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao criar ferramenta",
+        variant: "destructive",
+      });
       return { success: false, error };
     } finally {
       setLoading(false);
