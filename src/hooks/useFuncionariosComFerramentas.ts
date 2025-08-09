@@ -2,20 +2,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatWhatsAppForDisplay } from '@/utils/whatsappFormatter';
+import type { FuncionarioComFerramentas, Ferramenta } from '@/types';
 
-interface FuncionarioComFerramentas {
-  id: string;
-  nome: string;
-  matricula: string;
-  setor: string;
-  numero_whatsapp: string;
-  ferramentas: Array<{
-    tag: string;
-    nome: string;
-  }>;
-}
-
-export const useFuncionariosComFerramentas = (ferramentas: any[], refreshKey: number) => {
+export const useFuncionariosComFerramentas = (ferramentas: Ferramenta[], refreshKey: number) => {
   const [funcionariosComFerramentas, setFuncionariosComFerramentas] = useState<FuncionarioComFerramentas[]>([]);
 
   const fetchFuncionariosComFerramentas = async () => {

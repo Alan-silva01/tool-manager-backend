@@ -1,9 +1,11 @@
 
+import type { FuncionarioComFerramentas, Ferramenta, Material, AdminStats } from '@/types';
+
 export const calculateAdminStats = (
-  funcionariosComFerramentas: any[],
-  ferramentas: any[],
-  materiais: any[]
-) => {
+  funcionariosComFerramentas: FuncionarioComFerramentas[],
+  ferramentas: Ferramenta[],
+  materiais: Material[]
+): AdminStats => {
   // Calcular estatísticas
   const totalFerramentasEmprestadas = funcionariosComFerramentas.reduce((total, func) => total + func.ferramentas.length, 0);
   const totalFuncionariosComFerramentas = funcionariosComFerramentas.length;

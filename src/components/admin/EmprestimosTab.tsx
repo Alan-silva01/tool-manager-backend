@@ -1,21 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Users, Package, Search, Bell, RefreshCw, Phone } from "lucide-react";
-
-interface FuncionarioComFerramentas {
-  id: string;
-  nome: string;
-  matricula: string;
-  setor: string;
-  numero_whatsapp: string;
-  ferramentas: Array<{
-    tag: string;
-    nome: string;
-  }>;
-}
+import type { FuncionarioComFerramentas } from '@/types';
 
 interface EmprestimosTabProps {
   funcionariosComFerramentas: FuncionarioComFerramentas[];

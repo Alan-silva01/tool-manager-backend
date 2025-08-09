@@ -1,18 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-type Material = {
-  id: string;
-  nome: string;
-  tag: string;
-  quantidade: number;
-  quantidade_minima: number;
-  entrada: number;
-  saida: number;
-  data_entrada_estoque: string;
-  unidade: string;
-};
+import type { Material } from '@/types';
 
 export const useMateriais = (refreshKey?: number) => {
   const [materiais, setMateriais] = useState<Material[]>([]);
