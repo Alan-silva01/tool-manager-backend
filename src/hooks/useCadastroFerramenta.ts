@@ -46,7 +46,7 @@ export const useCadastroFerramenta = () => {
       
       console.log('Características formatadas:', caracteristicasFormatadas);
 
-      // Dados para inserção com valores padrão obrigatórios
+      // Dados para inserção - removendo status pois é coluna gerada
       const dadosInsercao = {
         nome: dados.nome,
         tag: dados.tag,
@@ -57,7 +57,6 @@ export const useCadastroFerramenta = () => {
         funcionario_emprestado: null,
         matricula: null,
         data_emprestado: null,
-        status: 'disponivel',
         reserva: false,
         matricula_reserva: null
       };
