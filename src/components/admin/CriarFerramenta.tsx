@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCadastroFerramenta } from '@/hooks/useCadastroFerramenta';
+import { useToast } from '@/hooks/use-toast';
 
 interface CriarFerramentaProps {
   onSuccess?: () => void;
@@ -19,63 +19,118 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
     caracteristicas: ''
   });
 
-  const { criarFerramenta, loading } = useCadastroFerramenta();
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validações básicas - apenas campos obrigatórios
     if (!formData.nome.trim()) {
-      console.error('Nome é obrigatório');
+      toast({
+        title: "Erro",
+        description: "Nome é obrigatório",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!formData.tag.trim()) {
-      console.error('Tag é obrigatória');
+      toast({
+        title: "Erro",
+        description: "Tag é obrigatória",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!formData.quantidade.trim()) {
-      console.error('Quantidade é obrigatória');
+      toast({
+        title: "Erro",
+        description: "Quantidade é obrigatória",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!formData.categoria.trim()) {
-      console.error('Categoria é obrigatória');
+      toast({
+        title: "Erro",
+        description: "Categoria é obrigatória",
+        variant: "destructive",
+      });
       return;
     }
 
     const quantidade = parseInt(formData.quantidade);
     if (isNaN(quantidade) || quantidade < 0) {
-      console.error('Quantidade deve ser um número válido');
+      toast({
+        title: "Erro",
+        description: "Quantidade deve ser um número válido",
+        variant: "destructive",
+      });
       return;
     }
 
-    console.log('Submetendo formulário:', formData);
+    setLoading(true);
 
-    const resultado = await criarFerramenta({
-      nome: formData.nome.trim(),
-      tag: formData.tag.trim(),
-      quantidade: quantidade,
-      categoria: formData.categoria.trim(),
-      caracteristicas: formData.caracteristicas.trim() // Pode ser string vazia
-    });
+    try {
+      console.log('Enviando dados para o webhook:', formData);
 
-    if (resultado.success) {
-      console.log('Ferramenta criada, limpando formulário');
-      // Limpar formulário
-      setFormData({
-        nome: '',
-        tag: '',
-        quantidade: '',
-        categoria: '',
-        caracteristicas: ''
+      // Preparar dados para envio
+      const webhookData = {
+        nome: formData.nome.trim(),
+        tag: formData.tag.trim(),
+        quantidade: quantidade,
+        categoria: formData.categoria.trim(),
+        caracteristicas: formData.caracteristicas.trim() // Enviando como string simples
+      };
+
+      console.log('Dados do webhook:', webhookData);
+
+      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookData),
       });
 
-      // Chamar callback de sucesso se fornecido
-      if (onSuccess) {
-        onSuccess();
+      console.log('Resposta do webhook:', response.status);
+
+      if (response.ok) {
+        console.log('Ferramenta salva com sucesso via webhook');
+        
+        toast({
+          title: "Sucesso",
+          description: "Ferramenta criada com sucesso!",
+        });
+
+        // Limpar formulário
+        setFormData({
+          nome: '',
+          tag: '',
+          quantidade: '',
+          categoria: '',
+          caracteristicas: ''
+        });
+
+        // Chamar callback de sucesso se fornecido
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        throw new Error(`Erro do webhook: ${response.status}`);
       }
+    } catch (error) {
+      console.error('Erro ao enviar para webhook:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar ferramenta. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -161,7 +216,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         disabled={loading}
         className="w-full"
       >
-        {loading ? 'Criando...' : 'Criar Ferramenta'}
+        {loading ? 'Salvando...' : 'Criar Ferramenta'}
       </Button>
     </form>
   );
