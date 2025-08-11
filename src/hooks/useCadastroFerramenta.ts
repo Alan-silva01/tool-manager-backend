@@ -20,12 +20,14 @@ export const useCadastroFerramenta = () => {
     pares.forEach(par => {
       const [chave, valor] = par.split(':').map(item => item.trim());
       if (chave && valor) {
-        // Capitaliza a primeira letra do valor se for texto
+        // Capitaliza a primeira letra da chave e do valor
+        const chaveFormatada = chave.toLowerCase();
         const valorFormatado = valor.charAt(0).toUpperCase() + valor.slice(1).toLowerCase();
-        caracteristicas[chave.toLowerCase()] = valorFormatado;
+        caracteristicas[chaveFormatada] = valorFormatado;
       }
     });
 
+    console.log('Características processadas:', caracteristicas);
     return caracteristicas;
   };
 
@@ -41,12 +43,12 @@ export const useCadastroFerramenta = () => {
     try {
       console.log('Criando nova ferramenta:', dados);
 
-      // Formatar características para JSONB (permite objeto vazio)
+      // Formatar características para JSONB
       const caracteristicasFormatadas = formatCaracteristicas(dados.caracteristicas);
       
       console.log('Características formatadas:', caracteristicasFormatadas);
 
-      // Dados para inserção - APENAS campos permitidos (excluindo campos gerados automaticamente)
+      // Dados para inserção - seguindo exatamente o schema da tabela
       const dadosInsercao = {
         nome: dados.nome,
         tag: dados.tag,
@@ -59,10 +61,9 @@ export const useCadastroFerramenta = () => {
         data_emprestado: null,
         reserva: false,
         matricula_reserva: null
-        // NÃO incluir: id (gerado automaticamente), status (coluna gerada)
       };
 
-      console.log('Dados para inserção:', dadosInsercao);
+      console.log('Dados finais para inserção:', dadosInsercao);
 
       const { data, error } = await supabase
         .from('ferramentas')
@@ -70,7 +71,7 @@ export const useCadastroFerramenta = () => {
         .select();
 
       if (error) {
-        console.error('Erro ao criar ferramenta:', error);
+        console.error('Erro detalhado ao criar ferramenta:', error);
         toast({
           title: "Erro",
           description: `Erro ao criar ferramenta: ${error.message}`,
