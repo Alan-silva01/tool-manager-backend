@@ -46,19 +46,21 @@ export const useCadastroFerramenta = () => {
       
       console.log('Características formatadas:', caracteristicasFormatadas);
 
-      // Dados para inserção - apenas campos obrigatórios e opcionais permitidos
+      // Dados para inserção - apenas campos necessários conforme especificação
       const dadosInsercao = {
         nome: dados.nome,
         tag: dados.tag,
         quantidade: dados.quantidade,
         categoria: dados.categoria,
-        caracteristicas: caracteristicasFormatadas, // JSONB pode ser {} se vazio
-        saiu: null, // NULL em vez de 0
+        caracteristicas: caracteristicasFormatadas,
+        saiu: 0, // 0 conforme especificação
         funcionario_emprestado: null,
         matricula: null,
         data_emprestado: null,
-        reserva: null, // NULL em vez de false
+        reserva: false, // false conforme especificação
         matricula_reserva: null
+        // id: será gerado automaticamente
+        // status: será gerado automaticamente baseado em 'saiu'
       };
 
       console.log('Dados para inserção:', dadosInsercao);
