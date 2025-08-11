@@ -20,9 +20,9 @@ export const useCadastroFerramenta = () => {
     pares.forEach(par => {
       const [chave, valor] = par.split(':').map(item => item.trim());
       if (chave && valor) {
-        // Capitaliza a primeira letra da chave e do valor
-        const chaveFormatada = chave.toLowerCase();
-        const valorFormatado = valor.charAt(0).toUpperCase() + valor.slice(1).toLowerCase();
+        // Remove espaços e formata adequadamente
+        const chaveFormatada = chave.toLowerCase().trim();
+        const valorFormatado = valor.trim();
         caracteristicas[chaveFormatada] = valorFormatado;
       }
     });
@@ -49,19 +49,16 @@ export const useCadastroFerramenta = () => {
       
       console.log('Características formatadas:', caracteristicasFormatadas);
 
-      // Dados para inserção - APENAS os campos permitidos pela tabela
+      // Dados para inserção - SOMENTE campos obrigatórios e aceitos
       const dadosInsercao = {
         nome: dados.nome,
         tag: dados.tag,
         quantidade: dados.quantidade,
         categoria: dados.categoria,
         caracteristicas: caracteristicasFormatadas,
-        saiu: 0,
-        funcionario_emprestado: null,
-        matricula: null,
-        data_emprestado: null,
-        reserva: false,
-        matricula_reserva: null
+        saiu: 0
+        // Removemos TODOS os campos opcionais que podem estar causando problema
+        // O banco irá usar os valores padrão automaticamente
       };
 
       console.log('=== DADOS FINAIS PARA INSERÇÃO ===');
