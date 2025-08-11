@@ -41,14 +41,15 @@ export const useCadastroFerramenta = () => {
     setLoading(true);
     
     try {
-      console.log('Criando nova ferramenta:', dados);
+      console.log('=== INICIANDO CRIAÇÃO DE FERRAMENTA ===');
+      console.log('Dados recebidos:', dados);
 
       // Formatar características para JSONB
       const caracteristicasFormatadas = formatCaracteristicas(dados.caracteristicas);
       
       console.log('Características formatadas:', caracteristicasFormatadas);
 
-      // Dados para inserção - seguindo exatamente o schema da tabela
+      // Dados para inserção - APENAS os campos permitidos pela tabela
       const dadosInsercao = {
         nome: dados.nome,
         tag: dados.tag,
@@ -63,15 +64,26 @@ export const useCadastroFerramenta = () => {
         matricula_reserva: null
       };
 
-      console.log('Dados finais para inserção:', dadosInsercao);
+      console.log('=== DADOS FINAIS PARA INSERÇÃO ===');
+      console.log(JSON.stringify(dadosInsercao, null, 2));
 
       const { data, error } = await supabase
         .from('ferramentas')
         .insert(dadosInsercao)
         .select();
 
+      console.log('=== RESPOSTA DA API ===');
+      console.log('Data:', data);
+      console.log('Error:', error);
+
       if (error) {
-        console.error('Erro detalhado ao criar ferramenta:', error);
+        console.error('=== ERRO DETALHADO ===');
+        console.error('Código:', error.code);
+        console.error('Mensagem:', error.message);
+        console.error('Detalhes:', error.details);
+        console.error('Hint:', error.hint);
+        console.error('Error completo:', JSON.stringify(error, null, 2));
+        
         toast({
           title: "Erro",
           description: `Erro ao criar ferramenta: ${error.message}`,
@@ -80,7 +92,8 @@ export const useCadastroFerramenta = () => {
         return { success: false, error };
       }
 
-      console.log('Ferramenta criada com sucesso:', data);
+      console.log('=== SUCESSO ===');
+      console.log('Ferramenta criada:', data);
       toast({
         title: "Sucesso",
         description: "Ferramenta criada com sucesso!",
@@ -89,7 +102,11 @@ export const useCadastroFerramenta = () => {
       return { success: true, data: data[0] };
 
     } catch (error) {
-      console.error('Erro inesperado ao criar ferramenta:', error);
+      console.error('=== ERRO INESPERADO ===');
+      console.error('Tipo:', typeof error);
+      console.error('Error:', error);
+      console.error('Stack:', error instanceof Error ? error.stack : 'N/A');
+      
       toast({
         title: "Erro",
         description: "Erro inesperado ao criar ferramenta",
