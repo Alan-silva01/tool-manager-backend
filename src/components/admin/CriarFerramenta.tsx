@@ -25,7 +25,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validações básicas - apenas campos obrigatórios
+    // Validações básicas
     if (!formData.nome.trim()) {
       toast({
         title: "Erro",
@@ -83,7 +83,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         tag: formData.tag.trim(),
         quantidade: quantidade,
         categoria: formData.categoria.trim(),
-        caracteristicas: formData.caracteristicas.trim() // Enviando como string simples
+        caracteristicas: formData.caracteristicas.trim()
       };
 
       console.log('Dados do webhook:', webhookData);
@@ -96,7 +96,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         body: JSON.stringify(webhookData),
       });
 
-      console.log('Resposta do webhook:', response.status);
+      console.log('Resposta do webhook:', response.status, response.statusText);
 
       if (response.ok) {
         console.log('Ferramenta salva com sucesso via webhook');
@@ -120,6 +120,8 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
           onSuccess();
         }
       } else {
+        const errorText = await response.text();
+        console.error('Erro do webhook:', response.status, errorText);
         throw new Error(`Erro do webhook: ${response.status}`);
       }
     } catch (error) {
