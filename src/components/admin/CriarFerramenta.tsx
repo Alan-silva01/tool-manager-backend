@@ -25,7 +25,9 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Não fazer nada além de enviar pro webhook
+    console.log('=== INÍCIO DO HANDLESUBMIT ===');
+    console.log('FormData:', formData);
+    
     if (!formData.nome || !formData.tag || !formData.quantidade || !formData.categoria) {
       toast({
         title: "Erro",
@@ -38,8 +40,6 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
     setLoading(true);
 
     try {
-      console.log('Enviando dados para webhook:', formData);
-      
       const webhookData = {
         nome: formData.nome,
         tag: formData.tag,
@@ -48,7 +48,9 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         caracteristicas: formData.caracteristicas
       };
 
-      console.log('Dados formatados para webhook:', webhookData);
+      console.log('=== ENVIANDO PARA WEBHOOK ===');
+      console.log('URL:', 'https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta');
+      console.log('Data:', webhookData);
 
       const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta', {
         method: 'POST',
@@ -58,10 +60,11 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         body: JSON.stringify(webhookData),
       });
 
-      console.log('Resposta do webhook:', response.status, response.statusText);
+      console.log('=== RESPOSTA DO WEBHOOK ===');
+      console.log('Status:', response.status);
+      console.log('StatusText:', response.statusText);
 
       if (response.ok) {
-        // Limpar formulário apenas se sucesso
         setFormData({
           nome: '',
           tag: '',
@@ -75,15 +78,17 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
           description: "Ferramenta enviada com sucesso!",
         });
 
+        console.log('=== SUCESSO - CHAMANDO onSuccess ===');
         if (onSuccess) {
           onSuccess();
         }
       } else {
-        console.error('Erro na resposta do webhook:', await response.text());
-        throw new Error('Erro no webhook');
+        const errorText = await response.text();
+        console.error('Erro na resposta do webhook:', errorText);
+        throw new Error(`Erro no webhook: ${response.status}`);
       }
     } catch (error) {
-      console.error('Erro ao enviar para webhook:', error);
+      console.error('=== ERRO NO CATCH ===', error);
       toast({
         title: "Erro",
         description: "Erro ao enviar dados. Tente novamente.",
@@ -91,6 +96,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
       });
     } finally {
       setLoading(false);
+      console.log('=== FIM DO HANDLESUBMIT ===');
     }
   };
 
@@ -173,7 +179,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         disabled={loading}
         className="w-full"
       >
-        {loading ? 'Enviando...' : 'Enviar para Webhook'}
+        {loading ? 'Enviando...' : 'Enviar APENAS para Webhook'}
       </Button>
     </form>
   );
