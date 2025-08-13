@@ -24,9 +24,22 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Não fazer nada além de enviar pro webhook
+    if (!formData.nome || !formData.tag || !formData.quantidade || !formData.categoria) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
+      console.log('Enviando dados para webhook:', formData);
+      
       const webhookData = {
         nome: formData.nome,
         tag: formData.tag,
@@ -35,7 +48,9 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         caracteristicas: formData.caracteristicas
       };
 
-      await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta', {
+      console.log('Dados formatados para webhook:', webhookData);
+
+      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -43,24 +58,32 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         body: JSON.stringify(webhookData),
       });
 
-      // Limpar formulário
-      setFormData({
-        nome: '',
-        tag: '',
-        quantidade: '',
-        categoria: '',
-        caracteristicas: ''
-      });
+      console.log('Resposta do webhook:', response.status, response.statusText);
 
-      toast({
-        title: "Dados enviados",
-        description: "Informações da ferramenta enviadas com sucesso!",
-      });
+      if (response.ok) {
+        // Limpar formulário apenas se sucesso
+        setFormData({
+          nome: '',
+          tag: '',
+          quantidade: '',
+          categoria: '',
+          caracteristicas: ''
+        });
 
-      if (onSuccess) {
-        onSuccess();
+        toast({
+          title: "Sucesso",
+          description: "Ferramenta enviada com sucesso!",
+        });
+
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        console.error('Erro na resposta do webhook:', await response.text());
+        throw new Error('Erro no webhook');
       }
     } catch (error) {
+      console.error('Erro ao enviar para webhook:', error);
       toast({
         title: "Erro",
         description: "Erro ao enviar dados. Tente novamente.",
@@ -89,6 +112,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
           onChange={(e) => handleInputChange('nome', e.target.value)}
           placeholder="Digite o nome da ferramenta"
           disabled={loading}
+          required
         />
       </div>
 
@@ -101,6 +125,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
           onChange={(e) => handleInputChange('tag', e.target.value)}
           placeholder="Digite a tag da ferramenta"
           disabled={loading}
+          required
         />
       </div>
 
@@ -114,6 +139,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
           onChange={(e) => handleInputChange('quantidade', e.target.value)}
           placeholder="Digite a quantidade"
           disabled={loading}
+          required
         />
       </div>
 
@@ -126,6 +152,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
           onChange={(e) => handleInputChange('categoria', e.target.value)}
           placeholder="Digite a categoria"
           disabled={loading}
+          required
         />
       </div>
 
@@ -146,7 +173,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         disabled={loading}
         className="w-full"
       >
-        {loading ? 'Enviando...' : 'Enviar Dados'}
+        {loading ? 'Enviando...' : 'Enviar para Webhook'}
       </Button>
     </form>
   );
