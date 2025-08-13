@@ -27,8 +27,10 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
     
     console.log('=== INÍCIO DO HANDLESUBMIT ===');
     console.log('FormData:', formData);
+    console.log('onSuccess prop:', typeof onSuccess, onSuccess);
     
     if (!formData.nome || !formData.tag || !formData.quantidade || !formData.categoria) {
+      console.log('=== VALIDAÇÃO FALHOU ===');
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -37,6 +39,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
       return;
     }
 
+    console.log('=== VALIDAÇÃO PASSOU ===');
     setLoading(true);
 
     try {
@@ -63,8 +66,10 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
       console.log('=== RESPOSTA DO WEBHOOK ===');
       console.log('Status:', response.status);
       console.log('StatusText:', response.statusText);
+      console.log('Response OK:', response.ok);
 
       if (response.ok) {
+        console.log('=== WEBHOOK SUCESSO - LIMPANDO FORM ===');
         setFormData({
           nome: '',
           tag: '',
@@ -73,19 +78,24 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
           caracteristicas: ''
         });
 
+        console.log('=== MOSTRANDO TOAST DE SUCESSO ===');
         toast({
           title: "Sucesso",
           description: "Ferramenta enviada com sucesso!",
         });
 
-        console.log('=== SUCESSO - CHAMANDO onSuccess ===');
-        if (onSuccess) {
-          onSuccess();
-        }
+        console.log('=== VERIFICANDO SE DEVE CHAMAR onSuccess ===');
+        console.log('onSuccess existe?', !!onSuccess);
+        
+        // NÃO CHAMAR onSuccess para evitar qualquer side effect
+        console.log('=== NÃO CHAMANDO onSuccess PARA EVITAR SIDE EFFECTS ===');
+        // if (onSuccess) {
+        //   onSuccess();
+        // }
       } else {
         const errorText = await response.text();
-        console.error('Erro na resposta do webhook:', errorText);
-        throw new Error(`Erro no webhook: ${response.status}`);
+        console.error('=== ERRO NA RESPOSTA DO WEBHOOK ===', errorText);
+        throw new Error(`Erro no webhook: ${response.status} - ${errorText}`);
       }
     } catch (error) {
       console.error('=== ERRO NO CATCH ===', error);
@@ -101,11 +111,15 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
   };
 
   const handleInputChange = (field: string, value: string) => {
+    console.log(`=== INPUT CHANGE === ${field}:`, value);
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
+
+  console.log('=== RENDER CriarFerramenta ===');
+  console.log('Loading state:', loading);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -178,8 +192,9 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         type="submit" 
         disabled={loading}
         className="w-full"
+        onClick={() => console.log('=== BOTÃO CLICADO ===')}
       >
-        {loading ? 'Enviando...' : 'Enviar APENAS para Webhook'}
+        {loading ? 'Enviando...' : 'Enviar APENAS para Webhook (SEM SUPABASE)'}
       </Button>
     </form>
   );
