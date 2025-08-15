@@ -99,7 +99,7 @@ const Admin = () => {
         {/* Main Content Tabs */}
         <Tabs defaultValue="emprestimos" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
+            <TabsTrigger value="emprestimos">Empréstimos de Ferramentas</TabsTrigger>
             <TabsTrigger value="controle">Controle de Estoque</TabsTrigger>
             <TabsTrigger value="historico">Histórico de Retirada de Materiais</TabsTrigger>
           </TabsList>
