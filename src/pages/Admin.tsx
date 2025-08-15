@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { EmprestimosTab } from "@/components/admin/EmprestimosTab";
 import { EstoqueManager } from "@/components/admin/EstoqueManager";
+import { HistoricoMateriaisTab } from "@/components/admin/HistoricoMateriaisTab";
 import { calculateAdminStats } from "@/utils/adminCalculations";
 
 const Admin = () => {
@@ -94,9 +96,10 @@ const Admin = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="emprestimos" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
             <TabsTrigger value="controle">Controle de Estoque</TabsTrigger>
+            <TabsTrigger value="historico">Histórico de Materiais</TabsTrigger>
           </TabsList>
 
           {/* Aba Empréstimos */}
@@ -119,6 +122,11 @@ const Admin = () => {
               ferramentas={ferramentas}
               onRefresh={handleRefresh}
             />
+          </TabsContent>
+
+          {/* Aba Histórico de Materiais */}
+          <TabsContent value="historico" className="space-y-6">
+            <HistoricoMateriaisTab refreshKey={refreshKey} />
           </TabsContent>
         </Tabs>
       </main>
