@@ -1,16 +1,18 @@
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { useHistoricoMateriais } from "@/hooks/useHistoricoMateriais";
 import { ChevronDown, ChevronRight, Search, Calendar, FileText, User, Package } from "lucide-react";
 import { useState } from "react";
 
-export const HistoricoMateriaisTab = () => {
-  const { historico, loading, error, filtros, setFiltros } = useHistoricoMateriais();
+interface HistoricoMateriaisTabProps {
+  refreshKey?: number;
+}
+
+export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps) => {
+  const { historico, loading, error, filtros, setFiltros } = useHistoricoMateriais(refreshKey);
   const [funcionariosExpandidos, setFuncionariosExpandidos] = useState<Set<string>>(new Set());
 
   const toggleFuncionario = (matricula: string) => {
@@ -170,7 +172,7 @@ export const HistoricoMateriaisTab = () => {
                 <CardContent className="p-4">
                   <div
                     onClick={() => toggleFuncionario(funcionario.matricula)}
-                    className="flex justify-between items-start w-full cursor-pointer hover:bg-muted/50 rounded-md p-2 -mx-2 transition-colors"
+                    className="flex justify-between items-start w-full cursor-pointer p-2 -mx-2 transition-colors rounded-md"
                   >
                     <div className="text-left">
                       <h3 className="font-semibold text-lg">{funcionario.funcionario}</h3>
@@ -197,7 +199,7 @@ export const HistoricoMateriaisTab = () => {
                             <Badge variant="secondary">{material.material_tag}</Badge>
                             <span className="text-sm">{material.material_nome}</span>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-6 text-sm text-muted-foreground">
                             <span className="font-medium">Qtd: {material.quantidade}</span>
                             <span>{material.data}</span>
                           </div>

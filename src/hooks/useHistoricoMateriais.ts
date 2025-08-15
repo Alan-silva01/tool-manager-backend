@@ -21,14 +21,34 @@ export interface HistoricoMaterialFormatado {
   data: string;
 }
 
+export interface FuncionarioComMateriais {
+  funcionario: string;
+  matricula: string;
+  materiais: HistoricoMaterialFormatado[];
+  totalQuantidade: number;
+}
+
+export interface HistoricoFiltros {
+  funcionario: string;
+  material: string;
+  periodo: string;
+}
+
 export const useHistoricoMateriais = (refreshKey?: number) => {
   const [historico, setHistorico] = useState<HistoricoMaterialFormatado[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filtros, setFiltros] = useState<HistoricoFiltros>({
+    funcionario: '',
+    material: '',
+    periodo: 'todos'
+  });
 
   useEffect(() => {
     const fetchHistorico = async () => {
       try {
         console.log('Buscando histórico de materiais...');
+        setError(null);
         
         // Buscar registros de funcionários usando query SQL direta
         const { data: registros, error: registrosError } = await supabase
@@ -37,6 +57,7 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
 
         if (registrosError) {
           console.error('Erro ao buscar registros:', registrosError);
+          setError('Erro ao buscar registros de materiais');
           return;
         }
 
@@ -47,6 +68,7 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
 
         if (materiaisError) {
           console.error('Erro ao buscar materiais:', materiaisError);
+          setError('Erro ao buscar materiais');
           return;
         }
 
@@ -90,6 +112,7 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
         }
       } catch (error) {
         console.error('Erro ao carregar histórico de materiais:', error);
+        setError('Erro ao carregar histórico de materiais');
       } finally {
         setLoading(false);
       }
@@ -98,8 +121,49 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
     fetchHistorico();
   }, [refreshKey]);
 
+  // Função para agrupar histórico por funcionário
+  const getHistoricoAgrupado = (): FuncionarioComMateriais[] => {
+    let historicoFiltrado = [...historico];
+
+    // Aplicar filtros
+    if (filtros.funcionario) {
+      historicoFiltrado = historicoFiltrado.filter(item => 
+        item.funcionario.toLowerCase().includes(filtros.funcionario.toLowerCase()) ||
+        item.matricula.includes(filtros.funcionario)
+      );
+    }
+
+    if (filtros.material) {
+      historicoFiltrado = historicoFiltrado.filter(item => 
+        item.material_nome.toLowerCase().includes(filtros.material.toLowerCase()) ||
+        item.material_tag.includes(filtros.material)
+      );
+    }
+
+    // Agrupar por funcionário
+    const grupos = historicoFiltrado.reduce((acc, item) => {
+      const key = `${item.matricula}-${item.funcionario}`;
+      if (!acc[key]) {
+        acc[key] = {
+          funcionario: item.funcionario,
+          matricula: item.matricula,
+          materiais: [],
+          totalQuantidade: 0
+        };
+      }
+      acc[key].materiais.push(item);
+      acc[key].totalQuantidade += item.quantidade;
+      return acc;
+    }, {} as Record<string, FuncionarioComMateriais>);
+
+    return Object.values(grupos).sort((a, b) => a.funcionario.localeCompare(b.funcionario));
+  };
+
   return {
-    historico,
-    loading
+    historico: getHistoricoAgrupado(),
+    loading,
+    error,
+    filtros,
+    setFiltros
   };
 };
