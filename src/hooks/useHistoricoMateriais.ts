@@ -80,7 +80,13 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
           });
 
           console.log('Histórico formatado:', historicoFormatado);
-          setHistorico(historicoFormatado);
+          
+          // Ordenar por nome do funcionário (ordem alfabética)
+          const historicoOrdenado = historicoFormatado.sort((a, b) => 
+            a.funcionario.localeCompare(b.funcionario)
+          );
+
+          setHistorico(historicoOrdenado);
         }
       } catch (error) {
         console.error('Erro ao carregar histórico de materiais:', error);

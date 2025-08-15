@@ -14,6 +14,8 @@ export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps
   const [searchTerm, setSearchTerm] = useState("");
   const { historico, loading } = useHistoricoMateriais(refreshKey);
 
+  console.log('Histórico carregado:', historico);
+
   // Filtrar histórico baseado no termo de busca
   const historicoFiltrado = historico.filter(item => {
     const termo = searchTerm.toLowerCase();
