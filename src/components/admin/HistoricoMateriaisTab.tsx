@@ -161,29 +161,26 @@ export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps
                 return (
                   <Card key={funcionario.matricula} className="border-l-4 border-l-primary">
                     <CardContent className="p-4">
-                      <Button
-                        variant="ghost"
+                      <div
                         onClick={() => toggleFuncionario(funcionario.matricula)}
-                        className="w-full justify-between p-0 h-auto hover:bg-transparent"
+                        className="flex justify-between items-start w-full cursor-pointer"
                       >
-                        <div className="flex justify-between items-start w-full">
-                          <div className="text-left">
-                            <h3 className="font-semibold text-lg">{funcionario.funcionario}</h3>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Badge variant="outline">#{funcionario.matricula}</Badge>
-                              <span>{funcionario.materiais.length} retiradas</span>
-                              <span>Total: {funcionario.totalQuantidade} itens</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isExpanded ? (
-                              <ChevronDown className="w-5 h-5" />
-                            ) : (
-                              <ChevronRight className="w-5 h-5" />
-                            )}
+                        <div className="text-left">
+                          <h3 className="font-semibold text-lg">{funcionario.funcionario}</h3>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Badge variant="outline">#{funcionario.matricula}</Badge>
+                            <span>{funcionario.materiais.length} retiradas</span>
+                            <span>Total: {funcionario.totalQuantidade} itens</span>
                           </div>
                         </div>
-                      </Button>
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? (
+                            <ChevronDown className="w-5 h-5" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5" />
+                          )}
+                        </div>
+                      </div>
                       
                       {isExpanded && (
                         <div className="mt-4 space-y-2">
@@ -194,7 +191,7 @@ export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps
                                 <Badge variant="secondary">{material.material_tag}</Badge>
                                 <span className="text-sm">{material.material_nome}</span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span className="font-medium">Qtd: {material.quantidade}</span>
                                 <span>{material.data}</span>
                               </div>
