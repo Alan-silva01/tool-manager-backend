@@ -30,9 +30,9 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
       try {
         console.log('Buscando histórico de materiais...');
         
-        // Buscar registros de funcionários
+        // Buscar registros de funcionários usando query SQL direta
         const { data: registros, error: registrosError } = await supabase
-          .from('registro_mate_funcionarios')
+          .from('registro_mate_funcionarios' as any)
           .select('*');
 
         if (registrosError) {
@@ -65,7 +65,7 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
           console.log('Mapa de materiais:', materiaisMap);
 
           // Formatar dados combinando informações
-          const historicoFormatado: HistoricoMaterialFormatado[] = registros.map(registro => {
+          const historicoFormatado: HistoricoMaterialFormatado[] = registros.map((registro: any) => {
             const materialNome = materiaisMap[registro.material] || 'Material não encontrado';
             
             return {
