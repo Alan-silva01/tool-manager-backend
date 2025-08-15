@@ -1,30 +1,60 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Package, Calendar, User } from "lucide-react";
+import { Search, Package, Calendar, User, ChevronDown, ChevronRight } from "lucide-react";
 import { useHistoricoMateriais, type HistoricoMaterialFormatado } from "@/hooks/useHistoricoMateriais";
+import { Button } from "@/components/ui/button";
 
 interface HistoricoMateriaisTabProps {
   refreshKey?: number;
 }
 
+interface FuncionarioAgrupado {
+  funcionario: string;
+  matricula: string;
+  materiais: HistoricoMaterialFormatado[];
+  totalQuantidade: number;
+}
+
 export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [expandedFuncionarios, setExpandedFuncionarios] = useState<Set<string>>(new Set());
   const { historico, loading } = useHistoricoMateriais(refreshKey);
 
   console.log('Histórico carregado:', historico);
 
-  // Filtrar histórico baseado no termo de busca
-  const historicoFiltrado = historico.filter(item => {
+  // Agrupar histórico por funcionário
+  const funcionariosAgrupados: FuncionarioAgrupado[] = historico.reduce((acc, item) => {
+    const funcionarioExistente = acc.find(f => f.matricula === item.matricula);
+    
+    if (funcionarioExistente) {
+      funcionarioExistente.materiais.push(item);
+      funcionarioExistente.totalQuantidade += item.quantidade;
+    } else {
+      acc.push({
+        funcionario: item.funcionario,
+        matricula: item.matricula,
+        materiais: [item],
+        totalQuantidade: item.quantidade
+      });
+    }
+    
+    return acc;
+  }, [] as FuncionarioAgrupado[]);
+
+  // Filtrar funcionários baseado no termo de busca
+  const funcionariosFiltrados = funcionariosAgrupados.filter(funcionario => {
     const termo = searchTerm.toLowerCase();
     return (
-      item.funcionario.toLowerCase().includes(termo) ||
-      item.matricula.toLowerCase().includes(termo) ||
-      item.material_nome.toLowerCase().includes(termo) ||
-      item.material_tag.toLowerCase().includes(termo) ||
-      item.data.toLowerCase().includes(termo)
+      funcionario.funcionario.toLowerCase().includes(termo) ||
+      funcionario.matricula.toLowerCase().includes(termo) ||
+      funcionario.materiais.some(material => 
+        material.material_nome.toLowerCase().includes(termo) ||
+        material.material_tag.toLowerCase().includes(termo) ||
+        material.data.toLowerCase().includes(termo)
+      )
     );
   });
 
@@ -32,6 +62,16 @@ export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps
   const totalRetiradas = historico.length;
   const totalQuantidade = historico.reduce((acc, item) => acc + item.quantidade, 0);
   const materiaisUnicos = new Set(historico.map(item => item.material_tag)).size;
+
+  const toggleFuncionario = (matricula: string) => {
+    const newExpanded = new Set(expandedFuncionarios);
+    if (newExpanded.has(matricula)) {
+      newExpanded.delete(matricula);
+    } else {
+      newExpanded.add(matricula);
+    }
+    setExpandedFuncionarios(newExpanded);
+  };
 
   if (loading) {
     return (
@@ -90,7 +130,7 @@ export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
-            Histórico de Retirada de Materiais
+            Histórico de Retirada de Materiais ({funcionariosFiltrados.length} funcionários)
           </CardTitle>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -103,7 +143,7 @@ export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps
           </div>
         </CardHeader>
         <CardContent>
-          {historicoFiltrado.length === 0 ? (
+          {funcionariosFiltrados.length === 0 ? (
             <div className="text-center py-8">
               <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium text-muted-foreground">
@@ -114,41 +154,58 @@ export const HistoricoMateriaisTab = ({ refreshKey }: HistoricoMateriaisTabProps
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Funcionário</TableHead>
-                    <TableHead>Matrícula</TableHead>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Tag</TableHead>
-                    <TableHead>Quantidade</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {historicoFiltrado.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">
-                        {item.funcionario}
-                      </TableCell>
-                      <TableCell>{item.matricula}</TableCell>
-                      <TableCell>{item.material_nome}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {item.material_tag}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium">{item.quantidade}</span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {item.data}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-4">
+              {funcionariosFiltrados.map((funcionario) => {
+                const isExpanded = expandedFuncionarios.has(funcionario.matricula);
+                
+                return (
+                  <Card key={funcionario.matricula} className="border-l-4 border-l-primary">
+                    <CardContent className="p-4">
+                      <Button
+                        variant="ghost"
+                        onClick={() => toggleFuncionario(funcionario.matricula)}
+                        className="w-full justify-between p-0 h-auto hover:bg-transparent"
+                      >
+                        <div className="flex justify-between items-start w-full">
+                          <div className="text-left">
+                            <h3 className="font-semibold text-lg">{funcionario.funcionario}</h3>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Badge variant="outline">#{funcionario.matricula}</Badge>
+                              <span>{funcionario.materiais.length} retiradas</span>
+                              <span>Total: {funcionario.totalQuantidade} itens</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? (
+                              <ChevronDown className="w-5 h-5" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5" />
+                            )}
+                          </div>
+                        </div>
+                      </Button>
+                      
+                      {isExpanded && (
+                        <div className="mt-4 space-y-2">
+                          <p className="text-sm font-medium">Materiais retirados:</p>
+                          {funcionario.materiais.map((material, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary">{material.material_tag}</Badge>
+                                <span className="text-sm">{material.material_nome}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="font-medium">Qtd: {material.quantidade}</span>
+                                <span>{material.data}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>
