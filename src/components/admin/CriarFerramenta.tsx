@@ -6,11 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
-interface CriarFerramentaProps {
-  onSuccess?: () => void;
-}
-
-export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
+export const CriarFerramenta = () => {
   const [formData, setFormData] = useState({
     nome: '',
     tag: '',
@@ -27,7 +23,6 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
     
     console.log('=== INÍCIO DO HANDLESUBMIT ===');
     console.log('FormData:', formData);
-    console.log('onSuccess prop:', typeof onSuccess, onSuccess);
     
     if (!formData.nome || !formData.tag || !formData.quantidade || !formData.categoria) {
       console.log('=== VALIDAÇÃO FALHOU ===');
@@ -81,17 +76,8 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         console.log('=== MOSTRANDO TOAST DE SUCESSO ===');
         toast({
           title: "Sucesso",
-          description: "Ferramenta enviada com sucesso!",
+          description: "Ferramenta cadastrada com sucesso!",
         });
-
-        console.log('=== VERIFICANDO SE DEVE CHAMAR onSuccess ===');
-        console.log('onSuccess existe?', !!onSuccess);
-        
-        // NÃO CHAMAR onSuccess para evitar qualquer side effect
-        console.log('=== NÃO CHAMANDO onSuccess PARA EVITAR SIDE EFFECTS ===');
-        // if (onSuccess) {
-        //   onSuccess();
-        // }
       } else {
         const errorText = await response.text();
         console.error('=== ERRO NA RESPOSTA DO WEBHOOK ===', errorText);
@@ -101,7 +87,7 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
       console.error('=== ERRO NO CATCH ===', error);
       toast({
         title: "Erro",
-        description: "Erro ao enviar dados. Tente novamente.",
+        description: "Erro ao cadastrar ferramenta. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -192,9 +178,8 @@ export const CriarFerramenta = ({ onSuccess }: CriarFerramentaProps) => {
         type="submit" 
         disabled={loading}
         className="w-full"
-        onClick={() => console.log('=== BOTÃO CLICADO ===')}
       >
-        {loading ? 'Enviando...' : 'Enviar APENAS para Webhook (SEM SUPABASE)'}
+        {loading ? 'Cadastrando...' : 'Cadastrar Ferramenta'}
       </Button>
     </form>
   );
