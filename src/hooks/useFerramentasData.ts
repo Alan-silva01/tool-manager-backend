@@ -14,7 +14,7 @@ export const useFerramentasData = (refreshKey: number = 0) => {
       // Buscar todas as colunas incluindo reserva e matricula_reserva
       const { data, error } = await supabase
         .from('ferramentas')
-        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva');
+        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status');
 
       if (error) {
         console.error('Erro ao buscar ferramentas:', error);
@@ -28,7 +28,15 @@ export const useFerramentasData = (refreshKey: number = 0) => {
           const quantidadeSaiu = ferramenta.saiu || 0;
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu);
 
-          console.log(`Ferramenta ${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}, reserva=${ferramenta.reserva}, matricula_reserva=${ferramenta.matricula_reserva}`);
+          // Definir status automaticamente baseado na quantidade disponível
+          let status = 'disponivel';
+          if (quantidadeDisponivel === 0) {
+            status = 'emprestada';
+          } else if (quantidadeDisponivel >= 1) {
+            status = 'disponivel';
+          }
+
+          console.log(`Ferramenta ${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}, status=${status}, reserva=${ferramenta.reserva}, matricula_reserva=${ferramenta.matricula_reserva}`);
 
           return {
             id: ferramenta.id,
@@ -39,7 +47,8 @@ export const useFerramentasData = (refreshKey: number = 0) => {
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
             reserva: ferramenta.reserva || false,
-            matricula_reserva: ferramenta.matricula_reserva || undefined
+            matricula_reserva: ferramenta.matricula_reserva || undefined,
+            status: status // Status calculado automaticamente
           } as Ferramenta;
         });
 
