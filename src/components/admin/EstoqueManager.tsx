@@ -43,6 +43,7 @@ interface Ferramenta {
   tag: string;
   caracteristicas: any;
   saiu: number;
+  status: string;
   reserva?: boolean;
   matricula_reserva?: string;
 }
@@ -500,6 +501,55 @@ export const EstoqueManager = ({
       onRefresh();
     } catch (error) {
       console.error('Erro ao editar material:', error);
+    }
+  };
+
+  // Função para editar ferramenta
+  const handleEditFerramenta = async () => {
+    if (!editingFerramenta) return;
+    
+    try {
+      const caracteristicasFormatadas = typeof editingFerramenta.caracteristicas === 'string' 
+        ? formatarCaracteristicas(editingFerramenta.caracteristicas)
+        : editingFerramenta.caracteristicas;
+
+      const { error } = await supabase
+        .from('ferramentas')
+        .update({
+          nome: formatarTexto(editingFerramenta.nome),
+          categoria: formatarTexto(editingFerramenta.categoria),
+          tag: editingFerramenta.tag,
+          quantidade: editingFerramenta.quantidade,
+          caracteristicas: caracteristicasFormatadas,
+          status: editingFerramenta.status
+        })
+        .eq('id', editingFerramenta.id);
+
+      if (error) {
+        console.error('Erro ao editar ferramenta:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível editar a ferramenta",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Ferramenta editada",
+        description: `${formatarTexto(editingFerramenta.nome)} foi editada com sucesso`
+      });
+
+      setEditingFerramenta(null);
+      setEditFerramentaDialogOpen(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao editar ferramenta:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao editar ferramenta",
+        variant: "destructive"
+      });
     }
   };
 
@@ -1197,6 +1247,15 @@ export const EstoqueManager = ({
                                       type="number" 
                                       value={editingFerramenta.quantidade} 
                                       onChange={e => setEditingFerramenta({...editingFerramenta, quantidade: Number(e.target.value)})} 
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-ferramenta-status">Status</Label>
+                                    <Input 
+                                      id="edit-ferramenta-status" 
+                                      value={editingFerramenta.status} 
+                                      onChange={e => setEditingFerramenta({...editingFerramenta, status: e.target.value})} 
+                                      placeholder="Ex: Ativo, Manutenção, Inativo"
                                     />
                                   </div>
                                   <div>
