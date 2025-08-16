@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -43,12 +44,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useMaterial } from "@/hooks/useMaterial";
+import { useMateriais } from "@/hooks/useMateriais";
 import { Material } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
-import { useRouter } from "next/navigation";
 
 interface EstoqueManagerProps {
   onRefresh: () => void;
@@ -60,7 +58,7 @@ export function EstoqueManager({ onRefresh }: EstoqueManagerProps) {
   const [activeTab, setActiveTab] = useState("ferramentas");
   const { toast } = useToast();
   const { ferramentas, loading, refetch } = useFerramentas();
-  const { materiais, loading: loadingMateriais, refetch: refetchMateriais } = useMaterial();
+  const { materiais, loading: loadingMateriais } = useMateriais();
   const [isCreateFerramentaDialogOpen, setCreateFerramentaDialogOpen] =
     useState(false);
   const [isCreateMaterialDialogOpen, setCreateMaterialDialogOpen] =
@@ -122,7 +120,6 @@ export function EstoqueManager({ onRefresh }: EstoqueManagerProps) {
       toast({
         title: "Material deletado com sucesso!",
       });
-      refetchMateriais();
       onRefresh();
     } catch (error) {
       toast({
@@ -365,7 +362,8 @@ function CreateFerramentaDialog({
           tag,
           quantidade,
           categoria,
-          caracteristicas: JSON.parse(caracteristicas),
+          caracteristicas: JSON.parse(caracteristicas || "{}"),
+          status: "disponivel"
         },
       ]);
 
@@ -493,8 +491,7 @@ function CreateMaterialDialog({
       const { error } = await supabase.from("materiais").insert([
         {
           nome,
-          tag,
-          quantidade,
+          tag: Number(tag),
           quantidade_minima,
           unidade,
           entrada: quantidade,
@@ -649,7 +646,7 @@ function EditFerramentaDialog({
           tag,
           quantidade,
           categoria,
-          caracteristicas: JSON.parse(caracteristicas),
+          caracteristicas: JSON.parse(caracteristicas || "{}"),
           status,
         })
         .eq("id", ferramenta.id);
@@ -810,10 +807,10 @@ function EditMaterialDialog({
         .from("materiais")
         .update({
           nome,
-          tag,
-          quantidade,
+          tag: Number(tag),
           quantidade_minima,
           unidade,
+          entrada: quantidade,
         })
         .eq("id", material.id);
 
