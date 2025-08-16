@@ -18,6 +18,46 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
 
+  // Converte diferentes formatos de "caracteristicas" (string/array/objeto/boolean/number)
+  // em um texto seguro para renderização no JSX.
+  const formatCaracteristicas = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) {
+      // Junta itens do array como texto
+      return value
+        .map((item) => {
+          if (item === null || item === undefined) return '';
+          if (typeof item === 'string') return item;
+          if (typeof item === 'number' || typeof item === 'boolean') return String(item);
+          // Se for objeto dentro do array, transforma em "chave: valor"
+          if (typeof item === 'object') {
+            return Object.entries(item as Record<string, unknown>)
+              .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}`)
+              .join(', ');
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .join(' • ');
+    }
+    if (typeof value === 'object') {
+      // Objeto simples -> "chave: valor • chave2: valor2"
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (entries.length === 0) return '';
+      return entries
+        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}`)
+        .join(' • ');
+    }
+    // Fallback geral
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -73,26 +113,29 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredMateriais.map((material) => (
-              <div key={material.id} className="p-4 border rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold">{material.nome}</h3>
-                  <Badge variant={material.quantidade > 0 ? "default" : "destructive"}>
-                    {material.quantidade} un.
-                  </Badge>
+            {filteredMateriais.map((material) => {
+              const caracteristicasTexto = formatCaracteristicas(material.caracteristicas);
+              return (
+                <div key={material.id} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold">{material.nome}</h3>
+                    <Badge variant={material.quantidade > 0 ? "default" : "destructive"}>
+                      {material.quantidade} un.
+                    </Badge>
+                  </div>
+                  {material.categoria && (
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Categoria: {material.categoria}
+                    </p>
+                  )}
+                  {caracteristicasTexto && (
+                    <p className="text-xs text-muted-foreground">
+                      {caracteristicasTexto}
+                    </p>
+                  )}
                 </div>
-                {material.categoria && (
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Categoria: {material.categoria}
-                  </p>
-                )}
-                {material.caracteristicas && (
-                  <p className="text-xs text-muted-foreground">
-                    {material.caracteristicas}
-                  </p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
           {filteredMateriais.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
@@ -112,31 +155,34 @@ export const EstoqueManager = ({ materiais, ferramentas, onRefresh }: EstoqueMan
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredFerramentas.map((ferramenta) => (
-              <div key={ferramenta.id} className="p-4 border rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold">{ferramenta.nome}</h3>
-                  <Badge variant={ferramenta.quantidade > 0 ? "default" : "destructive"}>
-                    {ferramenta.quantidade} un.
-                  </Badge>
+            {filteredFerramentas.map((ferramenta) => {
+              const caracteristicasTexto = formatCaracteristicas(ferramenta.caracteristicas);
+              return (
+                <div key={ferramenta.id} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold">{ferramenta.nome}</h3>
+                    <Badge variant={ferramenta.quantidade > 0 ? "default" : "destructive"}>
+                      {ferramenta.quantidade} un.
+                    </Badge>
+                  </div>
+                  {ferramenta.tag && (
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Tag: {ferramenta.tag}
+                    </p>
+                  )}
+                  {ferramenta.categoria && (
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Categoria: {ferramenta.categoria}
+                    </p>
+                  )}
+                  {caracteristicasTexto && (
+                    <p className="text-xs text-muted-foreground">
+                      {caracteristicasTexto}
+                    </p>
+                  )}
                 </div>
-                {ferramenta.tag && (
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Tag: {ferramenta.tag}
-                  </p>
-                )}
-                {ferramenta.categoria && (
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Categoria: {ferramenta.categoria}
-                  </p>
-                )}
-                {ferramenta.caracteristicas && (
-                  <p className="text-xs text-muted-foreground">
-                    {ferramenta.caracteristicas}
-                  </p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
           {filteredFerramentas.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
