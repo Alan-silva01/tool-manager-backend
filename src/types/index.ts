@@ -1,3 +1,4 @@
+
 import { Json } from '@/integrations/supabase/types';
 
 export interface Ferramenta {
@@ -10,7 +11,6 @@ export interface Ferramenta {
   saiu: number;
   reserva?: boolean;
   matricula_reserva?: string;
-  status?: string;
 }
 
 export interface Funcionario {
