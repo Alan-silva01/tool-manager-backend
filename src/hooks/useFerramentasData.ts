@@ -13,7 +13,7 @@ export const useFerramentasData = (refreshKey: number = 0) => {
       
       const { data, error } = await supabase
         .from('ferramentas')
-        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva');
+        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status');
 
       if (error) {
         console.error('Erro ao buscar ferramentas:', error);
@@ -35,7 +35,8 @@ export const useFerramentasData = (refreshKey: number = 0) => {
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
             reserva: ferramenta.reserva || false,
-            matricula_reserva: ferramenta.matricula_reserva || undefined
+            matricula_reserva: ferramenta.matricula_reserva || undefined,
+            status: ferramenta.status || 'Disponível'
           } as Ferramenta;
         });
 
