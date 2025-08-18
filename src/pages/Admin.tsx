@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
-import { useFerramentasData } from "@/hooks/useFerramentasData";
+import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
@@ -13,8 +13,9 @@ import { AdminLogin } from "@/components/admin/AdminLogin";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { EmprestimosTab } from "@/components/admin/EmprestimosTab";
+import { EstoqueManager } from "@/components/admin/EstoqueManager";
 import { HistoricoMateriaisTab } from "@/components/admin/HistoricoMateriaisTab";
-import { calculateStats } from "@/utils/calculations";
+import { calculateAdminStats } from "@/utils/adminCalculations";
 
 const Admin = () => {
   const { toast } = useToast();
@@ -29,12 +30,12 @@ const Admin = () => {
 
   // Data hooks
   const { funcionarios, loading: loadingFuncionarios } = useFuncionarios(refreshKey);
-  const { ferramentas, loading: loadingFerramentas } = useFerramentasData(refreshKey);
+  const { ferramentas, loading: loadingFerramentas } = useFerramentas(refreshKey);
   const { materiais, loading: loadingMateriais } = useMateriais(refreshKey);
   const { funcionariosComFerramentas } = useFuncionariosComFerramentas(ferramentas, refreshKey);
 
   // Calcular estatísticas
-  const stats = calculateStats(funcionariosComFerramentas, ferramentas, materiais);
+  const stats = calculateAdminStats(funcionariosComFerramentas, ferramentas, materiais);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -79,8 +80,9 @@ const Admin = () => {
         />
 
         <Tabs defaultValue="emprestimos" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="emprestimos">Empréstimos de Ferramentas</TabsTrigger>
+            <TabsTrigger value="controle">Controle de Estoque</TabsTrigger>
             <TabsTrigger value="historico">Histórico de Retirada de Materiais</TabsTrigger>
           </TabsList>
 
@@ -93,6 +95,14 @@ const Admin = () => {
               isNotifying={isNotifying}
               loading={loadingFuncionarios || loadingFerramentas}
               totalFerramentasEmprestadas={stats.totalFerramentasEmprestadas}
+            />
+          </TabsContent>
+
+          <TabsContent value="controle" className="space-y-6">
+            <EstoqueManager 
+              materiais={materiais}
+              ferramentas={ferramentas}
+              onRefresh={handleRefresh}
             />
           </TabsContent>
 
