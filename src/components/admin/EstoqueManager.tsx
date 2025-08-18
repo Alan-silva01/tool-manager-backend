@@ -512,6 +512,78 @@ export const EstoqueManager = ({
     }
   };
 
+  const handleAddFerramenta = async () => {
+  if (!novaFerramenta.nome || !novaFerramenta.tag) {
+    toast({
+      title: "Erro",
+      description: "Preencha pelo menos o nome e a tag da ferramenta",
+      variant: "destructive"
+    });
+    return;
+  }
+  setIsAddingFerramenta(true);
+  try {
+    // 🔧 Transformar características em JSON (chave:valor)
+    let caracteristicasObj: Record<string, string> = {};
+    if (novaFerramenta.caracteristicas) {
+      novaFerramenta.caracteristicas.split(',').forEach(par => {
+        const [key, value] = par.split(':').map(s => s.trim());
+        if (key && value) {
+          caracteristicasObj[key] = value;
+        }
+      });
+    }
+
+    const { error } = await supabase.from("ferramentas").insert({
+      nome: formatarTexto(novaFerramenta.nome),
+      tag: novaFerramenta.tag,
+      categoria: formatarTexto(novaFerramenta.categoria),
+      quantidade: 1,
+      saiu: 0,
+      caracteristicas: caracteristicasObj,
+      funcionario_emprestado: null,
+      matricula: null,
+      data_emprestado: null,
+      reserva: false,
+      matricula_reserva: null
+    });
+
+    if (error) {
+      console.error("Erro ao adicionar ferramenta:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar a ferramenta",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Ferramenta adicionada",
+      description: `${formatarTexto(novaFerramenta.nome)} foi adicionada ao estoque`
+    });
+
+    // 🔄 Resetar formulário
+    setNovaFerramenta({
+      nome: "",
+      tag: "",
+      categoria: "",
+      caracteristicas: ""
+    });
+
+    onRefresh();
+  } catch (error) {
+    console.error("Erro ao adicionar ferramenta:", error);
+    toast({
+      title: "Erro",
+      description: "Erro interno ao adicionar ferramenta",
+      variant: "destructive"
+    });
+  } finally {
+    setIsAddingFerramenta(false);
+  }
+};
+
   const handleEditFerramenta = async () => {
     if (!editingFerramenta) return;
     let caracteristicasJson = editingFerramenta.caracteristicas;
@@ -631,65 +703,6 @@ export const EstoqueManager = ({
       fetchFuncionarios();
     } catch (error) {
       console.error('Erro ao editar funcionário:', error);
-    }
-  };
-
-  const handleAddFerramenta = async () => {
-    if (!novaFerramenta.nome || !novaFerramenta.categoria || !novaFerramenta.tag) {
-      toast({
-        title: "Erro",
-        description: "Preencha pelo menos o nome, categoria e tag da ferramenta",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsAddingFerramenta(true);
-    
-    try {
-      const webhookData = {
-        nome: formatarTexto(novaFerramenta.nome),
-        categoria: formatarTexto(novaFerramenta.categoria),
-        tag: novaFerramenta.tag,
-        caracteristicas: novaFerramenta.caracteristicas
-      };
-
-      console.log('Enviando ferramenta para webhook:', webhookData);
-
-      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookData),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Ferramenta adicionada",
-          description: `${formatarTexto(novaFerramenta.nome)} foi adicionada com sucesso`
-        });
-
-        setNovaFerramenta({
-          nome: "",
-          categoria: "",
-          tag: "",
-          caracteristicas: ""
-        });
-
-        onRefresh();
-      } else {
-        throw new Error('Erro ao adicionar ferramenta');
-      }
-    } catch (error) {
-      console.error('Erro ao adicionar ferramenta:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível adicionar a ferramenta",
-        variant: "destructive"
-      });
-    } finally {
-      setIsAddingFerramenta(false);
     }
   };
 
