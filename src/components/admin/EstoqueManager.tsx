@@ -73,6 +73,7 @@ export const EstoqueManager = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
   const [isAddingFuncionario, setIsAddingFuncionario] = useState(false);
+  const [isAddingFerramenta, setIsAddingFerramenta] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [editingFerramenta, setEditingFerramenta] = useState<Ferramenta | null>(null);
   const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
@@ -95,6 +96,15 @@ export const EstoqueManager = ({
     matricula: "",
     setor: "",
     numero_whatsapp: ""
+  });
+
+  // Estados para nova ferramenta
+  const [novaFerramenta, setNovaFerramenta] = useState({
+    nome: "",
+    categoria: "",
+    tag: "",
+    quantidade: "",
+    caracteristicas: ""
   });
 
   // Estados para reserva
@@ -1061,6 +1071,82 @@ export const EstoqueManager = ({
           </TabsContent>
 
           <TabsContent value="ferramentas" className="space-y-4">
+            <div className="flex justify-end">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Ferramenta
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Nova Ferramenta</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="ferramenta-nome">Nome da Ferramenta</Label>
+                      <Input 
+                        id="ferramenta-nome" 
+                        value={novaFerramenta.nome} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, nome: e.target.value})} 
+                        placeholder="Ex: Furadeira" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-categoria">Categoria</Label>
+                      <Input 
+                        id="ferramenta-categoria" 
+                        value={novaFerramenta.categoria} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, categoria: e.target.value})} 
+                        placeholder="Ex: Elétrica" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-tag">TAG</Label>
+                      <Input 
+                        id="ferramenta-tag" 
+                        value={novaFerramenta.tag} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, tag: e.target.value})} 
+                        placeholder="Ex: 0000847393" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-quantidade">Quantidade</Label>
+                      <Input 
+                        id="ferramenta-quantidade" 
+                        type="number" 
+                        min="1"
+                        value={novaFerramenta.quantidade} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, quantidade: e.target.value})} 
+                        placeholder="1" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-caracteristicas">Características (opcional)</Label>
+                      <Textarea 
+                        id="ferramenta-caracteristicas" 
+                        value={novaFerramenta.caracteristicas} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, caracteristicas: e.target.value})} 
+                        placeholder="Ex: Cor: Preta, Tensão: 220v" 
+                        rows={3}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Digite uma característica por linha no formato "nome: valor"
+                      </p>
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={handleAddFerramenta} 
+                      disabled={isAddingFerramenta}
+                    >
+                      {isAddingFerramenta ? 'Adicionando...' : 'Adicionar Ferramenta'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
