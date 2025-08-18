@@ -73,6 +73,7 @@ export const EstoqueManager = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
   const [isAddingFuncionario, setIsAddingFuncionario] = useState(false);
+  const [isAddingFerramenta, setIsAddingFerramenta] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [editingFerramenta, setEditingFerramenta] = useState<Ferramenta | null>(null);
   const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
@@ -87,6 +88,14 @@ export const EstoqueManager = ({
     entrada: "",
     quantidade_minima: "",
     unidade: "un"
+  });
+
+  // Estados para nova ferramenta
+  const [novaFerramenta, setNovaFerramenta] = useState({
+    nome: "",
+    categoria: "",
+    tag: "",
+    caracteristicas: ""
   });
 
   // Estados para novo funcionário
@@ -625,6 +634,65 @@ export const EstoqueManager = ({
     }
   };
 
+  const handleAddFerramenta = async () => {
+    if (!novaFerramenta.nome || !novaFerramenta.categoria || !novaFerramenta.tag) {
+      toast({
+        title: "Erro",
+        description: "Preencha pelo menos o nome, categoria e tag da ferramenta",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsAddingFerramenta(true);
+    
+    try {
+      const webhookData = {
+        nome: formatarTexto(novaFerramenta.nome),
+        categoria: formatarTexto(novaFerramenta.categoria),
+        tag: novaFerramenta.tag,
+        caracteristicas: novaFerramenta.caracteristicas
+      };
+
+      console.log('Enviando ferramenta para webhook:', webhookData);
+
+      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Ferramenta adicionada",
+          description: `${formatarTexto(novaFerramenta.nome)} foi adicionada com sucesso`
+        });
+
+        setNovaFerramenta({
+          nome: "",
+          categoria: "",
+          tag: "",
+          caracteristicas: ""
+        });
+
+        onRefresh();
+      } else {
+        throw new Error('Erro ao adicionar ferramenta');
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar ferramenta:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar a ferramenta",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAddingFerramenta(false);
+    }
+  };
+
   // Função para adicionar entrada ao material
   const handleAddEntrada = async () => {
     if (!materialParaEntrada || !quantidadeEntrada.trim()) {
@@ -1062,10 +1130,68 @@ export const EstoqueManager = ({
 
           <TabsContent value="ferramentas" className="space-y-4">
             <div className="flex justify-end">
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Ferramenta
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Ferramenta
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Nova Ferramenta</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="ferramenta-nome">Nome da Ferramenta</Label>
+                      <Input 
+                        id="ferramenta-nome" 
+                        value={novaFerramenta.nome} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, nome: e.target.value})} 
+                        placeholder="Ex: Furadeira" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-categoria">Categoria</Label>
+                      <Input 
+                        id="ferramenta-categoria" 
+                        value={novaFerramenta.categoria} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, categoria: e.target.value})} 
+                        placeholder="Ex: Elétrica" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-tag">TAG</Label>
+                      <Input 
+                        id="ferramenta-tag" 
+                        value={novaFerramenta.tag} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, tag: e.target.value})} 
+                        placeholder="Ex: 0000847393" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ferramenta-caracteristicas">Características</Label>
+                      <Textarea 
+                        id="ferramenta-caracteristicas" 
+                        value={novaFerramenta.caracteristicas} 
+                        onChange={e => setNovaFerramenta({...novaFerramenta, caracteristicas: e.target.value})} 
+                        rows={4} 
+                        placeholder="Ex: Cor: Preta, Tensão: 220v, Potência: 500W" 
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Digite as características separadas por vírgula
+                      </p>
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={handleAddFerramenta} 
+                      disabled={isAddingFerramenta}
+                    >
+                      {isAddingFerramenta ? 'Adicionando...' : 'Adicionar Ferramenta'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             
             <div className="overflow-x-auto">
