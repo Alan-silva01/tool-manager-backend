@@ -11,7 +11,6 @@ export const useFerramentasData = (refreshKey: number = 0) => {
     try {
       console.log('Buscando ferramentas...');
       
-      // Buscar todas as colunas incluindo reserva e matricula_reserva
       const { data, error } = await supabase
         .from('ferramentas')
         .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva');
@@ -23,18 +22,15 @@ export const useFerramentasData = (refreshKey: number = 0) => {
 
       if (data && Array.isArray(data)) {
         const ferramentasFormatadas = data.map((ferramenta: any) => {
-          // Calcular quantidade disponível corretamente
           const quantidadeTotal = ferramenta.quantidade || 0;
           const quantidadeSaiu = ferramenta.saiu || 0;
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu);
-
-          console.log(`Ferramenta ${ferramenta.nome}: total=${quantidadeTotal}, saiu=${quantidadeSaiu}, disponível=${quantidadeDisponivel}, reserva=${ferramenta.reserva}, matricula_reserva=${ferramenta.matricula_reserva}`);
 
           return {
             id: ferramenta.id,
             nome: ferramenta.nome,
             tag: ferramenta.tag,
-            quantidade: quantidadeDisponivel, // Quantidade disponível
+            quantidade: quantidadeDisponivel,
             categoria: ferramenta.categoria,
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
@@ -43,7 +39,6 @@ export const useFerramentasData = (refreshKey: number = 0) => {
           } as Ferramenta;
         });
 
-        console.log('Ferramentas formatadas:', ferramentasFormatadas);
         setFerramentas(ferramentasFormatadas);
       }
     } catch (error) {

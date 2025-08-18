@@ -1,6 +1,3 @@
 
-import { useFerramentasData } from './useFerramentasData';
-
-export const useFerramentas = (refreshKey: number = 0) => {
-  return useFerramentasData(refreshKey);
-};
+// Exportar diretamente o hook de dados para eliminar duplicidade
+export { useFerramentasData as useFerramentas } from './useFerramentasData';
