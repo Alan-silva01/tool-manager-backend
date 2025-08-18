@@ -1061,6 +1061,13 @@ export const EstoqueManager = ({
           </TabsContent>
 
           <TabsContent value="ferramentas" className="space-y-4">
+            <div className="flex justify-end">
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Ferramenta
+              </Button>
+            </div>
+            
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
