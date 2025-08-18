@@ -35,8 +35,7 @@ export const useFerramentasData = (refreshKey: number = 0) => {
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
             reserva: ferramenta.reserva || false,
-            matricula_reserva: ferramenta.matricula_reserva || undefined,
-            status: ferramenta.status || 'Disponível'
+            matricula_reserva: ferramenta.matricula_reserva || undefined
           } as Ferramenta;
         });
 
