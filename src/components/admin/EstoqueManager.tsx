@@ -72,7 +72,6 @@ export const EstoqueManager = ({
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
-  const [isAddingFerramenta, setIsAddingFerramenta] = useState(false);
   const [isAddingFuncionario, setIsAddingFuncionario] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [editingFerramenta, setEditingFerramenta] = useState<Ferramenta | null>(null);
@@ -88,15 +87,6 @@ export const EstoqueManager = ({
     entrada: "",
     quantidade_minima: "",
     unidade: "un"
-  });
-
-  // Estados para nova ferramenta
-  const [novaFerramenta, setNovaFerramenta] = useState({
-    nome: "",
-    categoria: "",
-    quantidade: "",
-    tag: "",
-    caracteristicas: ""
   });
 
   // Estados para novo funcionário
@@ -510,62 +500,6 @@ export const EstoqueManager = ({
       onRefresh();
     } catch (error) {
       console.error('Erro ao editar material:', error);
-    }
-  };
-
-  const handleAddFerramenta = async () => {
-    if (!novaFerramenta.nome || !novaFerramenta.categoria || !novaFerramenta.tag) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
-      });
-      return;
-    }
-    const caracteristicasJson = formatarCaracteristicas(novaFerramenta.caracteristicas);
-    setIsAddingFerramenta(true);
-    try {
-      const {
-        error
-      } = await supabase.from('ferramentas').insert({
-        nome: formatarTexto(novaFerramenta.nome),
-        categoria: formatarTexto(novaFerramenta.categoria),
-        tag: novaFerramenta.tag,
-        quantidade: Number(novaFerramenta.quantidade) || 0,
-        saiu: 0,
-        status: 'disponível',
-        caracteristicas: caracteristicasJson
-      });
-      if (error) {
-        console.error('Erro ao adicionar ferramenta:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível adicionar a ferramenta",
-          variant: "destructive"
-        });
-        return;
-      }
-      toast({
-        title: "Ferramenta adicionada",
-        description: `${formatarTexto(novaFerramenta.nome)} foi adicionada ao estoque`
-      });
-      setNovaFerramenta({
-        nome: "",
-        categoria: "",
-        quantidade: "",
-        tag: "",
-        caracteristicas: ""
-      });
-      onRefresh();
-    } catch (error) {
-      console.error('Erro ao adicionar ferramenta:', error);
-      toast({
-        title: "Erro",
-        description: "Erro interno ao adicionar ferramenta",
-        variant: "destructive"
-      });
-    } finally {
-      setIsAddingFerramenta(false);
     }
   };
 
@@ -1127,81 +1061,6 @@ export const EstoqueManager = ({
           </TabsContent>
 
           <TabsContent value="ferramentas" className="space-y-4">
-            <div className="flex justify-end">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Ferramenta
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Nova Ferramenta</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="ferramenta-nome">Nome da Ferramenta</Label>
-                      <Input 
-                        id="ferramenta-nome" 
-                        value={novaFerramenta.nome} 
-                        onChange={e => setNovaFerramenta({...novaFerramenta, nome: e.target.value})} 
-                        placeholder="Ex: Furadeira" 
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="ferramenta-categoria">Categoria</Label>
-                      <Input 
-                        id="ferramenta-categoria" 
-                        value={novaFerramenta.categoria} 
-                        onChange={e => setNovaFerramenta({...novaFerramenta, categoria: e.target.value})} 
-                        placeholder="Ex: Elétrica" 
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="ferramenta-tag">Tag (Número)</Label>
-                      <Input 
-                        id="ferramenta-tag" 
-                        value={novaFerramenta.tag} 
-                        onChange={e => setNovaFerramenta({...novaFerramenta, tag: e.target.value})} 
-                        placeholder="Ex: 00000000000" 
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="ferramenta-quantidade">Quantidade</Label>
-                      <Input 
-                        id="ferramenta-quantidade" 
-                        type="number" 
-                        value={novaFerramenta.quantidade} 
-                        onChange={e => setNovaFerramenta({...novaFerramenta, quantidade: e.target.value})} 
-                        placeholder="0" 
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="ferramenta-caracteristicas">Características (Opcional)</Label>
-                      <Textarea 
-                        id="ferramenta-caracteristicas" 
-                        value={novaFerramenta.caracteristicas} 
-                        onChange={e => setNovaFerramenta({...novaFerramenta, caracteristicas: e.target.value})} 
-                        placeholder={`Exemplo de formatação:\ncor: Preta\nuso: Perfuração em metais\npotência: 500W\npeso: 15kg`} 
-                        rows={6} 
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Digite uma característica por linha no formato "nome: valor" válido. Deixe em branco se não houver características.
-                      </p>
-                    </div>
-                    <Button 
-                      className="w-full" 
-                      onClick={handleAddFerramenta} 
-                      disabled={isAddingFerramenta}
-                    >
-                      {isAddingFerramenta ? 'Adicionando...' : 'Adicionar Ferramenta'}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
