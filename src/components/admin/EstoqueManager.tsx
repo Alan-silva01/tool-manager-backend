@@ -1,3 +1,4 @@
+
 import React, { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -26,7 +27,6 @@ import {
 import { MoreHorizontal } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { InputSearch } from "@/components/ui/input-search"
 
 const data = [
   {
@@ -153,7 +153,7 @@ const EstoqueManager = () => {
                   <TableCell className="font-medium">{row.invoice}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={row.paymentStatus === "paid" ? "success" : row.paymentStatus === "pending" ? "secondary" : "destructive"}
+                      variant={row.paymentStatus === "paid" ? "default" : row.paymentStatus === "pending" ? "secondary" : "destructive"}
                     >
                       {row.paymentStatus}
                     </Badge>
