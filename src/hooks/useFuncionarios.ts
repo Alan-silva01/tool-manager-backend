@@ -8,12 +8,6 @@ export const useFuncionarios = (refreshKey?: number) => {
   const { adicionarFerramentaAoFuncionario, atualizarNumeroWhatsApp } = useFuncionariosActions(funcionarios, setFuncionarios);
   const { buscarFuncionario, buscarNomePorMatricula } = useFuncionariosUtils(funcionarios);
 
-  console.log('Estado atual useFuncionarios:', { 
-    totalFuncionarios: Object.keys(funcionarios).length, 
-    loading,
-    funcionarios: Object.keys(funcionarios)
-  });
-
   return {
     funcionarios,
     loading,

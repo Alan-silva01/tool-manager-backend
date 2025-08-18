@@ -16,8 +16,6 @@ export const useFuncionariosData = (refreshKey?: number) => {
           .from('funcionarios')
           .select('*');
 
-        console.log('Resposta do Supabase funcionários:', { data, error });
-
         if (error) {
           console.error('Erro ao buscar funcionários:', error);
           return;
@@ -27,15 +25,12 @@ export const useFuncionariosData = (refreshKey?: number) => {
           console.log('Funcionários encontrados:', data.length);
           
           const funcionariosMap = data.reduce((acc, func) => {
-            console.log('Processando funcionário:', func);
-            
             const matriculaStr = func.matricula?.toString() || '';
             if (matriculaStr) {
               // Processar posse_ferramentas - garantir que seja um array de strings
               let posseFerramenta: string[] = [];
               if (func.posse_ferramentas) {
                 if (Array.isArray(func.posse_ferramentas)) {
-                  // Filtrar apenas valores que são strings
                   posseFerramenta = func.posse_ferramentas.filter(
                     (item): item is string => typeof item === 'string'
                   );
@@ -65,7 +60,6 @@ export const useFuncionariosData = (refreshKey?: number) => {
             return acc;
           }, {} as Record<string, Funcionario>);
 
-          console.log('Funcionários mapeados:', funcionariosMap);
           setFuncionarios(funcionariosMap);
         }
       } catch (error) {
