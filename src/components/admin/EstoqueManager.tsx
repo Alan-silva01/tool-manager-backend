@@ -27,6 +27,13 @@ import {
 import { MoreHorizontal } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import type { Material, Ferramenta } from "@/types"
+
+interface EstoqueManagerProps {
+  materiais: Material[]
+  ferramentas: Ferramenta[]
+  onRefresh: () => Promise<void>
+}
 
 const data = [
   {
@@ -61,17 +68,7 @@ const data = [
 
 type PaymentStatus = "paid" | "pending" | "unpaid"
 
-interface DataTableProps {
-  data: {
-    id: string
-    invoice: string
-    paymentStatus: PaymentStatus
-    total: string
-    date: string
-  }[]
-}
-
-const EstoqueManager = () => {
+const EstoqueManager: React.FC<EstoqueManagerProps> = ({ materiais, ferramentas, onRefresh }) => {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
@@ -115,6 +112,8 @@ const EstoqueManager = () => {
           setCategoriaFerramenta("")
           setTagFerramenta("")
           setCaracteristicasFerramenta("")
+          // Chamar onRefresh para atualizar a lista
+          onRefresh()
           return
         }
 
