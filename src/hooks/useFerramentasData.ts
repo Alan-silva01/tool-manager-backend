@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Ferramenta } from '@/types';
@@ -10,10 +9,21 @@ export const useFerramentasData = (refreshKey: number = 0) => {
   const fetchFerramentas = async () => {
     try {
       console.log('Buscando ferramentas...');
-      
+
       const { data, error } = await supabase
         .from('ferramentas')
-        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status');
+        .select(`
+          id,
+          nome,
+          tag,
+          quantidade,
+          categoria,
+          caracteristicas,
+          saiu,
+          reserva,
+          matricula_reserva,
+          status
+        `);
 
       if (error) {
         console.error('Erro ao buscar ferramentas:', error);
@@ -22,23 +32,25 @@ export const useFerramentasData = (refreshKey: number = 0) => {
 
       if (data && Array.isArray(data)) {
         const ferramentasFormatadas = data.map((ferramenta: any) => {
-          const quantidadeTotal = ferramenta.quantidade || 0;
-          const quantidadeSaiu = ferramenta.saiu || 0;
+          const quantidadeTotal = ferramenta.quantidade ?? 0;
+          const quantidadeSaiu = ferramenta.saiu ?? 0;
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu);
 
           return {
             id: ferramenta.id,
             nome: ferramenta.nome,
             tag: ferramenta.tag,
-            quantidade: quantidadeDisponivel,
+            quantidade: quantidadeDisponivel, // quantidade já calculada
             categoria: ferramenta.categoria,
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
-            reserva: ferramenta.reserva || false,
-            matricula_reserva: ferramenta.matricula_reserva || undefined,
-            status: ferramenta.status
+            reserva: ferramenta.reserva ?? false,
+            matricula_reserva: ferramenta.matricula_reserva ?? undefined,
+            status: ferramenta.status ?? "indefinido" // 👈 garante valor sempre presente
           } as Ferramenta;
         });
+
+        console.log("Ferramentas formatadas:", ferramentasFormatadas.map(f => ({id: f.id, status: f.status})));
 
         setFerramentas(ferramentasFormatadas);
       }
