@@ -1232,14 +1232,36 @@ export const EstoqueManager = ({
                         </TableCell>
                         <TableCell className="text-center">{ferramenta.quantidade}</TableCell>
                         <TableCell>
-                          {ferramenta.reserva ? (
-                            <Badge variant="destructive">
-                              <Shield className="w-3 h-3 mr-1" />
-                              Reservada
+                        {(() => {
+                          // garantir comparação correta (saiu pode vir como string)
+                          const saiuNum = Number(ferramenta.saiu ?? 0);
+                          const statusBanco = (ferramenta.status ?? (saiuNum === 1 ? 'emprestada' : 'disponível')).toString().toLowerCase();
+                      
+                          if (statusBanco === 'emprestada') {
+                            return (
+                              <Badge variant="destructive">
+                                Emprestada
+                              </Badge>
+                            );
+                          }
+                      
+                          // se o banco não produz "reservada", mas há reserva marcada, mostrar Reservada
+                          if (ferramenta.reserva) {
+                            return (
+                              <Badge variant="destructive">
+                                <Shield className="w-3 h-3 mr-1" />
+                                Reservada
+                              </Badge>
+                            );
+                          }
+                      
+                          // qualquer outro caso — mostra o que o banco diz como disponível
+                          return (
+                            <Badge variant="secondary">
+                              Disponível
                             </Badge>
-                          ) : (
-                            <Badge variant="secondary">Disponível</Badge>
-                          )}
+                          );
+                        })()}
                         </TableCell>
                         <TableCell>
                           {ferramenta.caracteristicas && Object.keys(ferramenta.caracteristicas).length > 0 ? <Badge variant="secondary">Com características</Badge> : <Badge variant="outline">Sem características</Badge>}
