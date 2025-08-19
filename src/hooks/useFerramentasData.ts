@@ -13,18 +13,7 @@ export const useFerramentasData = (refreshKey: number = 0) => {
 
       const { data, error } = await supabase
         .from('ferramentas')
-        .select(`
-          id,
-          nome,
-          tag,
-          quantidade,
-          categoria,
-          caracteristicas,
-          saiu,
-          reserva,
-          matricula_reserva,
-          status
-        `);
+        .select(`id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status`);
 
       console.log('Resposta do Supabase ferramentas:', { data, error });
 
