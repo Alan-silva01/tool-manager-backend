@@ -1,7 +1,21 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Ferramenta } from '@/types';
+
+// Linha de base do PostgREST: numeric decimais tendem a vir como string.
+// Vamos tipar a linha crua para converter corretamente.
+type FerramentaRow = {
+  id: string;
+  nome: string | null;
+  tag: string;
+  quantidade: number | string | null;
+  categoria: string | null;
+  caracteristicas: any | null;
+  saiu: number | string | null;
+  reserva: boolean | null;
+  matricula_reserva: string | null;
+  status: string | null;
+};
 
 export const useFerramentasData = (refreshKey: number = 0) => {
   const [ferramentas, setFerramentas] = useState<Ferramenta[]>([]);
@@ -9,70 +23,50 @@ export const useFerramentasData = (refreshKey: number = 0) => {
 
   const fetchFerramentas = async () => {
     try {
-      console.log('Buscando ferramentas...');
-
       const { data, error } = await supabase
         .from('ferramentas')
-        .select(`id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status`);
-
-      console.log('Resposta do Supabase ferramentas:', { data, error });
+        .select(
+          'id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status'
+        );
 
       if (error) {
         console.error('Erro ao buscar ferramentas:', error);
         return;
       }
 
-      if (data && Array.isArray(data)) {
-        console.log('Dados brutos do Supabase:', data);
-        
-        const ferramentasFormatadas = data.map((ferramenta: any) => {
-          const quantidadeTotal = ferramenta.quantidade ?? 0;
-          const quantidadeSaiu = ferramenta.saiu ?? 0;
-          const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu);
+      if (Array.isArray(data)) {
+        const ferramentasFormatadas: Ferramenta[] = (data as FerramentaRow[]).map((f) => {
+          // Normalização robusta: garante número mesmo se vier string/null
+          const quantidadeTotal = Number(f.quantidade ?? 0);
+          const saiuNum = Number(f.saiu ?? 0);
 
-          // Log detalhado para debug
-          console.log(`Ferramenta ${ferramenta.nome}:`, {
-            'ID': ferramenta.id,
-            'Status do banco (gerado)': ferramenta.status,
-            'Quantidade total': quantidadeTotal,
-            'Quantidade saiu': quantidadeSaiu,
-            'Quantidade disponível': quantidadeDisponivel
-          });
+          const quantidadeDisponivel = Math.max(0, quantidadeTotal - saiuNum);
 
-          // Usar o status gerado automaticamente pelo banco de dados
-          // Não precisamos inferir o status, ele já vem calculado
-          const ferramentaFormatada = {
-            id: ferramenta.id,
-            nome: ferramenta.nome,
-            tag: ferramenta.tag,
+          // NÃO sobrescreve o status do banco; se vier null, replica a regra do banco
+          const statusBanco = f.status ?? (saiuNum === 1 ? 'emprestada' : 'disponível');
+
+          return {
+            id: f.id,
+            nome: f.nome ?? '',
+            tag: f.tag,
+            // A tabela do UI costuma exibir "Quantidade Disponível".
+            // Mantemos `quantidade` como disponível (como já estava no seu código).
             quantidade: quantidadeDisponivel,
-            categoria: ferramenta.categoria || '',
-            caracteristicas: ferramenta.caracteristicas || {},
-            saiu: quantidadeSaiu,
-            reserva: ferramenta.reserva ?? false,
-            matricula_reserva: ferramenta.matricula_reserva ?? undefined,
-            status: ferramenta.status || 'disponível' // Usar o status gerado pelo banco
-          } as Ferramenta;
-
-          console.log(`Ferramenta ${ferramenta.nome} processada:`, ferramentaFormatada);
-          
-          return ferramentaFormatada;
+            categoria: f.categoria ?? undefined,
+            caracteristicas: f.caracteristicas ?? undefined,
+            saiu: saiuNum, // IMPORTANTÍSSIMO: envia como número, não string
+            reserva: f.reserva ?? false,
+            matricula_reserva: f.matricula_reserva ?? undefined,
+            status: statusBanco,
+          };
         });
-
-        console.log("Total de ferramentas carregadas:", ferramentasFormatadas.length);
-        console.log("Ferramentas com status:", ferramentasFormatadas.map(f => ({
-          nome: f.nome, 
-          id: f.id, 
-          status: f.status,
-          quantidade: f.quantidade
-        })));
 
         setFerramentas(ferramentasFormatadas);
       } else {
-        console.log('Nenhum dado retornado do Supabase');
+        console.warn('Nenhum dado retornado do Supabase.');
       }
-    } catch (error) {
-      console.error('Erro ao carregar ferramentas:', error);
+    } catch (err) {
+      console.error('Erro ao carregar ferramentas:', err);
     } finally {
       setLoading(false);
     }
