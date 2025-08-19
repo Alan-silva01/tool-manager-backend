@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Ferramenta } from '@/types';
@@ -26,24 +27,41 @@ export const useFerramentasData = (refreshKey: number = 0) => {
           status
         `);
 
+      console.log('Resposta do Supabase ferramentas:', { data, error });
+
       if (error) {
         console.error('Erro ao buscar ferramentas:', error);
         return;
       }
 
       if (data && Array.isArray(data)) {
+        console.log('Dados brutos do Supabase:', data);
+        
         const ferramentasFormatadas = data.map((ferramenta: any) => {
           const quantidadeTotal = ferramenta.quantidade ?? 0;
           const quantidadeSaiu = ferramenta.saiu ?? 0;
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu);
 
-          // Mapear status corretamente do banco de dados
-          let statusFormatado = ferramenta.status || "indefinido";
-          
-          // Log para debug do status
-          console.log(`Ferramenta ${ferramenta.nome} - Status no DB:`, ferramenta.status, 'Status formatado:', statusFormatado);
+          // Log detalhado para debug do status
+          console.log(`Ferramenta ${ferramenta.nome}:`, {
+            'ID': ferramenta.id,
+            'Status original no DB': ferramenta.status,
+            'Tipo do status': typeof ferramenta.status,
+            'Quantidade total': quantidadeTotal,
+            'Quantidade saiu': quantidadeSaiu,
+            'Quantidade disponível': quantidadeDisponivel
+          });
 
-          return {
+          // Determinar o status correto baseado nos dados
+          let statusFinal = ferramenta.status || "disponivel";
+          
+          // Se não há status definido ou está null, determinar baseado na quantidade
+          if (!ferramenta.status || ferramenta.status === null) {
+            statusFinal = quantidadeDisponivel > 0 ? "disponivel" : "emprestada";
+            console.log(`Status inferido para ${ferramenta.nome}: ${statusFinal}`);
+          }
+
+          const ferramentaFormatada = {
             id: ferramenta.id,
             nome: ferramenta.nome,
             tag: ferramenta.tag,
@@ -53,17 +71,25 @@ export const useFerramentasData = (refreshKey: number = 0) => {
             saiu: quantidadeSaiu,
             reserva: ferramenta.reserva ?? false,
             matricula_reserva: ferramenta.matricula_reserva ?? undefined,
-            status: statusFormatado // Usar o status real do banco
+            status: statusFinal
           } as Ferramenta;
+
+          console.log(`Ferramenta ${ferramenta.nome} processada:`, ferramentaFormatada);
+          
+          return ferramentaFormatada;
         });
 
+        console.log("Total de ferramentas carregadas:", ferramentasFormatadas.length);
         console.log("Ferramentas com status:", ferramentasFormatadas.map(f => ({
           nome: f.nome, 
           id: f.id, 
-          status: f.status
+          status: f.status,
+          quantidade: f.quantidade
         })));
 
         setFerramentas(ferramentasFormatadas);
+      } else {
+        console.log('Nenhum dado retornado do Supabase');
       }
     } catch (error) {
       console.error('Erro ao carregar ferramentas:', error);
@@ -78,3 +104,4 @@ export const useFerramentasData = (refreshKey: number = 0) => {
 
   return { ferramentas, loading, refetch: fetchFerramentas };
 };
+
