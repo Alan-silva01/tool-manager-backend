@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Ferramenta } from '@/types';
@@ -36,21 +37,31 @@ export const useFerramentasData = (refreshKey: number = 0) => {
           const quantidadeSaiu = ferramenta.saiu ?? 0;
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu);
 
+          // Mapear status corretamente do banco de dados
+          let statusFormatado = ferramenta.status || "indefinido";
+          
+          // Log para debug do status
+          console.log(`Ferramenta ${ferramenta.nome} - Status no DB:`, ferramenta.status, 'Status formatado:', statusFormatado);
+
           return {
             id: ferramenta.id,
             nome: ferramenta.nome,
             tag: ferramenta.tag,
-            quantidade: quantidadeDisponivel, // quantidade já calculada
+            quantidade: quantidadeDisponivel,
             categoria: ferramenta.categoria,
             caracteristicas: ferramenta.caracteristicas,
             saiu: quantidadeSaiu,
             reserva: ferramenta.reserva ?? false,
             matricula_reserva: ferramenta.matricula_reserva ?? undefined,
-            status: ferramenta.status ?? "indefinido" // 👈 garante valor sempre presente
+            status: statusFormatado // Usar o status real do banco
           } as Ferramenta;
         });
 
-        console.log("Ferramentas formatadas:", ferramentasFormatadas.map(f => ({id: f.id, status: f.status})));
+        console.log("Ferramentas com status:", ferramentasFormatadas.map(f => ({
+          nome: f.nome, 
+          id: f.id, 
+          status: f.status
+        })));
 
         setFerramentas(ferramentasFormatadas);
       }
