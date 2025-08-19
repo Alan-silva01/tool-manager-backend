@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Ferramenta } from '@/types';
@@ -42,25 +41,17 @@ export const useFerramentasData = (refreshKey: number = 0) => {
           const quantidadeSaiu = ferramenta.saiu ?? 0;
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - quantidadeSaiu);
 
-          // Log detalhado para debug do status
+          // Log detalhado para debug
           console.log(`Ferramenta ${ferramenta.nome}:`, {
             'ID': ferramenta.id,
-            'Status original no DB': ferramenta.status,
-            'Tipo do status': typeof ferramenta.status,
+            'Status do banco (gerado)': ferramenta.status,
             'Quantidade total': quantidadeTotal,
             'Quantidade saiu': quantidadeSaiu,
             'Quantidade disponível': quantidadeDisponivel
           });
 
-          // Determinar o status correto baseado nos dados
-          let statusFinal = ferramenta.status || "disponivel";
-          
-          // Se não há status definido ou está null, determinar baseado na quantidade
-          if (!ferramenta.status || ferramenta.status === null) {
-            statusFinal = quantidadeDisponivel > 0 ? "disponivel" : "emprestada";
-            console.log(`Status inferido para ${ferramenta.nome}: ${statusFinal}`);
-          }
-
+          // Usar o status gerado automaticamente pelo banco de dados
+          // Não precisamos inferir o status, ele já vem calculado
           const ferramentaFormatada = {
             id: ferramenta.id,
             nome: ferramenta.nome,
@@ -71,7 +62,7 @@ export const useFerramentasData = (refreshKey: number = 0) => {
             saiu: quantidadeSaiu,
             reserva: ferramenta.reserva ?? false,
             matricula_reserva: ferramenta.matricula_reserva ?? undefined,
-            status: statusFinal
+            status: ferramenta.status || 'disponível' // Usar o status gerado pelo banco
           } as Ferramenta;
 
           console.log(`Ferramenta ${ferramenta.nome} processada:`, ferramentaFormatada);
@@ -104,4 +95,3 @@ export const useFerramentasData = (refreshKey: number = 0) => {
 
   return { ferramentas, loading, refetch: fetchFerramentas };
 };
-
