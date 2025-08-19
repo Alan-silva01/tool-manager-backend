@@ -1,3 +1,4 @@
+
 import { Json } from '@/integrations/supabase/types';
 
 export interface Ferramenta {
@@ -5,9 +6,9 @@ export interface Ferramenta {
   nome: string;
   tag: string;
   quantidade: number;
-  categoria?: string;
-  caracteristicas?: Json;
-  saiu?: number;
+  categoria: string;
+  caracteristicas: Json;
+  saiu: number;
   reserva?: boolean;
   matricula_reserva?: string;
   status: string; // Tornar obrigatório para garantir que sempre tenha valor
