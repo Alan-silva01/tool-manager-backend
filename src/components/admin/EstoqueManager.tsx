@@ -45,6 +45,7 @@ interface Ferramenta {
   saiu: number;
   reserva?: boolean;
   matricula_reserva?: string;
+  status?: string;
 }
 
 interface Funcionario {
