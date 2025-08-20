@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -201,7 +200,8 @@ const PegarItem = () => {
         });
       }
       
-      return itens;
+      // Sort alphabetically by name
+      return itens.sort((a, b) => a.nome.localeCompare(b.nome));
     } else {
       const filtro = filtroMateriais;
       let itens = materiais;
@@ -214,7 +214,8 @@ const PegarItem = () => {
         });
       }
       
-      return itens;
+      // Sort alphabetically by name
+      return itens.sort((a, b) => a.nome.localeCompare(b.nome));
     }
   };
 
