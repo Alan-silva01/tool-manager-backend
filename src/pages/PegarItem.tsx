@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Package, Wrench, ShoppingCart, Plus, Minus, Search, CreditCard, Camera, CheckCircle, Lock } from "lucide-react";
+import { ArrowLeft, Package, Wrench, ShoppingCart, Plus, Minus, Search, CreditCard, Camera, CheckCircle, Lock, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useFerramentas } from "@/hooks/useFerramentas";
@@ -476,6 +476,12 @@ const PegarItem = () => {
                 : null;
               const primeiroNomeReservado = nomeReservado ? nomeReservado.split(' ')[0] : null;
               
+              // Para ferramentas, verificar se está emprestada
+              const isFerramentaEmprestada = categoria === 'ferramentas' && (item as any).status === 'emprestada';
+              const funcionarioEmprestado = isFerramentaEmprestada && (item as any).matricula 
+                ? buscarNomePorMatricula((item as any).matricula.toString()) 
+                : null;
+              
               return (
                 <Card key={item.id} className={`hover:shadow-md transition-shadow ${item.quantidade <= 0 ? 'opacity-50' : ''}`}>
                   <CardContent className="p-4">
@@ -493,19 +499,41 @@ const PegarItem = () => {
                              </span>
                            </div>
                          )}
-                         <p className={`text-sm mt-1 ${item.quantidade <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                           Disponível: {item.quantidade} {categoria === 'materiais' ? (item as any).unidade || 'un' : 'un'}
-                         </p>
+                         
+                         {/* Mostrar status para ferramentas */}
+                         {categoria === 'ferramentas' ? (
+                           <>
+                             {isFerramentaEmprestada && funcionarioEmprestado ? (
+                               <div className="flex items-center gap-1 mt-1">
+                                 <User className="w-3 h-3 text-red-500" />
+                                 <span className="text-xs text-red-600">
+                                   Ferramenta emprestada para: {funcionarioEmprestado}
+                                 </span>
+                               </div>
+                             ) : (
+                               <p className={`text-sm mt-1 ${item.quantidade <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                 Disponível: {item.quantidade} un
+                               </p>
+                             )}
+                           </>
+                         ) : (
+                           <p className={`text-sm mt-1 ${item.quantidade <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                             Disponível: {item.quantidade} {(item as any).unidade || 'un'}
+                           </p>
+                         )}
+                         
                          {quantidadeNoCarrinho > 0 && (
                            <p className="text-sm text-blue-600 mt-1">
                              No carrinho: {quantidadeNoCarrinho}
                            </p>
                          )}
-                         {item.quantidade <= 0 && (
+                         
+                         {item.quantidade <= 0 && !isFerramentaEmprestada && (
                            <Badge variant="destructive" className="mt-1">
                              Sem estoque
                            </Badge>
                          )}
+                         
                          {categoria === 'materiais' && (item as any).quantidade_minima && item.quantidade <= (item as any).quantidade_minima && item.quantidade > 0 && (
                            <Badge variant="destructive" className="mt-1">
                              Estoque baixo!
