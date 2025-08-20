@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Ferramenta } from '@/types';
@@ -15,6 +16,7 @@ type FerramentaRow = {
   reserva: boolean | null;
   matricula_reserva: string | null;
   status: string | null;
+  funcionario_emprestado: string | null;
 };
 
 export const useFerramentasData = (refreshKey: number = 0) => {
@@ -26,7 +28,7 @@ export const useFerramentasData = (refreshKey: number = 0) => {
       const { data, error } = await supabase
         .from('ferramentas')
         .select(
-          'id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status'
+          'id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status, funcionario_emprestado'
         );
 
       if (error) {
@@ -42,22 +44,21 @@ export const useFerramentasData = (refreshKey: number = 0) => {
 
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - saiuNum);
 
-          // NÃO sobrescreve o status do banco; se vier null, replica a regra do banco
+          // Usa o status do banco diretamente
           const statusBanco = f.status ?? (saiuNum === 1 ? 'emprestada' : 'disponível');
 
           return {
             id: f.id,
             nome: f.nome ?? '',
             tag: f.tag,
-            // A tabela do UI costuma exibir "Quantidade Disponível".
-            // Mantemos `quantidade` como disponível (como já estava no seu código).
             quantidade: quantidadeDisponivel,
             categoria: f.categoria ?? undefined,
             caracteristicas: f.caracteristicas ?? undefined,
-            saiu: saiuNum, // IMPORTANTÍSSIMO: envia como número, não string
+            saiu: saiuNum,
             reserva: f.reserva ?? false,
             matricula_reserva: f.matricula_reserva ?? undefined,
             status: statusBanco,
+            funcionario_emprestado: f.funcionario_emprestado ?? undefined,
           };
         });
 
