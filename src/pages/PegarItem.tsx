@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -476,10 +477,15 @@ const PegarItem = () => {
                 : null;
               const primeiroNomeReservado = nomeReservado ? nomeReservado.split(' ')[0] : null;
               
-              // Para ferramentas, verificar se está emprestada
+              // Para ferramentas, verificar se está emprestada usando funcionario_emprestado
               const isFerramentaEmprestada = categoria === 'ferramentas' && (item as any).status === 'emprestada';
-              const funcionarioEmprestado = isFerramentaEmprestada && (item as any).matricula 
-                ? buscarNomePorMatricula((item as any).matricula.toString()) 
+              const funcionarioEmprestado = isFerramentaEmprestada && (item as any).funcionario_emprestado 
+                ? (item as any).funcionario_emprestado 
+                : null;
+              
+              // Pegar apenas os dois primeiros nomes
+              const primeirosNomes = funcionarioEmprestado 
+                ? funcionarioEmprestado.split(' ').slice(0, 2).join(' ')
                 : null;
               
               return (
@@ -503,11 +509,11 @@ const PegarItem = () => {
                          {/* Mostrar status para ferramentas */}
                          {categoria === 'ferramentas' ? (
                            <>
-                             {isFerramentaEmprestada && funcionarioEmprestado ? (
+                             {isFerramentaEmprestada && primeirosNomes ? (
                                <div className="flex items-center gap-1 mt-1">
                                  <User className="w-3 h-3 text-red-500" />
                                  <span className="text-xs text-red-600">
-                                   Ferramenta emprestada para: {funcionarioEmprestado}
+                                   Emprestada para: {primeirosNomes}
                                  </span>
                                </div>
                              ) : (
