@@ -71,10 +71,10 @@ const Index = () => {
                 className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-primary/5"
                 onClick={() => navigate("/pegar-item")}
               >
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-primary rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                   <Download className="w-5 h-5 md:w-7 md:h-7 text-primary-foreground" />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
                     Pegar Item
                   </h3>
@@ -94,10 +94,10 @@ const Index = () => {
                 className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-accent/5"
                 onClick={() => navigate("/devolver-item")}
               >
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-accent rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-accent rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                   <Upload className="w-5 h-5 md:w-7 md:h-7 text-accent-foreground" />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
                     Devolver Item
                   </h3>
@@ -117,10 +117,10 @@ const Index = () => {
                 className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-secondary/5"
                 onClick={() => navigate("/relatorios")}
               >
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-secondary rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-secondary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                   <Users className="w-5 h-5 md:w-7 md:h-7 text-secondary-foreground" />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
                     Relatórios
                   </h3>
