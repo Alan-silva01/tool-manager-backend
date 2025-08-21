@@ -12,8 +12,59 @@
     <!-- DNS prefetch and preconnect for better performance -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
     
-    <!-- Preload CSS for better performance -->
-    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <!-- Inline critical CSS to prevent render blocking -->
+    <style>
+      /* Critical CSS - Base Tailwind and layout styles */
+      *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
+      ::before,::after{--tw-content:''}
+      html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal}
+      body{margin:0;line-height:inherit}
+      
+      /* Design system colors - critical variables */
+      :root {
+        --background: 0 0% 98%;
+        --foreground: 85 35% 15%;
+        --card: 0 0% 100%;
+        --card-foreground: 85 35% 15%;
+        --primary: 144 20% 58%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 85 20% 85%;
+        --secondary-foreground: 85 35% 15%;
+        --muted: 85 15% 92%;
+        --muted-foreground: 85 15% 45%;
+        --border: 214.3 31.8% 91.4%;
+        --ring: 222.2 84% 4.9%;
+        --radius: 0.5rem;
+      }
+      
+      /* Critical layout styles */
+      body { 
+        background-color: hsl(var(--background)); 
+        color: hsl(var(--foreground));
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Hide content until full CSS loads to prevent FOUC */
+      .app-loading {
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+      }
+      
+      .app-loaded {
+        opacity: 1;
+      }
+    </style>
+
+    <!-- Preload and defer the full CSS file -->
+    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet';document.documentElement.classList.add('app-loaded')">
     <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
 
     <!-- Preload critical JavaScript -->
@@ -29,6 +80,11 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@avb_dev" />
     <meta name="twitter:image" content="/lovable-uploads/f0658b43-9477-48a1-9a25-be17050c413e.png" />
+
+    <script>
+      // Add loading class initially, will be removed when CSS loads
+      document.documentElement.classList.add('app-loading');
+    </script>
   </head>
 
   <body>
