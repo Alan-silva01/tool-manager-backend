@@ -21,7 +21,7 @@ interface EditarFuncionarioProps {
 export const EditarFuncionario = ({ funcionario, open, onOpenChange, onSuccess }: EditarFuncionarioProps) => {
   const [nome, setNome] = useState("");
   const [matricula, setMatricula] = useState("");
-  const [setor, setSetor] = useState("");
+  const [setor, setSetor] = useState<"Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro" | "">("");
   const [numeroWhatsApp, setNumeroWhatsApp] = useState("");
   const [rawWhatsApp, setRawWhatsApp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export const EditarFuncionario = ({ funcionario, open, onOpenChange, onSuccess }
     if (funcionario) {
       setNome(funcionario.nome);
       setMatricula(funcionario.matricula.toString());
-      setSetor(funcionario.setor);
+      setSetor(funcionario.setor as "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro");
       // O número já vem formatado do banco, então passa direto
       setNumeroWhatsApp(funcionario.numero_whatsapp || "");
       setRawWhatsApp(funcionario.numero_whatsapp || "");
@@ -58,7 +58,7 @@ export const EditarFuncionario = ({ funcionario, open, onOpenChange, onSuccess }
         .update({
           nome,
           matricula: parseInt(matricula),
-          setor,
+          setor: setor as "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro",
           numero_whatsapp: rawWhatsApp || null,
         })
         .eq("id", funcionario.id);
@@ -127,11 +127,14 @@ export const EditarFuncionario = ({ funcionario, open, onOpenChange, onSuccess }
                 <SelectValue placeholder="Selecione o setor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="producao">Produção</SelectItem>
-                <SelectItem value="manutencao">Manutenção</SelectItem>
-                <SelectItem value="qualidade">Qualidade</SelectItem>
-                <SelectItem value="logistica">Logística</SelectItem>
-                <SelectItem value="administrativo">Administrativo</SelectItem>
+                <SelectItem value="Usinagem industrial">Usinagem industrial</SelectItem>
+                <SelectItem value="Oficina cantilever">Oficina cantilever</SelectItem>
+                <SelectItem value="Oficina de guias">Oficina de guias</SelectItem>
+                <SelectItem value="Montagem de gaiola">Montagem de gaiola</SelectItem>
+                <SelectItem value="Oficina de mancal">Oficina de mancal</SelectItem>
+                <SelectItem value="Usinagem de cilindros">Usinagem de cilindros</SelectItem>
+                <SelectItem value="Oficina central">Oficina central</SelectItem>
+                <SelectItem value="Outro">Outro</SelectItem>
               </SelectContent>
             </Select>
           </div>
