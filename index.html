@@ -1,232 +1,25 @@
-
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AVB - Aço Verde Brasil | Sistema de Controle de Estoque</title>
-    <meta name="description" content="Sistema inteligente de controle de estoque e ferramentaria da AVB - Aço Verde Brasil. Gestão eficiente de ferramentas e materiais." />
-    <meta name="keywords" content="AVB, Aço Verde Brasil, controle de estoque, ferramentaria, gestão de ferramentas, materiais" />
-    <meta name="author" content="AVB - Aço Verde Brasil" />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="/" />
-    
-    <!-- Favicon optimizado -->
-    <link rel="icon" href="/lovable-uploads/511430f2-a9a3-462b-8b72-decc865a19d6.png" type="image/png" sizes="32x32">
-    <link rel="apple-touch-icon" href="/lovable-uploads/511430f2-a9a3-462b-8b72-decc865a19d6.png" sizes="180x180">
+    <title>AVB - Aço Verde Brasil</title>
+    <meta name="description" content="Sistema de Controle de Estoque e Ferramentaria" />
+    <meta name="author" content="AVB" />
+    <link rel="icon" href="/lovable-uploads/511430f2-a9a3-462b-8b72-decc865a19d6.png" type="image/png">
 
-    <!-- Otimizações de cache e performance -->
-    <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable">
-    
-    <!-- DNS prefetch otimizado -->
-    <link rel="dns-prefetch" href="//fonts.googleapis.com">
-    <link rel="dns-prefetch" href="//fonts.gstatic.com">
-    
-    <!-- Preconnect crítico -->
-    <link rel="preconnect" href="/" crossorigin>
-    <link rel="preconnect" href="//fonts.googleapis.com" crossorigin>
-    <link rel="preconnect" href="//fonts.gstatic.com" crossorigin>
-    
-    <!-- CSS crítico inline -->
-    <style>
-      /* Critical CSS - Otimizado para performance */
-      *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
-      ::before,::after{--tw-content:''}
-      html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;scroll-behavior:smooth}
-      body{margin:0;line-height:inherit;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-      
-      /* Design system - cores HSL otimizadas */
-      :root {
-        --background: 0 0% 98%;
-        --foreground: 85 35% 15%;
-        --card: 0 0% 100%;
-        --card-foreground: 85 35% 15%;
-        --primary: 144 20% 58%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 85 20% 85%;
-        --secondary-foreground: 85 35% 15%;
-        --muted: 85 15% 92%;
-        --muted-foreground: 85 15% 45%;
-        --accent: 85 25% 45%;
-        --accent-foreground: 0 0% 100%;
-        --border: 214.3 31.8% 91.4%;
-        --ring: 222.2 84% 4.9%;
-        --radius: 0.5rem;
-      }
-      
-      /* Layout crítico otimizado */
-      body { 
-        background-color: hsl(var(--background)); 
-        color: hsl(var(--foreground));
-        margin: 0;
-        padding: 0;
-        min-height: 100vh;
-        font-display: swap;
-      }
-      
-      #root {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        isolation: isolate;
-      }
-      
-      /* Prevenção de FOUC otimizada */
-      .app-loading {
-        opacity: 0;
-        transition: opacity 0.2s ease-in-out;
-      }
-      
-      .app-loaded {
-        opacity: 1;
-      }
-      
-      /* Skip link para acessibilidade */
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-      }
-      
-      .sr-only:focus,
-      .focus\:not-sr-only:focus {
-        position: static;
-        width: auto;
-        height: auto;
-        padding: inherit;
-        margin: inherit;
-        overflow: visible;
-        clip: auto;
-        white-space: normal;
-      }
-      
-      /* Utilitários críticos otimizados */
-      .container{width:100%;margin-left:auto;margin-right:auto;padding-left:1rem;padding-right:1rem}
-      .flex{display:flex}
-      .flex-col{flex-direction:column}
-      .items-center{align-items:center}
-      .justify-center{justify-content:center}
-      .min-h-screen{min-height:100vh}
-      .text-center{text-align:center}
-      .space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}
-      .bg-primary{background-color:hsl(var(--primary))}
-      .text-primary-foreground{color:hsl(var(--primary-foreground))}
-      .px-4{padding-left:1rem;padding-right:1rem}
-      .py-2{padding-top:0.5rem;padding-bottom:0.5rem}
-      .rounded{border-radius:0.25rem}
-      .transition-opacity{transition-property:opacity;transition-timing-function:cubic-bezier(0.4,0,0.2,1);transition-duration:150ms}
-      .duration-300{transition-duration:300ms}
-      
-      /* Otimização de animações */
-      @media (prefers-reduced-motion: reduce) {
-        *,::before,::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}
-      }
-    </style>
-
-    <!-- Carregamento assíncrono de CSS otimizado -->
-    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet';document.documentElement.classList.add('app-loaded')" fetchpriority="high">
-    <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
-
-    <!-- Preload de JavaScript crítico otimizado -->
-    <link rel="modulepreload" href="/src/main.tsx" fetchpriority="high">
-    <link rel="modulepreload" href="/src/App.tsx" fetchpriority="high">
-    <link rel="modulepreload" href="/src/pages/Index.tsx" fetchpriority="high">
-    
-    <!-- Meta tags Open Graph otimizadas -->
-    <meta property="og:title" content="AVB - Aço Verde Brasil | Sistema de Controle de Estoque" />
-    <meta property="og:description" content="Sistema inteligente de controle de estoque e ferramentaria da AVB - Aço Verde Brasil. Gestão eficiente de ferramentas e materiais." />
+    <meta property="og:title" content="AVB - Aço Verde Brasil" />
+    <meta property="og:description" content="Sistema de Controle de Estoque e Ferramentaria" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="/" />
     <meta property="og:image" content="/lovable-uploads/f0658b43-9477-48a1-9a25-be17050c413e.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="AVB - Aço Verde Brasil - Sistema de Controle de Estoque" />
-    <meta property="og:locale" content="pt_BR" />
-    <meta property="og:site_name" content="AVB - Aço Verde Brasil" />
 
-    <!-- Meta tags Twitter otimizadas -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="AVB - Aço Verde Brasil | Sistema de Controle de Estoque" />
-    <meta name="twitter:description" content="Sistema inteligente de controle de estoque e ferramentaria da AVB - Aço Verde Brasil. Gestão eficiente de ferramentas e materiais." />
+    <meta name="twitter:site" content="@avb_dev" />
     <meta name="twitter:image" content="/lovable-uploads/f0658b43-9477-48a1-9a25-be17050c413e.png" />
-    <meta name="twitter:image:alt" content="AVB - Aço Verde Brasil - Sistema de Controle de Estoque" />
-
-    <!-- Schema.org JSON-LD para SEO -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "AVB - Aço Verde Brasil - Sistema de Controle de Estoque",
-      "description": "Sistema inteligente de controle de estoque e ferramentaria da AVB - Aço Verde Brasil. Gestão eficiente de ferramentas e materiais.",
-      "url": "/",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "BRL"
-      },
-      "creator": {
-        "@type": "Organization",
-        "name": "AVB - Aço Verde Brasil"
-      }
-    }
-    </script>
-
-    <!-- Script de inicialização otimizado -->
-    <script>
-      // Classe de carregamento inicial
-      document.documentElement.classList.add('app-loading');
-      
-      // Fallback otimizado para carregamento de CSS
-      (function() {
-        let cssLoaded = false;
-        const loadCSS = function() {
-          if (!cssLoaded) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = '/src/index.css';
-            link.onload = function() {
-              document.documentElement.classList.add('app-loaded');
-            };
-            document.head.appendChild(link);
-            cssLoaded = true;
-          }
-        };
-        
-        // Timeout reduzido para melhor performance
-        setTimeout(loadCSS, 50);
-        
-        // Listener para DOMContentLoaded como backup
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', loadCSS);
-        } else {
-          loadCSS();
-        }
-      })();
-
-      // Performance observer para métricas
-      if ('PerformanceObserver' in window) {
-        const observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            if (entry.entryType === 'largest-contentful-paint') {
-              console.log('LCP:', entry.startTime);
-            }
-          }
-        });
-        observer.observe({ entryTypes: ['largest-contentful-paint'] });
-      }
-    </script>
   </head>
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

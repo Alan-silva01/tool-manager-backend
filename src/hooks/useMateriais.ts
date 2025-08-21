@@ -13,22 +13,24 @@ export const useMateriais = (refreshKey?: number) => {
 
     const fetchMateriais = async () => {
       try {
-        console.log('🔄 Iniciando busca de materiais...');
-        setLoading(true);
+        console.log('Buscando materiais...');
         
+        // Otimizar query selecionando apenas campos necessários
         const { data, error } = await supabase
           .from('materiais')
           .select('id, nome, tag, entrada, saida, quantidade_minima, data_entrada_estoque, unidade')
           .abortSignal(controller.signal);
 
         if (error) {
-          console.error('❌ Erro ao buscar materiais:', error);
-          throw error;
+          console.error('Erro ao buscar materiais:', error);
+          return;
         }
 
         if (data && mounted) {
-          console.log('✅ Materiais encontrados:', data.length);
+          console.log('Dados brutos:', data);
+          console.log('Quantidade de materiais encontrados:', data.length);
           
+          // Otimizar processamento usando map mais eficiente
           const materiaisFormatados = data.map(material => {
             const quantidadeEntrada = Number(material.entrada) || 0;
             const quantidadeSaida = Number(material.saida) || 0;
@@ -47,17 +49,14 @@ export const useMateriais = (refreshKey?: number) => {
             };
           });
 
-          console.log('✅ Materiais formatados:', materiaisFormatados.length);
           setMateriais(materiaisFormatados);
         }
       } catch (error) {
-        if (error?.name !== 'AbortError') {
-          console.error('❌ Erro ao carregar materiais:', error);
-          setMateriais([]);
+        if (error.name !== 'AbortError') {
+          console.error('Erro ao carregar materiais:', error);
         }
       } finally {
         if (mounted) {
-          console.log('✅ Finalizando carregamento de materiais');
           setLoading(false);
         }
       }
@@ -71,6 +70,7 @@ export const useMateriais = (refreshKey?: number) => {
     };
   }, [refreshKey]);
 
+  // Memoizar resultado para evitar recálculos
   const memoizedResult = useMemo(() => ({
     materiais,
     loading
