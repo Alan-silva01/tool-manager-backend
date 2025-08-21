@@ -50,23 +50,22 @@ export const useFuncionariosData = (refreshKey?: number) => {
 
     const fetchFuncionarios = async () => {
       try {
-        console.log('Buscando funcionários...');
+        console.log('🔄 Iniciando busca de funcionários...');
+        setLoading(true);
         
-        // Query otimizada
         const { data, error } = await supabase
           .from('funcionarios')
           .select('id, nome, matricula, setor, numero_whatsapp, posse_ferramentas')
           .abortSignal(controller.signal);
 
         if (error) {
-          console.error('Erro ao buscar funcionários:', error);
-          return;
+          console.error('❌ Erro ao buscar funcionários:', error);
+          throw error;
         }
 
         if (data && mounted) {
-          console.log('Funcionários encontrados:', data.length);
+          console.log('✅ Funcionários encontrados:', data.length);
           
-          // Processar de forma mais eficiente
           const funcionariosMap = data.reduce((acc, func) => {
             const result = processFuncionario(func);
             if (result) {
@@ -75,15 +74,17 @@ export const useFuncionariosData = (refreshKey?: number) => {
             return acc;
           }, {} as Record<string, Funcionario>);
 
-          console.log('Funcionários mapeados:', funcionariosMap);
+          console.log('✅ Funcionários mapeados:', Object.keys(funcionariosMap).length);
           setFuncionarios(funcionariosMap);
         }
       } catch (error) {
         if (error.name !== 'AbortError') {
-          console.error('Erro ao carregar funcionários:', error);
+          console.error('❌ Erro ao carregar funcionários:', error);
+          setFuncionarios({});
         }
       } finally {
         if (mounted) {
+          console.log('✅ Finalizando carregamento de funcionários');
           setLoading(false);
         }
       }
@@ -97,7 +98,6 @@ export const useFuncionariosData = (refreshKey?: number) => {
     };
   }, [refreshKey, processFuncionario]);
 
-  // Memoizar resultado
   const memoizedResult = useMemo(() => ({
     funcionarios,
     loading,

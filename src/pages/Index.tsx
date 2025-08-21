@@ -3,13 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Download, Upload, Users, Shield, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { memo } from "react";
+import { memo, useEffect } from "react";
 
-// Memoize the Index component to prevent unnecessary re-renders
 const Index = memo(() => {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    console.log('🏠 Página Index carregada');
+  }, []);
+
   const handleRefresh = () => {
+    console.log('🔄 Refresh da página');
     window.location.reload();
   };
 

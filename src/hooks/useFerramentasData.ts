@@ -25,19 +25,22 @@ export const useFerramentasData = (refreshKey: number = 0) => {
     const controller = new AbortController();
     
     try {
-      // Query otimizada com índices
+      console.log('🔄 Iniciando busca de ferramentas...');
+      setLoading(true);
+
       const { data, error } = await supabase
         .from('ferramentas')
         .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status, funcionario_emprestado')
         .abortSignal(controller.signal);
 
       if (error) {
-        console.error('Erro ao buscar ferramentas:', error);
-        return;
+        console.error('❌ Erro ao buscar ferramentas:', error);
+        throw error;
       }
 
       if (Array.isArray(data)) {
-        // Processar dados de forma mais eficiente
+        console.log('✅ Ferramentas encontradas:', data.length);
+        
         const ferramentasFormatadas: Ferramenta[] = data.map((f: FerramentaRow) => {
           const quantidadeTotal = Number(f.quantidade ?? 0);
           const saiuNum = Number(f.saiu ?? 0);
@@ -59,13 +62,16 @@ export const useFerramentasData = (refreshKey: number = 0) => {
           };
         });
 
+        console.log('✅ Ferramentas formatadas:', ferramentasFormatadas.length);
         setFerramentas(ferramentasFormatadas);
       }
     } catch (err) {
       if (err.name !== 'AbortError') {
-        console.error('Erro ao carregar ferramentas:', err);
+        console.error('❌ Erro ao carregar ferramentas:', err);
+        setFerramentas([]);
       }
     } finally {
+      console.log('✅ Finalizando carregamento de ferramentas');
       setLoading(false);
     }
 
@@ -76,7 +82,6 @@ export const useFerramentasData = (refreshKey: number = 0) => {
     fetchFerramentas();
   }, [refreshKey, fetchFerramentas]);
 
-  // Memoizar retorno
   const memoizedResult = useMemo(() => ({
     ferramentas,
     loading,

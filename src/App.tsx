@@ -14,14 +14,14 @@ const Relatorios = React.lazy(() => import("./pages/Relatorios"));
 const Admin = React.lazy(() => import("./pages/Admin"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
-// Otimizar configuração do QueryClient
+// Configuração do QueryClient
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutos
-      gcTime: 10 * 60 * 1000, // 10 minutos (anteriormente cacheTime)
+      gcTime: 10 * 60 * 1000, // 10 minutos
       retry: (failureCount, error) => {
-        // Não retentar para erros 4xx
+        console.log('🔄 Query retry attempt:', failureCount, error);
         if (error && typeof error === 'object' && 'status' in error) {
           const status = (error as any).status;
           if (status >= 400 && status < 500) return false;
@@ -36,70 +36,77 @@ const queryClient = new QueryClient({
   },
 });
 
-// Componente de fallback otimizado
-const PageFallback = ({ pageName }: { pageName: string }) => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-      <p className="text-muted-foreground">Carregando {pageName}...</p>
+// Componente de fallback
+const PageFallback = ({ pageName }: { pageName: string }) => {
+  console.log('🔄 Carregando página:', pageName);
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Carregando {pageName}...</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={<PageFallback pageName="página" />}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route 
-              path="/pegar-item" 
-              element={
-                <Suspense fallback={<PageFallback pageName="Pegar Item" />}>
-                  <PegarItem />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="/devolver-item" 
-              element={
-                <Suspense fallback={<PageFallback pageName="Devolver Item" />}>
-                  <DevolverItem />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="/relatorios" 
-              element={
-                <Suspense fallback={<PageFallback pageName="Relatórios" />}>
-                  <Relatorios />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="/admin" 
-              element={
-                <Suspense fallback={<PageFallback pageName="Admin" />}>
-                  <Admin />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="*" 
-              element={
-                <Suspense fallback={<PageFallback pageName="página" />}>
-                  <NotFound />
-                </Suspense>
-              } 
-            />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  console.log('🚀 Iniciando aplicação AVB');
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Suspense fallback={<PageFallback pageName="aplicação" />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route 
+                path="/pegar-item" 
+                element={
+                  <Suspense fallback={<PageFallback pageName="Pegar Item" />}>
+                    <PegarItem />
+                  </Suspense>
+                } 
+              />
+              <Route 
+                path="/devolver-item" 
+                element={
+                  <Suspense fallback={<PageFallback pageName="Devolver Item" />}>
+                    <DevolverItem />
+                  </Suspense>
+                } 
+              />
+              <Route 
+                path="/relatorios" 
+                element={
+                  <Suspense fallback={<PageFallback pageName="Relatórios" />}>
+                    <Relatorios />
+                  </Suspense>
+                } 
+              />
+              <Route 
+                path="/admin" 
+                element={
+                  <Suspense fallback={<PageFallback pageName="Admin" />}>
+                    <Admin />
+                  </Suspense>
+                } 
+              />
+              <Route 
+                path="*" 
+                element={
+                  <Suspense fallback={<PageFallback pageName="página" />}>
+                    <NotFound />
+                  </Suspense>
+                } 
+              />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
