@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -17,12 +17,22 @@ import { EstoqueManager } from "@/components/admin/EstoqueManager";
 import { HistoricoMateriaisTab } from "@/components/admin/HistoricoMateriaisTab";
 import { calculateAdminStats } from "@/utils/adminCalculations";
 
+// Lazy load de componentes pesados
+const LazyEstoqueManager = React.lazy(() => 
+  import("@/components/admin/EstoqueManager").then(module => ({ default: module.EstoqueManager }))
+);
+
+const LazyHistoricoMateriaisTab = React.lazy(() => 
+  import("@/components/admin/HistoricoMateriaisTab").then(module => ({ default: module.HistoricoMateriaisTab }))
+);
+
 const Admin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState("emprestimos");
 
   // Auth e notificações
   const { isLoggedIn, login, logout } = useAdminAuth();
@@ -34,10 +44,13 @@ const Admin = () => {
   const { materiais, loading: loadingMateriais } = useMateriais(refreshKey);
   const { funcionariosComFerramentas, refetch: refetchFuncionariosComFerramentas } = useFuncionariosComFerramentas(ferramentas, refreshKey);
 
-  // Calcular estatísticas
-  const stats = calculateAdminStats(funcionariosComFerramentas, ferramentas, materiais);
+  // Memoizar cálculos de estatísticas
+  const stats = useMemo(() => 
+    calculateAdminStats(funcionariosComFerramentas, ferramentas, materiais), 
+    [funcionariosComFerramentas, ferramentas, materiais]
+  );
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       console.log('Iniciando atualização de dados...');
@@ -45,17 +58,14 @@ const Admin = () => {
       // Incrementar a chave de refresh para forçar recarga dos hooks
       setRefreshKey(prev => prev + 1);
       
-      // Executar refetch específico onde disponível
-      if (refetchFerramentas) {
-        await refetchFerramentas();
-      }
-      
-      if (refetchFuncionariosComFerramentas) {
-        await refetchFuncionariosComFerramentas();
-      }
+      // Executar refetch específico onde disponível em paralelo
+      await Promise.all([
+        refetchFerramentas?.(),
+        refetchFuncionariosComFerramentas?.()
+      ]);
 
       // Aguardar um momento para garantir que os dados sejam atualizados
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       console.log('Dados atualizados com sucesso');
       
@@ -73,16 +83,27 @@ const Admin = () => {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [refetchFerramentas, refetchFuncionariosComFerramentas, toast]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
     navigate("/");
-  };
+  }, [logout, navigate]);
+
+  // Memoizar handlers
+  const handleSearchChange = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
+
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+  }, []);
 
   if (!isLoggedIn) {
     return <AdminLogin onLogin={login} />;
   }
+
+  const isLoading = loadingFuncionarios || loadingFerramentas;
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,7 +117,7 @@ const Admin = () => {
           totalMateriais={materiais.length}
         />
 
-        <Tabs defaultValue="emprestimos" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="emprestimos">Empréstimos de Ferramentas</TabsTrigger>
             <TabsTrigger value="controle">Controle de Estoque</TabsTrigger>
@@ -107,24 +128,28 @@ const Admin = () => {
             <EmprestimosTab 
               funcionariosComFerramentas={funcionariosComFerramentas}
               searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
+              onSearchChange={handleSearchChange}
               onNotificarFuncionario={notificarFuncionario}
               isNotifying={isNotifying}
-              loading={loadingFuncionarios || loadingFerramentas}
+              loading={isLoading}
               totalFerramentasEmprestadas={stats.totalFerramentasEmprestadas}
             />
           </TabsContent>
 
           <TabsContent value="controle" className="space-y-6">
-            <EstoqueManager 
-              materiais={materiais}
-              ferramentas={ferramentas}
-              onRefresh={handleRefresh}
-            />
+            <React.Suspense fallback={<div className="p-8 text-center">Carregando controle de estoque...</div>}>
+              <LazyEstoqueManager 
+                materiais={materiais}
+                ferramentas={ferramentas}
+                onRefresh={handleRefresh}
+              />
+            </React.Suspense>
           </TabsContent>
 
           <TabsContent value="historico" className="space-y-6">
-            <HistoricoMateriaisTab refreshKey={refreshKey} />
+            <React.Suspense fallback={<div className="p-8 text-center">Carregando histórico...</div>}>
+              <LazyHistoricoMateriaisTab refreshKey={refreshKey} />
+            </React.Suspense>
           </TabsContent>
         </Tabs>
       </main>
@@ -132,4 +157,4 @@ const Admin = () => {
   );
 };
 
-export default Admin;
+export default React.memo(Admin);

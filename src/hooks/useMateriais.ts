@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Material } from '@/types';
 
@@ -8,31 +8,33 @@ export const useMateriais = (refreshKey?: number) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+
     const fetchMateriais = async () => {
       try {
         console.log('Buscando materiais...');
         
+        // Otimizar query selecionando apenas campos necessários
         const { data, error } = await supabase
           .from('materiais')
-          .select('*');
-
-        console.log('Resposta do Supabase:', { data, error });
+          .select('id, nome, tag, entrada, saida, quantidade_minima, data_entrada_estoque, unidade')
+          .abortSignal(controller.signal);
 
         if (error) {
           console.error('Erro ao buscar materiais:', error);
           return;
         }
 
-        if (data) {
+        if (data && mounted) {
           console.log('Dados brutos:', data);
           console.log('Quantidade de materiais encontrados:', data.length);
           
+          // Otimizar processamento usando map mais eficiente
           const materiaisFormatados = data.map(material => {
             const quantidadeEntrada = Number(material.entrada) || 0;
             const quantidadeSaida = Number(material.saida) || 0;
             const quantidadeDisponivel = quantidadeEntrada - quantidadeSaida;
-            
-            console.log(`${material.nome}: entrada=${quantidadeEntrada}, saida=${quantidadeSaida}, disponível=${quantidadeDisponivel}`);
             
             return {
               id: material.id,
@@ -47,23 +49,32 @@ export const useMateriais = (refreshKey?: number) => {
             };
           });
 
-          console.log('Materiais formatados:', materiaisFormatados);
           setMateriais(materiaisFormatados);
         }
       } catch (error) {
-        console.error('Erro ao carregar materiais:', error);
+        if (error.name !== 'AbortError') {
+          console.error('Erro ao carregar materiais:', error);
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchMateriais();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
   }, [refreshKey]);
 
-  console.log('Estado atual - materiais:', materiais, 'loading:', loading);
-
-  return {
+  // Memoizar resultado para evitar recálculos
+  const memoizedResult = useMemo(() => ({
     materiais,
     loading
-  };
+  }), [materiais, loading]);
+
+  return memoizedResult;
 };

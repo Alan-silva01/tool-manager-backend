@@ -1,3 +1,5 @@
+
+import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +17,64 @@ interface EmprestimosTabProps {
   totalFerramentasEmprestadas: number;
 }
 
-export const EmprestimosTab = ({
+// Componente memoizado para cada funcionário
+const FuncionarioCard = React.memo(({ 
+  funcionario, 
+  onNotificarFuncionario, 
+  isNotifying 
+}: { 
+  funcionario: FuncionarioComFerramentas;
+  onNotificarFuncionario: (funcionario: FuncionarioComFerramentas, ferramenta: any) => void;
+  isNotifying: string | null;
+}) => {
+  return (
+    <Card className="border-l-4 border-l-primary">
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">{funcionario.nome}</h3>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline">#{funcionario.matricula}</Badge>
+              <span>{funcionario.setor}</span>
+              {funcionario.numero_whatsapp && (
+                <div className="flex items-center gap-1">
+                  <Phone className="w-3 h-3" />
+                  <span className="font-mono">{funcionario.numero_whatsapp}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Ferramentas em posse:</p>
+          {funcionario.ferramentas.map((ferramenta: any, index: number) => (
+            <div key={`${ferramenta.tag}-${index}`} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{ferramenta.tag}</Badge>
+                <span className="text-sm">{ferramenta.nome}</span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onNotificarFuncionario(funcionario, ferramenta)}
+                disabled={isNotifying === `${funcionario.id}-${ferramenta.tag}` || !funcionario.numero_whatsapp}
+                className="ml-2"
+              >
+                <Bell className="w-4 h-4 mr-2" />
+                {isNotifying === `${funcionario.id}-${ferramenta.tag}` ? 'Notificando...' : 'Solicitar Devolução'}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+FuncionarioCard.displayName = 'FuncionarioCard';
+
+export const EmprestimosTab = React.memo(({
   funcionariosComFerramentas,
   searchTerm,
   onSearchChange,
@@ -24,13 +83,21 @@ export const EmprestimosTab = ({
   loading,
   totalFerramentasEmprestadas
 }: EmprestimosTabProps) => {
-  const filteredFuncionarios = funcionariosComFerramentas.filter(
-    funcionario => 
-      funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      funcionario.matricula.includes(searchTerm) ||
-      funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      funcionario.ferramentas.some((f: any) => f.nome.toLowerCase().includes(searchTerm.toLowerCase()) || f.tag.includes(searchTerm))
-  );
+  // Memoizar filtro para evitar recálculos desnecessários
+  const filteredFuncionarios = useMemo(() => {
+    if (!searchTerm) return funcionariosComFerramentas;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return funcionariosComFerramentas.filter(
+      funcionario => 
+        funcionario.nome.toLowerCase().includes(searchLower) ||
+        funcionario.matricula.includes(searchTerm) ||
+        funcionario.setor.toLowerCase().includes(searchLower) ||
+        funcionario.ferramentas.some((f: any) => 
+          f.nome.toLowerCase().includes(searchLower) || f.tag.includes(searchTerm)
+        )
+    );
+  }, [funcionariosComFerramentas, searchTerm]);
 
   return (
     <Card>
@@ -58,47 +125,12 @@ export const EmprestimosTab = ({
         ) : (
           <div className="space-y-4">
             {filteredFuncionarios.map((funcionario) => (
-              <Card key={funcionario.id} className="border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg">{funcionario.nome}</h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Badge variant="outline">#{funcionario.matricula}</Badge>
-                        <span>{funcionario.setor}</span>
-                        {funcionario.numero_whatsapp && (
-                          <div className="flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            <span className="font-mono">{funcionario.numero_whatsapp}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Ferramentas em posse:</p>
-                    {funcionario.ferramentas.map((ferramenta: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">{ferramenta.tag}</Badge>
-                          <span className="text-sm">{ferramenta.nome}</span>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onNotificarFuncionario(funcionario, ferramenta)}
-                          disabled={isNotifying === `${funcionario.id}-${ferramenta.tag}` || !funcionario.numero_whatsapp}
-                          className="ml-2"
-                        >
-                          <Bell className="w-4 h-4 mr-2" />
-                          {isNotifying === `${funcionario.id}-${ferramenta.tag}` ? 'Notificando...' : 'Solicitar Devolução'}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <FuncionarioCard
+                key={funcionario.id}
+                funcionario={funcionario}
+                onNotificarFuncionario={onNotificarFuncionario}
+                isNotifying={isNotifying}
+              />
             ))}
             {filteredFuncionarios.length === 0 && (
               <div className="text-center py-8">
@@ -111,4 +143,6 @@ export const EmprestimosTab = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+EmprestimosTab.displayName = 'EmprestimosTab';

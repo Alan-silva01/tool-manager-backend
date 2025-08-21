@@ -1,10 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Ferramenta } from '@/types';
 
-// Linha de base do PostgREST: numeric decimais tendem a vir como string.
-// Vamos tipar a linha crua para converter corretamente.
 type FerramentaRow = {
   id: string;
   nome: string | null;
@@ -23,13 +21,15 @@ export const useFerramentasData = (refreshKey: number = 0) => {
   const [ferramentas, setFerramentas] = useState<Ferramenta[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFerramentas = async () => {
+  const fetchFerramentas = useCallback(async () => {
+    const controller = new AbortController();
+    
     try {
+      // Query otimizada com índices
       const { data, error } = await supabase
         .from('ferramentas')
-        .select(
-          'id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status, funcionario_emprestado'
-        );
+        .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status, funcionario_emprestado')
+        .abortSignal(controller.signal);
 
       if (error) {
         console.error('Erro ao buscar ferramentas:', error);
@@ -37,14 +37,11 @@ export const useFerramentasData = (refreshKey: number = 0) => {
       }
 
       if (Array.isArray(data)) {
-        const ferramentasFormatadas: Ferramenta[] = (data as FerramentaRow[]).map((f) => {
-          // Normalização robusta: garante número mesmo se vier string/null
+        // Processar dados de forma mais eficiente
+        const ferramentasFormatadas: Ferramenta[] = data.map((f: FerramentaRow) => {
           const quantidadeTotal = Number(f.quantidade ?? 0);
           const saiuNum = Number(f.saiu ?? 0);
-
           const quantidadeDisponivel = Math.max(0, quantidadeTotal - saiuNum);
-
-          // Usa o status do banco diretamente
           const statusBanco = f.status ?? (saiuNum === 1 ? 'emprestada' : 'disponível');
 
           return {
@@ -63,19 +60,28 @@ export const useFerramentasData = (refreshKey: number = 0) => {
         });
 
         setFerramentas(ferramentasFormatadas);
-      } else {
-        console.warn('Nenhum dado retornado do Supabase.');
       }
     } catch (err) {
-      console.error('Erro ao carregar ferramentas:', err);
+      if (err.name !== 'AbortError') {
+        console.error('Erro ao carregar ferramentas:', err);
+      }
     } finally {
       setLoading(false);
     }
-  };
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     fetchFerramentas();
-  }, [refreshKey]);
+  }, [refreshKey, fetchFerramentas]);
 
-  return { ferramentas, loading, refetch: fetchFerramentas };
+  // Memoizar retorno
+  const memoizedResult = useMemo(() => ({
+    ferramentas,
+    loading,
+    refetch: fetchFerramentas
+  }), [ferramentas, loading, fetchFerramentas]);
+
+  return memoizedResult;
 };

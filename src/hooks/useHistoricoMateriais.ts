@@ -1,11 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface RegistroMateFuncionario {
   id: string;
   funcionario: string;
-  material: string; // tag do material
+  material: string;
   data: string;
   matricula: string;
   quantidade: number;
@@ -45,38 +45,46 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
   });
 
   useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+
     const fetchHistorico = async () => {
       try {
         console.log('Buscando histórico de materiais...');
         setError(null);
         
-        // Buscar registros de funcionários usando query SQL direta
-        const { data: registros, error: registrosError } = await supabase
-          .from('registro_mate_funcionarios' as any)
-          .select('*');
+        // Buscar dados em paralelo para melhor performance
+        const [registrosResult, materiaisResult] = await Promise.all([
+          supabase
+            .from('registro_mate_funcionarios' as any)
+            .select('*')
+            .abortSignal(controller.signal),
+          supabase
+            .from('materiais')
+            .select('tag, nome')
+            .abortSignal(controller.signal)
+        ]);
 
-        if (registrosError) {
-          console.error('Erro ao buscar registros:', registrosError);
-          setError('Erro ao buscar registros de materiais');
+        if (registrosResult.error) {
+          console.error('Erro ao buscar registros:', registrosResult.error);
+          if (mounted) setError('Erro ao buscar registros de materiais');
           return;
         }
 
-        // Buscar materiais para fazer o match das tags
-        const { data: materiais, error: materiaisError } = await supabase
-          .from('materiais')
-          .select('tag, nome');
-
-        if (materiaisError) {
-          console.error('Erro ao buscar materiais:', materiaisError);
-          setError('Erro ao buscar materiais');
+        if (materiaisResult.error) {
+          console.error('Erro ao buscar materiais:', materiaisResult.error);
+          if (mounted) setError('Erro ao buscar materiais');
           return;
         }
 
-        if (registros && materiais) {
+        const { data: registros } = registrosResult;
+        const { data: materiais } = materiaisResult;
+
+        if (registros && materiais && mounted) {
           console.log('Registros encontrados:', registros.length);
           console.log('Materiais para match:', materiais.length);
           
-          // Criar mapa de tags para nomes de materiais
+          // Criar mapa otimizado para lookup de materiais
           const materiaisMap = materiais.reduce((acc, material) => {
             if (material.tag) {
               acc[material.tag.toString()] = material.nome;
@@ -86,61 +94,68 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
 
           console.log('Mapa de materiais:', materiaisMap);
 
-          // Formatar dados combinando informações
-          const historicoFormatado: HistoricoMaterialFormatado[] = registros.map((registro: any) => {
-            const materialNome = materiaisMap[registro.material] || 'Material não encontrado';
-            
-            return {
-              id: registro.id,
-              funcionario: registro.funcionario || '',
-              matricula: registro.matricula || '',
-              material_tag: registro.material || '',
-              material_nome: materialNome,
-              quantidade: Number(registro.quantidade) || 0,
-              data: registro.data || ''
-            };
-          });
+          // Processar dados de forma mais eficiente
+          const historicoFormatado: HistoricoMaterialFormatado[] = registros.map((registro: any) => ({
+            id: registro.id,
+            funcionario: registro.funcionario || '',
+            matricula: registro.matricula || '',
+            material_tag: registro.material || '',
+            material_nome: materiaisMap[registro.material] || 'Material não encontrado',
+            quantidade: Number(registro.quantidade) || 0,
+            data: registro.data || ''
+          }));
 
           console.log('Histórico formatado:', historicoFormatado);
           
-          // Ordenar por nome do funcionário (ordem alfabética)
+          // Ordenar usando localeCompare otimizado
           const historicoOrdenado = historicoFormatado.sort((a, b) => 
-            a.funcionario.localeCompare(b.funcionario)
+            a.funcionario.localeCompare(b.funcionario, undefined, { numeric: true })
           );
 
           setHistorico(historicoOrdenado);
         }
       } catch (error) {
-        console.error('Erro ao carregar histórico de materiais:', error);
-        setError('Erro ao carregar histórico de materiais');
+        if (error.name !== 'AbortError') {
+          console.error('Erro ao carregar histórico de materiais:', error);
+          if (mounted) setError('Erro ao carregar histórico de materiais');
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchHistorico();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
   }, [refreshKey]);
 
-  // Função para agrupar histórico por funcionário
-  const getHistoricoAgrupado = (): FuncionarioComMateriais[] => {
-    let historicoFiltrado = [...historico];
+  // Otimizar função de agrupamento com memoização
+  const getHistoricoAgrupado = useCallback((): FuncionarioComMateriais[] => {
+    let historicoFiltrado = historico;
 
-    // Aplicar filtros
+    // Aplicar filtros de forma mais eficiente
     if (filtros.funcionario) {
+      const termoBusca = filtros.funcionario.toLowerCase();
       historicoFiltrado = historicoFiltrado.filter(item => 
-        item.funcionario.toLowerCase().includes(filtros.funcionario.toLowerCase()) ||
+        item.funcionario.toLowerCase().includes(termoBusca) ||
         item.matricula.includes(filtros.funcionario)
       );
     }
 
     if (filtros.material) {
+      const termoBusca = filtros.material.toLowerCase();
       historicoFiltrado = historicoFiltrado.filter(item => 
-        item.material_nome.toLowerCase().includes(filtros.material.toLowerCase()) ||
+        item.material_nome.toLowerCase().includes(termoBusca) ||
         item.material_tag.includes(filtros.material)
       );
     }
 
-    // Agrupar por funcionário
+    // Agrupar de forma mais eficiente
     const grupos = historicoFiltrado.reduce((acc, item) => {
       const key = `${item.matricula}-${item.funcionario}`;
       if (!acc[key]) {
@@ -156,11 +171,16 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
       return acc;
     }, {} as Record<string, FuncionarioComMateriais>);
 
-    return Object.values(grupos).sort((a, b) => a.funcionario.localeCompare(b.funcionario));
-  };
+    return Object.values(grupos).sort((a, b) => 
+      a.funcionario.localeCompare(b.funcionario, undefined, { numeric: true })
+    );
+  }, [historico, filtros]);
+
+  // Memoizar histórico agrupado
+  const historicoAgrupado = useMemo(() => getHistoricoAgrupado(), [getHistoricoAgrupado]);
 
   return {
-    historico: getHistoricoAgrupado(),
+    historico: historicoAgrupado,
     loading,
     error,
     filtros,
