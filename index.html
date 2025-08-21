@@ -67,10 +67,71 @@
       .app-loaded {
         opacity: 1;
       }
+      
+      /* Additional critical styles to prevent layout shift */
+      .container {
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      
+      .flex {
+        display: flex;
+      }
+      
+      .flex-col {
+        flex-direction: column;
+      }
+      
+      .items-center {
+        align-items: center;
+      }
+      
+      .justify-center {
+        justify-content: center;
+      }
+      
+      .min-h-screen {
+        min-height: 100vh;
+      }
+      
+      .text-center {
+        text-align: center;
+      }
+      
+      .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+        --tw-space-y-reverse: 0;
+        margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+        margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+      }
+      
+      .bg-primary {
+        background-color: hsl(var(--primary));
+      }
+      
+      .text-primary-foreground {
+        color: hsl(var(--primary-foreground));
+      }
+      
+      .px-4 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      
+      .py-2 {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+      }
+      
+      .rounded {
+        border-radius: 0.25rem;
+      }
     </style>
 
-    <!-- Preload and defer the full CSS file with cache optimization -->
-    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet';document.documentElement.classList.add('app-loaded')">
+    <!-- Async CSS loading with fallback -->
+    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet';document.documentElement.classList.add('app-loaded')" fetchpriority="low">
     <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
 
     <!-- Preload critical JavaScript with high priority and cache hints -->
@@ -94,6 +155,26 @@
     <script>
       // Add loading class initially, will be removed when CSS loads
       document.documentElement.classList.add('app-loading');
+      
+      // Fallback CSS loader in case preload fails
+      (function() {
+        var cssLoaded = false;
+        var checkCSS = function() {
+          if (!cssLoaded) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '/src/index.css';
+            link.onload = function() {
+              document.documentElement.classList.add('app-loaded');
+            };
+            document.head.appendChild(link);
+            cssLoaded = true;
+          }
+        };
+        
+        // Check if CSS loaded after 100ms
+        setTimeout(checkCSS, 100);
+      })();
     </script>
   </head>
 
