@@ -16,7 +16,6 @@ import { EmprestimosTab } from "@/components/admin/EmprestimosTab";
 import { EstoqueManager } from "@/components/admin/EstoqueManager";
 import { HistoricoMateriaisTab } from "@/components/admin/HistoricoMateriaisTab";
 import { calculateAdminStats } from "@/utils/adminCalculations";
-import type { FuncionarioComFerramentas } from "@/types";
 
 const Admin = () => {
   const { toast } = useToast();
@@ -64,13 +63,6 @@ const Admin = () => {
     navigate("/");
   };
 
-  const handleNotificarFuncionario = async (funcionario: FuncionarioComFerramentas) => {
-    // Para cada ferramenta do funcionário, enviar uma notificação
-    for (const ferramenta of funcionario.ferramentas) {
-      await notificarFuncionario(funcionario, ferramenta);
-    }
-  };
-
   if (!isLoggedIn) {
     return <AdminLogin onLogin={login} />;
   }
@@ -99,8 +91,8 @@ const Admin = () => {
               funcionariosComFerramentas={funcionariosComFerramentas}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
-              onNotificarFuncionario={handleNotificarFuncionario}
-              isNotifying={typeof isNotifying === 'string' ? isNotifying !== null : false}
+              onNotificarFuncionario={notificarFuncionario}
+              isNotifying={isNotifying}
               loading={loadingFuncionarios || loadingFerramentas}
               totalFerramentasEmprestadas={stats.totalFerramentasEmprestadas}
             />
