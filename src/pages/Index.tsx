@@ -1,10 +1,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, Upload, Package, Users, Shield, RefreshCw } from "lucide-react";
+import { Download, Upload, Users, Shield, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { memo } from "react";
 
-const Index = () => {
+// Memoize the Index component to prevent unnecessary re-renders
+const Index = memo(() => {
   const navigate = useNavigate();
 
   const handleRefresh = () => {
@@ -22,6 +24,8 @@ const Index = () => {
                 src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
                 alt="AVB Logo" 
                 className="w-6 h-6 md:w-10 md:h-10 brightness-0 invert"
+                loading="eager"
+                decoding="async"
               />
             </div>
             <div>
@@ -135,6 +139,8 @@ const Index = () => {
       </main>
     </div>
   );
-};
+});
+
+Index.displayName = "Index";
 
 export default Index;
