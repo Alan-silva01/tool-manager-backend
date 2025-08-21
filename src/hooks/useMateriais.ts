@@ -51,7 +51,7 @@ export const useMateriais = (refreshKey?: number) => {
           setMateriais(materiaisFormatados);
         }
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        if (error?.name !== 'AbortError') {
           console.error('❌ Erro ao carregar materiais:', error);
           setMateriais([]);
         }

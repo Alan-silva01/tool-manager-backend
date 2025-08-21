@@ -77,8 +77,8 @@ export const useFuncionariosData = (refreshKey?: number) => {
           console.log('✅ Funcionários mapeados:', Object.keys(funcionariosMap).length);
           setFuncionarios(funcionariosMap);
         }
-      } catch (error) {
-        if (error.name !== 'AbortError') {
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') {
           console.error('❌ Erro ao carregar funcionários:', error);
           setFuncionarios({});
         }

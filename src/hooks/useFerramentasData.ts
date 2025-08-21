@@ -65,8 +65,8 @@ export const useFerramentasData = (refreshKey: number = 0) => {
         console.log('✅ Ferramentas formatadas:', ferramentasFormatadas.length);
         setFerramentas(ferramentasFormatadas);
       }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
         console.error('❌ Erro ao carregar ferramentas:', err);
         setFerramentas([]);
       }
