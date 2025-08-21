@@ -30,9 +30,9 @@ const Admin = () => {
 
   // Data hooks
   const { funcionarios, loading: loadingFuncionarios } = useFuncionarios(refreshKey);
-  const { ferramentas, loading: loadingFerramentas } = useFerramentas(refreshKey);
+  const { ferramentas, loading: loadingFerramentas, refetch: refetchFerramentas } = useFerramentas(refreshKey);
   const { materiais, loading: loadingMateriais } = useMateriais(refreshKey);
-  const { funcionariosComFerramentas } = useFuncionariosComFerramentas(ferramentas, refreshKey);
+  const { funcionariosComFerramentas, refetch: refetchFuncionariosComFerramentas } = useFuncionariosComFerramentas(ferramentas, refreshKey);
 
   // Calcular estatísticas
   const stats = calculateAdminStats(funcionariosComFerramentas, ferramentas, materiais);
@@ -40,8 +40,25 @@ const Admin = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
+      console.log('Iniciando atualização de dados...');
+      
+      // Incrementar a chave de refresh para forçar recarga dos hooks
       setRefreshKey(prev => prev + 1);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Executar refetch específico onde disponível
+      if (refetchFerramentas) {
+        await refetchFerramentas();
+      }
+      
+      if (refetchFuncionariosComFerramentas) {
+        await refetchFuncionariosComFerramentas();
+      }
+
+      // Aguardar um momento para garantir que os dados sejam atualizados
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Dados atualizados com sucesso');
+      
       toast({
         title: "Dados atualizados",
         description: "As informações foram recarregadas com sucesso"
