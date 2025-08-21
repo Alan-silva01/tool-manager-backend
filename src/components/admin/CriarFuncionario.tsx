@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,35 @@ interface CriarFuncionarioProps {
   onSuccess: () => void;
 }
 
-type SetorType = "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro";
+type SetorType =
+  | "Usinagem industrial"
+  | "Oficina cantilever"
+  | "Oficina de guias"
+  | "Montagem de gaiola"
+  | "Oficina de mancal"
+  | "Usinagem de cilindros"
+  | "Oficina central"
+  | "Outro";
+
+// Função para exibir no formato (99)99137-2552
+const formatWhatsAppDisplay = (value: string) => {
+  const digits = value.replace(/\D/g, ""); // remove tudo que não é número
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
+  return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+};
+
+// Função para salvar no banco no formato 559991372552
+const normalizeWhatsAppToSave = (value: string) => {
+  const digits = value.replace(/\D/g, ""); // só números
+  if (digits.length < 10) return ""; // inválido
+
+  const ddd = digits.slice(0, 2);
+  const numeroSemNove = digits.slice(3); // remove o 9 logo após o DDD
+  const ultimos8 = numeroSemNove.slice(-8); // pega 8 últimos
+  return `55${ddd}${ultimos8}`;
+};
 
 export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
   const [nome, setNome] = useState("");
@@ -31,7 +58,7 @@ export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!nome || !matricula || !setor) {
       toast({
         title: "Erro",
@@ -44,14 +71,12 @@ export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from("funcionarios")
-        .insert({
-          nome,
-          matricula: parseInt(matricula),
-          setor: setor as SetorType,
-          numero_whatsapp: rawWhatsApp || null,
-        });
+      const { error } = await supabase.from("funcionarios").insert({
+        nome,
+        matricula: parseInt(matricula),
+        setor: setor as SetorType,
+        numero_whatsapp: rawWhatsApp || null,
+      });
 
       if (error) {
         console.error("Erro ao criar funcionário:", error);
@@ -69,7 +94,7 @@ export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
       setSetor("");
       setNumeroWhatsApp("");
       setRawWhatsApp("");
-      
+
       onSuccess();
     } catch (error) {
       console.error("Erro:", error);
@@ -104,7 +129,7 @@ export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="matricula">Matrícula *</Label>
               <Input
@@ -142,8 +167,10 @@ export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
               <WhatsAppInput
                 id="whatsapp"
                 value={numeroWhatsApp}
-                onChange={setNumeroWhatsApp}
-                onRawValueChange={setRawWhatsApp}
+                onChange={(val) => {
+                  setNumeroWhatsApp(formatWhatsAppDisplay(val));
+                  setRawWhatsApp(normalizeWhatsAppToSave(val));
+                }}
               />
             </div>
           </div>
