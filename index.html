@@ -9,6 +9,9 @@
     <meta name="author" content="AVB" />
     <link rel="icon" href="/lovable-uploads/511430f2-a9a3-462b-8b72-decc865a19d6.png" type="image/png">
 
+    <!-- Cache optimization hints -->
+    <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable">
+    
     <!-- DNS prefetch and preconnect for better performance -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
     
@@ -66,16 +69,16 @@
       }
     </style>
 
-    <!-- Preload and defer the full CSS file -->
+    <!-- Preload and defer the full CSS file with cache optimization -->
     <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet';document.documentElement.classList.add('app-loaded')">
     <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
 
-    <!-- Preload critical JavaScript with high priority -->
+    <!-- Preload critical JavaScript with high priority and cache hints -->
     <link rel="modulepreload" href="/src/main.tsx" fetchpriority="high">
     <link rel="modulepreload" href="/src/App.tsx" fetchpriority="high">
     <link rel="modulepreload" href="/src/pages/Index.tsx" fetchpriority="high">
     
-    <!-- Preload React and other critical dependencies -->
+    <!-- Preload React and other critical dependencies with cache optimization -->
     <link rel="preload" href="/node_modules/react/index.js" as="script" crossorigin>
     <link rel="preload" href="/node_modules/react-dom/index.js" as="script" crossorigin>
 
