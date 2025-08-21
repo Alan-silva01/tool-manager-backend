@@ -38,6 +38,7 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
   const [historico, setHistorico] = useState<HistoricoMaterialFormatado[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
   const [filtros, setFiltros] = useState<HistoricoFiltros>({
     funcionario: '',
     material: '',
@@ -52,11 +53,16 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
       try {
         console.log('Buscando histórico de materiais...');
         setError(null);
+        setNeedsAuth(false);
+        
+        // Criar uma sessão anônima temporária para acessar os dados
+        // Como não temos auth real implementado, vamos usar o client direto
+        // mas com tratamento de erro adequado
         
         // Buscar dados em paralelo para melhor performance
         const [registrosResult, materiaisResult] = await Promise.all([
           supabase
-            .from('registro_mate_funcionarios' as any)
+            .from('registro_mate_funcionarios')
             .select('*')
             .abortSignal(controller.signal),
           supabase
@@ -67,12 +73,35 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
 
         if (registrosResult.error) {
           console.error('Erro ao buscar registros:', registrosResult.error);
+          
+          // Se o erro for relacionado a RLS/auth, mostrar que precisa de autenticação
+          if (registrosResult.error.code === 'PGRST116' || 
+              registrosResult.error.message?.includes('row-level security') ||
+              registrosResult.error.message?.includes('insufficient_privilege')) {
+            if (mounted) {
+              setNeedsAuth(true);
+              setError('Acesso negado: É necessário estar autenticado para visualizar o histórico');
+            }
+            return;
+          }
+          
           if (mounted) setError('Erro ao buscar registros de materiais');
           return;
         }
 
         if (materiaisResult.error) {
           console.error('Erro ao buscar materiais:', materiaisResult.error);
+          
+          if (materiaisResult.error.code === 'PGRST116' || 
+              materiaisResult.error.message?.includes('row-level security') ||
+              materiaisResult.error.message?.includes('insufficient_privilege')) {
+            if (mounted) {
+              setNeedsAuth(true);
+              setError('Acesso negado: É necessário estar autenticado para visualizar o histórico');
+            }
+            return;
+          }
+          
           if (mounted) setError('Erro ao buscar materiais');
           return;
         }
@@ -117,7 +146,19 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
       } catch (error) {
         if (error.name !== 'AbortError') {
           console.error('Erro ao carregar histórico de materiais:', error);
-          if (mounted) setError('Erro ao carregar histórico de materiais');
+          
+          // Verificar se é erro de autenticação/RLS
+          const errorMessage = error?.message || '';
+          if (errorMessage.includes('row-level security') || 
+              errorMessage.includes('insufficient_privilege') ||
+              errorMessage.includes('PGRST116')) {
+            if (mounted) {
+              setNeedsAuth(true);
+              setError('Acesso negado: É necessário estar autenticado para visualizar o histórico');
+            }
+          } else if (mounted) {
+            setError('Erro ao carregar histórico de materiais');
+          }
         }
       } finally {
         if (mounted) {
@@ -183,6 +224,7 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
     historico: historicoAgrupado,
     loading,
     error,
+    needsAuth,
     filtros,
     setFiltros
   };
