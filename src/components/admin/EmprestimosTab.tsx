@@ -36,7 +36,7 @@ export const EmprestimosTab = ({
       funcionario.nome.toLowerCase().includes(searchLower) ||
       funcionario.matricula.toString().includes(searchLower) ||
       funcionario.setor.toLowerCase().includes(searchLower) ||
-      funcionario.ferramentasEmprestadas.some(ferramenta => 
+      funcionario.ferramentas.some(ferramenta => 
         ferramenta.nome.toLowerCase().includes(searchLower)
       )
     );
@@ -138,8 +138,8 @@ export const EmprestimosTab = ({
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {funcionario.ferramentasEmprestadas.map((ferramenta) => (
-                            <Badge key={ferramenta.id} variant="secondary" className="text-xs">
+                          {funcionario.ferramentas.map((ferramenta) => (
+                            <Badge key={ferramenta.tag} variant="secondary" className="text-xs">
                               {ferramenta.nome}
                             </Badge>
                           ))}
