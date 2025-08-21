@@ -14,14 +14,20 @@ interface CriarFuncionarioProps {
   onSuccess: () => void;
 }
 
+type SetorType = "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro";
+
 export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
   const [nome, setNome] = useState("");
   const [matricula, setMatricula] = useState("");
-  const [setor, setSetor] = useState<"Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro" | "">("");
+  const [setor, setSetor] = useState<SetorType | "">("");
   const [numeroWhatsApp, setNumeroWhatsApp] = useState("");
   const [rawWhatsApp, setRawWhatsApp] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const handleSetorChange = (value: string) => {
+    setSetor(value as SetorType);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +49,7 @@ export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
         .insert({
           nome,
           matricula: parseInt(matricula),
-          setor: setor as "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro",
+          setor: setor as SetorType,
           numero_whatsapp: rawWhatsApp || null,
         });
 
@@ -114,7 +120,7 @@ export const CriarFuncionario = ({ onSuccess }: CriarFuncionarioProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="setor">Setor *</Label>
-              <Select value={setor} onValueChange={setSetor} required>
+              <Select value={setor} onValueChange={handleSetorChange} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o setor" />
                 </SelectTrigger>

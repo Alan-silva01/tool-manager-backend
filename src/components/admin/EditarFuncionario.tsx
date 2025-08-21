@@ -18,20 +18,26 @@ interface EditarFuncionarioProps {
   onSuccess: () => void;
 }
 
+type SetorType = "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro";
+
 export const EditarFuncionario = ({ funcionario, open, onOpenChange, onSuccess }: EditarFuncionarioProps) => {
   const [nome, setNome] = useState("");
   const [matricula, setMatricula] = useState("");
-  const [setor, setSetor] = useState<"Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro" | "">("");
+  const [setor, setSetor] = useState<SetorType | "">("");
   const [numeroWhatsApp, setNumeroWhatsApp] = useState("");
   const [rawWhatsApp, setRawWhatsApp] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const handleSetorChange = (value: string) => {
+    setSetor(value as SetorType);
+  };
+
   useEffect(() => {
     if (funcionario) {
       setNome(funcionario.nome);
       setMatricula(funcionario.matricula.toString());
-      setSetor(funcionario.setor as "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro");
+      setSetor(funcionario.setor as SetorType);
       // O número já vem formatado do banco, então passa direto
       setNumeroWhatsApp(funcionario.numero_whatsapp || "");
       setRawWhatsApp(funcionario.numero_whatsapp || "");
@@ -58,7 +64,7 @@ export const EditarFuncionario = ({ funcionario, open, onOpenChange, onSuccess }
         .update({
           nome,
           matricula: parseInt(matricula),
-          setor: setor as "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro",
+          setor: setor as SetorType,
           numero_whatsapp: rawWhatsApp || null,
         })
         .eq("id", funcionario.id);
@@ -122,7 +128,7 @@ export const EditarFuncionario = ({ funcionario, open, onOpenChange, onSuccess }
 
           <div className="space-y-2">
             <Label htmlFor="edit-setor">Setor *</Label>
-            <Select value={setor} onValueChange={setSetor} required>
+            <Select value={setor} onValueChange={handleSetorChange} required>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o setor" />
               </SelectTrigger>
