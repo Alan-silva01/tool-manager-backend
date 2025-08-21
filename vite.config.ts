@@ -25,6 +25,12 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
+          // Bundle React libraries together as high priority
+          'react-vendor': ['react', 'react-dom'],
+          // Bundle router separately to allow lazy loading
+          'router': ['react-router-dom'],
+          // Bundle query and state management
+          'query': ['@tanstack/react-query'],
           // Bundle lucide icons together to reduce separate requests
           'lucide': ['lucide-react'],
           // Bundle UI components together
@@ -34,10 +40,14 @@ export default defineConfig(({ mode }) => ({
             '@/components/ui/toast',
             '@/components/ui/toaster'
           ],
-          // Bundle React libraries together
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          // Bundle query and state management
-          'query': ['@tanstack/react-query']
+        },
+        // Optimize chunk naming for better caching
+        chunkFileNames: (chunkInfo) => {
+          // Use content hash for better caching
+          if (chunkInfo.name === 'react-vendor') {
+            return 'assets/react-vendor.[hash].js';
+          }
+          return 'assets/[name].[hash].js';
         }
       }
     },
@@ -46,6 +56,12 @@ export default defineConfig(({ mode }) => ({
     // Enable CSS code splitting
     cssCodeSplit: true,
     // Optimize chunk size warnings
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    // Enable source maps for better debugging without affecting performance
+    sourcemap: false,
+    // Optimize minification
+    minify: 'esbuild',
+    // Optimize target for modern browsers
+    target: 'es2020'
   }
 }));

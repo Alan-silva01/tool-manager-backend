@@ -12,6 +12,9 @@
     <!-- DNS prefetch and preconnect for better performance -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
     
+    <!-- Preconnect to own domain to establish early connection -->
+    <link rel="preconnect" href="/" crossorigin>
+    
     <!-- Inline critical CSS to prevent render blocking -->
     <style>
       /* Critical CSS - Base Tailwind and layout styles */
@@ -67,10 +70,14 @@
     <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet';document.documentElement.classList.add('app-loaded')">
     <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
 
-    <!-- Preload critical JavaScript -->
-    <link rel="modulepreload" href="/src/main.tsx">
-    <link rel="modulepreload" href="/src/App.tsx">
-    <link rel="modulepreload" href="/src/pages/Index.tsx">
+    <!-- Preload critical JavaScript with high priority -->
+    <link rel="modulepreload" href="/src/main.tsx" fetchpriority="high">
+    <link rel="modulepreload" href="/src/App.tsx" fetchpriority="high">
+    <link rel="modulepreload" href="/src/pages/Index.tsx" fetchpriority="high">
+    
+    <!-- Preload React and other critical dependencies -->
+    <link rel="preload" href="/node_modules/react/index.js" as="script" crossorigin>
+    <link rel="preload" href="/node_modules/react-dom/index.js" as="script" crossorigin>
 
     <meta property="og:title" content="AVB - Aço Verde Brasil" />
     <meta property="og:description" content="Sistema de Controle de Estoque e Ferramentaria" />
@@ -89,6 +96,6 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
   </body>
 </html>
