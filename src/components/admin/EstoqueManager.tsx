@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Search, Package, Wrench, Users, Shield, PackagePlus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatWhatsAppForDisplay } from "@/utils/whatsappFormatter";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1576,7 +1577,12 @@ export const EstoqueManager = ({
                           <Badge variant="outline">{funcionario.matricula}</Badge>
                         </TableCell>
                         <TableCell>{funcionario.setor}</TableCell>
-                        <TableCell>{funcionario.numero_whatsapp || 'Não informado'}</TableCell>
+                        <TableCell>
+                          {funcionario.numero_whatsapp 
+                            ? formatWhatsAppForDisplay(funcionario.numero_whatsapp)
+                            : 'Não informado'
+                          }
+                        </TableCell>
                         <TableCell className="text-center">
                           <Badge variant={funcionario.posse_ferramentas.length > 0 ? "secondary" : "outline"}>
                             {funcionario.posse_ferramentas.length} ferramentas
