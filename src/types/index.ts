@@ -21,7 +21,6 @@ export interface Funcionario {
   setor: string;
   numero_whatsapp: string;
   posse_ferramentas: string[];
-  cod_nfc?: number;
 }
 
 export interface Material {

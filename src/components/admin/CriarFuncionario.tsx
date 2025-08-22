@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { applyWhatsAppMask, removeWhatsAppFormatting } from "@/utils/whatsappFormatter";
+import { formatWhatsAppDisplay, normalizeWhatsAppToSave, validateWhatsAppFormat } from "@/utils/whatsappHelpers";
 
 type SetorType = "" | "Usinagem industrial" | "Oficina cantilever" | "Oficina de guias" | "Montagem de gaiola" | "Oficina de mancal" | "Usinagem de cilindros" | "Oficina central" | "Outro";
 
@@ -24,45 +25,12 @@ export const CriarFuncionario = ({ onClose, onFuncionarioAdicionado }: CriarFunc
   const { toast } = useToast();
 
   const handleWhatsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const maskedValue = applyWhatsAppMask(e.target.value);
-    setWhatsapp(maskedValue);
+    const formatted = formatWhatsAppDisplay(e.target.value);
+    setWhatsapp(formatted);
   };
 
   const handleSetorChange = (value: string) => {
     setSetor(value as SetorType);
-  };
-
-  const formatWhatsAppForSave = (whatsappFormatted: string): string => {
-    if (!whatsappFormatted) return '';
-    
-    // Remove toda formatação
-    const cleanNumber = removeWhatsAppFormatting(whatsappFormatted);
-    console.log('Número limpo:', cleanNumber);
-    
-    // Se tem 11 dígitos (DDD + 9 + número), remove o 9 extra
-    if (cleanNumber.length === 11) {
-      const ddd = cleanNumber.slice(0, 2);
-      const numeroSem9 = cleanNumber.slice(3); // Remove o 9 do meio
-      const numeroFinal = `55${ddd}${numeroSem9}`;
-      console.log('Número formatado para salvar (11 dígitos):', numeroFinal);
-      return numeroFinal;
-    }
-    
-    // Se tem 10 dígitos (DDD + número sem 9), adiciona 55 na frente
-    if (cleanNumber.length === 10) {
-      const numeroFinal = `55${cleanNumber}`;
-      console.log('Número formatado para salvar (10 dígitos):', numeroFinal);
-      return numeroFinal;
-    }
-    
-    // Se já tem 12 dígitos e começa com 55, pode estar no formato correto
-    if (cleanNumber.length === 12 && cleanNumber.startsWith('55')) {
-      console.log('Número já no formato correto:', cleanNumber);
-      return cleanNumber;
-    }
-    
-    console.log('Formato não reconhecido, retornando como está:', cleanNumber);
-    return cleanNumber;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,16 +45,26 @@ export const CriarFuncionario = ({ onClose, onFuncionarioAdicionado }: CriarFunc
       return;
     }
 
+    // Validar WhatsApp se preenchido
+    if (whatsapp && !validateWhatsAppFormat(whatsapp)) {
+      toast({
+        title: "Erro",
+        description: "Número de WhatsApp deve ter o formato completo: (99)99999-9999",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const numeroParaSalvar = formatWhatsAppForSave(whatsapp);
+      const normalizedWhatsapp = normalizeWhatsAppToSave(whatsapp);
       
       console.log('Dados para salvar:', {
         nome,
         matricula: parseInt(matricula),
         setor,
-        numero_whatsapp: numeroParaSalvar,
+        numero_whatsapp: normalizedWhatsapp,
         cod_nfc: codNfc ? parseInt(codNfc) : null
       });
 
@@ -96,7 +74,7 @@ export const CriarFuncionario = ({ onClose, onFuncionarioAdicionado }: CriarFunc
           nome,
           matricula: parseInt(matricula),
           setor,
-          numero_whatsapp: numeroParaSalvar,
+          numero_whatsapp: normalizedWhatsapp,
           cod_nfc: codNfc ? parseInt(codNfc) : null,
           posse_ferramentas: []
         });
