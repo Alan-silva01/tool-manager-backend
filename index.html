@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -7,6 +8,11 @@
     <meta name="description" content="Sistema de Controle de Estoque e Ferramentaria" />
     <meta name="author" content="AVB" />
     <link rel="icon" href="/lovable-uploads/511430f2-a9a3-462b-8b72-decc865a19d6.png" type="image/png">
+
+    <!-- Preload critical resources to reduce dependency chain -->
+    <link rel="preload" href="/src/main.tsx" as="script" type="module">
+    <link rel="preload" href="/src/App.tsx" as="script" type="module">
+    <link rel="preload" href="/src/pages/Index.tsx" as="script" type="module">
 
     <meta property="og:title" content="AVB - Aço Verde Brasil" />
     <meta property="og:description" content="Sistema de Controle de Estoque e Ferramentaria" />

@@ -1,9 +1,33 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, Upload, Users, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import React from "react";
+
+// Inline critical SVGs to reduce network requests
+const DownloadIcon = () => (
+  <svg className="w-5 h-5 md:w-7 md:h-7 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const UploadIcon = () => (
+  <svg className="w-5 h-5 md:w-7 md:h-7 text-accent-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg className="w-5 h-5 md:w-7 md:h-7 text-secondary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
 
 const Index = () => {
   const navigate = useNavigate();
@@ -56,7 +80,7 @@ const Index = () => {
               className="text-primary-foreground hover:bg-primary-foreground/20"
               onClick={handleRefresh}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshIcon />
             </Button>
             <Button 
               variant="ghost" 
@@ -95,7 +119,7 @@ const Index = () => {
                 onFocus={() => preloadPage('pegar-item')}
               >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Download className="w-5 h-5 md:w-7 md:h-7 text-primary-foreground" />
+                  <DownloadIcon />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
@@ -120,7 +144,7 @@ const Index = () => {
                 onFocus={() => preloadPage('devolver-item')}
               >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-accent rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Upload className="w-5 h-5 md:w-7 md:h-7 text-accent-foreground" />
+                  <UploadIcon />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
@@ -145,7 +169,7 @@ const Index = () => {
                 onFocus={() => preloadPage('relatorios')}
               >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-secondary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Users className="w-5 h-5 md:w-7 md:h-7 text-secondary-foreground" />
+                  <UsersIcon />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
