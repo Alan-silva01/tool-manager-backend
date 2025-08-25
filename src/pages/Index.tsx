@@ -1,10 +1,30 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, Upload, Package, Users, RefreshCw } from "lucide-react";
+import { Download, Upload, Users, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import React from "react";
 
 const Index = () => {
   const navigate = useNavigate();
+
+  // Preload estratégico baseado em hover/focus
+  const preloadPage = React.useCallback((pageName: string) => {
+    switch (pageName) {
+      case 'pegar-item':
+        import("./PegarItem");
+        break;
+      case 'devolver-item':
+        import("./DevolverItem");
+        break;
+      case 'relatorios':
+        import("./Relatorios");
+        break;
+      case 'admin':
+        import("./Admin");
+        break;
+    }
+  }, []);
 
   const handleRefresh = () => {
     window.location.reload();
@@ -21,6 +41,7 @@ const Index = () => {
                 src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
                 alt="AVB Logo" 
                 className="w-6 h-6 md:w-10 md:h-10 brightness-0 invert"
+                loading="eager"
               />
             </div>
             <div>
@@ -42,6 +63,8 @@ const Index = () => {
               size="sm"
               className="text-primary-foreground hover:bg-primary-foreground/20"
               onClick={() => navigate("/admin")}
+              onMouseEnter={() => preloadPage('admin')}
+              onFocus={() => preloadPage('admin')}
             >
               Admin
             </Button>
@@ -68,6 +91,8 @@ const Index = () => {
                 variant="ghost"
                 className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-primary/5"
                 onClick={() => navigate("/pegar-item")}
+                onMouseEnter={() => preloadPage('pegar-item')}
+                onFocus={() => preloadPage('pegar-item')}
               >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                   <Download className="w-5 h-5 md:w-7 md:h-7 text-primary-foreground" />
@@ -91,6 +116,8 @@ const Index = () => {
                 variant="ghost"
                 className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-accent/5"
                 onClick={() => navigate("/devolver-item")}
+                onMouseEnter={() => preloadPage('devolver-item')}
+                onFocus={() => preloadPage('devolver-item')}
               >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-accent rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                   <Upload className="w-5 h-5 md:w-7 md:h-7 text-accent-foreground" />
@@ -114,6 +141,8 @@ const Index = () => {
                 variant="ghost"
                 className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-secondary/5"
                 onClick={() => navigate("/relatorios")}
+                onMouseEnter={() => preloadPage('relatorios')}
+                onFocus={() => preloadPage('relatorios')}
               >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-secondary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                   <Users className="w-5 h-5 md:w-7 md:h-7 text-secondary-foreground" />
