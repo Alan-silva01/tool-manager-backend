@@ -66,6 +66,9 @@ const Index = () => {
                 alt="AVB Logo" 
                 className="w-6 h-6 md:w-10 md:h-10 brightness-0 invert"
                 loading="eager"
+                width="40"
+                height="40"
+                style={{ maxWidth: '40px', maxHeight: '40px' }}
               />
             </div>
             <div>
