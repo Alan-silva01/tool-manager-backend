@@ -1,3 +1,4 @@
+
 /**
  * Utilitários para formatação de números de WhatsApp
  */
