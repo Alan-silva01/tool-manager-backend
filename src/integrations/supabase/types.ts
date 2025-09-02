@@ -146,6 +146,30 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       registro_mate_funcionarios: {
         Row: {
           data: string | null
@@ -231,6 +255,10 @@ export type Database = {
       }
       http_set_curlopt: {
         Args: { curlopt: string; value: string }
+        Returns: boolean
+      }
+      is_authenticated: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       search_materiais: {
