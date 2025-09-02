@@ -5,29 +5,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-export const AdminLogin = () => {
+interface AdminLoginProps {
+  onLogin: () => void;
+}
+
+export const AdminLogin = ({ onLogin }: AdminLoginProps) => {
   const navigate = useNavigate();
-  const { signIn, signUp, loading } = useAuth();
-  const [loginData, setLoginData] = useState({ email: "", password: "" });
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const [loginData, setLoginData] = useState({ username: "", password: "" });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!loginData.email || !loginData.password) return;
-    
-    setIsLoading(true);
-    
-    if (isSignUp) {
-      await signUp(loginData.email, loginData.password);
+  const handleLogin = () => {
+    if (loginData.username === "admin" && loginData.password === "admin123") {
+      onLogin();
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo ao painel administrativo",
+      });
     } else {
-      await signIn(loginData.email, loginData.password);
+      toast({
+        title: "Credenciais inválidas",
+        description: "Verifique usuário e senha",
+        variant: "destructive",
+      });
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -46,56 +48,38 @@ export const AdminLogin = () => {
             <p className="text-muted-foreground">AVB - Aço Verde Brasil</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={loginData.email}
-                  onChange={(e) => setLoginData({...loginData, email: e.target.value})}
-                  placeholder="Digite seu email"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-                  placeholder="Digite sua senha"
-                  required
-                />
-              </div>
-              <Button 
-                type="submit"
-                className="w-full" 
-                disabled={!loginData.email || !loginData.password || isLoading || loading}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <img 
-                    src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
-                    alt="AVB Logo" 
-                    className="w-4 h-4 mr-2 brightness-0 invert"
-                  />
-                )}
-                {isSignUp ? "Criar Conta" : "Entrar no Sistema"}
-              </Button>
-            </form>
-            
-            <div className="text-center space-y-2">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setIsSignUp(!isSignUp)}
-                disabled={isLoading || loading}
-              >
-                {isSignUp ? "Já tem conta? Entre aqui" : "Não tem conta? Cadastre-se"}
-              </Button>
+            <div>
+              <Label htmlFor="username">Usuário</Label>
+              <Input
+                id="username"
+                value={loginData.username}
+                onChange={(e) => setLoginData({...loginData, username: e.target.value})}
+                placeholder="Digite seu usuário"
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={loginData.password}
+                onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                placeholder="Digite sua senha"
+              />
+            </div>
+            <Button 
+              className="w-full" 
+              onClick={handleLogin}
+              disabled={!loginData.username || !loginData.password}
+            >
+              <img 
+                src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
+                alt="AVB Logo" 
+                className="w-4 h-4 mr-2 brightness-0 invert"
+              />
+              Entrar no Sistema
+            </Button>
+            <div className="text-center">
               <Button 
                 variant="ghost" 
                 size="sm"

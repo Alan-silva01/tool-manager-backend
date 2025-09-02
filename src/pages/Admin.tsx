@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
 import { useFuncionariosComFerramentas } from "@/hooks/useFuncionariosComFerramentas";
 import { AdminLogin } from "@/components/admin/AdminLogin";
@@ -35,7 +35,7 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("emprestimos");
 
   // Auth e notificações
-  const { user, signOut, loading } = useAuth();
+  const { isLoggedIn, login, logout } = useAdminAuth();
   const { notificarFuncionario, isNotifying } = useNotificacoes();
 
   // Data hooks
@@ -86,9 +86,9 @@ const Admin = () => {
   }, [refetchFerramentas, refetchFuncionariosComFerramentas, toast]);
 
   const handleLogout = useCallback(() => {
-    signOut();
+    logout();
     navigate("/");
-  }, [signOut, navigate]);
+  }, [logout, navigate]);
 
   // Memoizar handlers
   const handleSearchChange = useCallback((term: string) => {
@@ -99,19 +99,8 @@ const Admin = () => {
     setActiveTab(value);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AdminLogin />;
+  if (!isLoggedIn) {
+    return <AdminLogin onLogin={login} />;
   }
 
   const isLoading = loadingFuncionarios || loadingFerramentas;
