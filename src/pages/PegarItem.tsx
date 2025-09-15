@@ -316,7 +316,7 @@ const PegarItem = () => {
       formData.append('total_itens', carrinho.length.toString());
       formData.append('categoria', categoria);
 
-      await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/pegar-ferramenta', {
+      await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta', {
         method: 'POST',
         mode: 'no-cors',
         body: formData,
@@ -336,7 +336,7 @@ const PegarItem = () => {
           fotoFormData.append('timestamp', new Date().toISOString());
           fotoFormData.append('categoria', categoria);
 
-          await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/pegar-ferramenta-imagem', {
+          await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta-imagem', {
             method: 'POST',
             mode: 'no-cors',
             body: fotoFormData,

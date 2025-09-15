@@ -31,7 +31,7 @@ export const useNotificacoes = () => {
 
       console.log('Enviando notificação:', webhookData);
 
-      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/notificar-funcionario', {
+      const response = await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/notificar-funcionario', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

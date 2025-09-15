@@ -202,7 +202,7 @@ const DevolverItem = () => {
       formData.append('timestamp', new Date().toISOString());
       formData.append('total_ferramentas', ferramentasSelecionadas.length.toString());
 
-      await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/devolver-ferramenta', {
+      await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/devolver-ferramenta', {
         method: 'POST',
         mode: 'no-cors',
         body: formData,
@@ -220,7 +220,7 @@ const DevolverItem = () => {
           fotoFormData.append('foto', foto, foto.name);
           fotoFormData.append('timestamp', new Date().toISOString());
 
-          await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/devolver-ferramenta-imagem', {
+          await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/devolver-ferramenta-imagem', {
             method: 'POST',
             mode: 'no-cors',
             body: fotoFormData,

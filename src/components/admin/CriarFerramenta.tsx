@@ -47,10 +47,10 @@ export const CriarFerramenta = () => {
       };
 
       console.log('=== ENVIANDO PARA WEBHOOK ===');
-      console.log('URL:', 'https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta');
+      console.log('URL:', 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/salvar-ferramenta');
       console.log('Data:', webhookData);
 
-      const response = await fetch('https://dinastia-n8n-webhook.ihslvn.easypanel.host/webhook/salvar-ferramenta', {
+      const response = await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/salvar-ferramenta', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
