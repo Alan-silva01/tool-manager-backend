@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const DevolverItem = () => {
   const navigate = useNavigate();
@@ -249,29 +250,32 @@ const DevolverItem = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-primary text-primary-foreground p-4 shadow-sm">
-        <div className="container mx-auto flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-primary-foreground hover:bg-primary-foreground/20"
-            onClick={() => {
-              if (step === 'matricula') navigate('/');
-              else if (step === 'ferramentas') setStep('matricula');
-              else if (step === 'fotos') setStep('ferramentas');
-              else if (step === 'confirmacao') setStep('fotos');
-            }}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold">Devolver Item</h1>
-            <p className="text-sm text-primary-foreground/80">
-              {step === 'matricula' && 'Digite sua matrícula'}
-              {step === 'ferramentas' && 'Selecione as ferramentas'}
-              {step === 'fotos' && 'Fotografe as ferramentas'}
-              {step === 'confirmacao' && 'Confirme a devolução'}
-            </p>
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={() => {
+                if (step === 'matricula') navigate('/');
+                else if (step === 'ferramentas') setStep('matricula');
+                else if (step === 'fotos') setStep('ferramentas');
+                else if (step === 'confirmacao') setStep('fotos');
+              }}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold">Devolver Item</h1>
+              <p className="text-sm text-primary-foreground/80">
+                {step === 'matricula' && 'Digite sua matrícula'}
+                {step === 'ferramentas' && 'Selecione as ferramentas'}
+                {step === 'fotos' && 'Fotografe as ferramentas'}
+                {step === 'confirmacao' && 'Confirme a devolução'}
+              </p>
+            </div>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Relatorios = () => {
   const navigate = useNavigate();
@@ -88,15 +89,18 @@ const Relatorios = () => {
               </p>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-primary-foreground hover:bg-primary-foreground/20"
-            onClick={handleRefresh} 
-            disabled={isLoading}
-          >
-            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={handleRefresh} 
+              disabled={isLoading}
+            >
+              <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
       </header>
 

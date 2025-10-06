@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import React from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Inline critical SVGs to reduce network requests
 const DownloadIcon = () => (
@@ -77,6 +78,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button 
               variant="ghost" 
               size="icon"

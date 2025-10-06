@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { LogOut, RefreshCw } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface AdminHeaderProps {
   onRefresh: () => void;
@@ -26,6 +27,7 @@ export const AdminHeader = ({ onRefresh, onLogout, isRefreshing }: AdminHeaderPr
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="sm"
