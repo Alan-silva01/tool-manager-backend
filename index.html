@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,10 +9,17 @@
     <meta name="author" content="AVB" />
     <link rel="icon" href="/lovable-uploads/511430f2-a9a3-462b-8b72-decc865a19d6.png" type="image/png">
 
+    <!-- DNS prefetch and preconnect for Supabase -->
+    <link rel="dns-prefetch" href="https://yjgwfwbyzufrwbkcbtzy.supabase.co">
+    <link rel="preconnect" href="https://yjgwfwbyzufrwbkcbtzy.supabase.co" crossorigin>
+    
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="/src/index.css" as="style">
+    
     <!-- Preload critical resources to reduce dependency chain -->
-    <link rel="preload" href="/src/main.tsx" as="script" type="module">
-    <link rel="preload" href="/src/App.tsx" as="script" type="module">
-    <link rel="preload" href="/src/pages/Index.tsx" as="script" type="module">
+    <link rel="modulepreload" href="/src/main.tsx">
+    <link rel="modulepreload" href="/src/App.tsx">
+    <link rel="modulepreload" href="/src/pages/Index.tsx">
 
     <meta property="og:title" content="AVB - Aço Verde Brasil" />
     <meta property="og:description" content="Sistema de Controle de Estoque e Ferramentaria" />

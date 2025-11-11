@@ -33,17 +33,18 @@ const NotFound = React.lazy(() =>
 
 // Preload das páginas principais quando o usuário interage
 const preloadRoutes = () => {
-  // Preload apenas quando necessário
-  const preloadPegarItem = () => import("./pages/PegarItem");
-  const preloadDevolverItem = () => import("./pages/DevolverItem");
-  const preloadRelatorios = () => import("./pages/Relatorios");
+  // Usa requestIdleCallback para preload durante idle time
+  const schedulePreload = (preloadFn: () => Promise<any>) => {
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => preloadFn(), { timeout: 2000 });
+    } else {
+      setTimeout(preloadFn, 1000);
+    }
+  };
   
-  // Preload com delay para não impactar o carregamento inicial
-  setTimeout(() => {
-    preloadPegarItem();
-    preloadDevolverItem();
-    preloadRelatorios();
-  }, 2000);
+  schedulePreload(() => import("./pages/PegarItem"));
+  schedulePreload(() => import("./pages/DevolverItem"));
+  schedulePreload(() => import("./pages/Relatorios"));
 };
 
 // Configuração otimizada do QueryClient
