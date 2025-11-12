@@ -32,8 +32,17 @@ export const useAdminAuth = () => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Erro ao fazer logout:', error);
+      }
+    } finally {
+      // Sempre limpar o estado local, mesmo se houver erro
+      setSession(null);
+      // Limpar localStorage manualmente como fallback
+      localStorage.removeItem('supabase.auth.token');
+    }
   };
 
   return {
