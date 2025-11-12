@@ -419,6 +419,14 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      validate_employee: {
+        Args: { p_matricula: number }
+        Returns: {
+          nome: string
+          posse_ferramentas: Json
+          setor: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
