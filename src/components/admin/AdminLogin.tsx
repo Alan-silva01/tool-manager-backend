@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Eye, EyeOff } from "lucide-react";
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -16,21 +17,34 @@ export const AdminLogin = ({ onLogin }: AdminLoginProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({ username: "", password: "" });
 
   const handleLogin = () => {
-    if (loginData.username === "admin" && loginData.password === "admin123") {
-      onLogin();
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Bem-vindo ao painel administrativo",
-      });
-    } else {
-      toast({
-        title: "Credenciais inválidas",
-        description: "Verifique usuário e senha",
-        variant: "destructive",
-      });
+    // Reset errors
+    setErrors({ username: "", password: "" });
+    
+    const newErrors = { username: "", password: "" };
+    
+    if (loginData.username !== "admin") {
+      newErrors.username = "Usuário incorreto";
     }
+    
+    if (loginData.password !== "admin123") {
+      newErrors.password = "Senha incorreta";
+    }
+    
+    if (newErrors.username || newErrors.password) {
+      setErrors(newErrors);
+      return;
+    }
+    
+    // Login successful
+    onLogin();
+    toast({
+      title: "Login realizado com sucesso",
+      description: "Bem-vindo ao painel administrativo",
+    });
   };
 
   return (
@@ -58,19 +72,46 @@ export const AdminLogin = ({ onLogin }: AdminLoginProps) => {
                 <Input
                   id="username"
                   value={loginData.username}
-                  onChange={(e) => setLoginData({...loginData, username: e.target.value})}
+                  onChange={(e) => {
+                    setLoginData({...loginData, username: e.target.value});
+                    setErrors({...errors, username: ""});
+                  }}
                   placeholder="Digite seu usuário"
+                  className={errors.username ? "border-destructive" : ""}
                 />
+                {errors.username && (
+                  <p className="text-sm text-destructive mt-1">{errors.username}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-                  placeholder="Digite sua senha"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={loginData.password}
+                    onChange={(e) => {
+                      setLoginData({...loginData, password: e.target.value});
+                      setErrors({...errors, password: ""});
+                    }}
+                    placeholder="Digite sua senha"
+                    className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-sm text-destructive mt-1">{errors.password}</p>
+                )}
               </div>
               <Button 
                 className="w-full" 
