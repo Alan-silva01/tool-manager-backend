@@ -22,63 +22,45 @@ export const AdminLogin = ({ onLogin }: AdminLoginProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
+    // Reset errors
     setErrors({ email: "", password: "" });
     
+    // Validação básica
     const newErrors = { email: "", password: "" };
-    let hasValidationError = false;
     
-    // Validar email
     if (!loginData.email) {
       newErrors.email = "Email é obrigatório";
-      hasValidationError = true;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginData.email)) {
-      newErrors.email = "Formato de email inválido";
-      hasValidationError = true;
+      newErrors.email = "Email inválido";
     }
     
-    // Validar senha
     if (!loginData.password) {
       newErrors.password = "Senha é obrigatória";
-      hasValidationError = true;
-    } else if (loginData.password.length < 6) {
-      newErrors.password = "Senha muito curta";
-      hasValidationError = true;
     }
     
-    // Se houver erros de validação, mostrar e parar
-    if (hasValidationError) {
+    if (newErrors.email || newErrors.password) {
       setErrors(newErrors);
       return;
     }
     
     setIsLoading(true);
     
+    // Login com Supabase
     const { error } = await onLogin(loginData.email, loginData.password);
     
     setIsLoading(false);
     
     if (error) {
       if (error.message.includes("Invalid login credentials")) {
-        // Por segurança, não especificamos qual campo está errado
-        // quando as credenciais são inválidas
         setErrors({ 
-          email: "Credenciais inválidas",
-          password: "Credenciais inválidas"
+          email: "Email ou senha incorretos",
+          password: "Email ou senha incorretos"
         });
       } else if (error.message.includes("Email not confirmed")) {
-        setErrors({
-          email: "Email não confirmado. Verifique sua caixa de entrada",
-          password: ""
-        });
-      } else if (error.message.includes("email")) {
-        setErrors({
-          email: error.message,
-          password: ""
-        });
-      } else if (error.message.includes("password")) {
-        setErrors({
-          email: "",
-          password: error.message
+        toast({
+          title: "Email não confirmado",
+          description: "Verifique seu email para confirmar sua conta",
+          variant: "destructive",
         });
       } else {
         toast({
