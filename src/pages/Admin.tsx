@@ -35,7 +35,7 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("emprestimos");
 
   // Auth e notificações
-  const { isLoggedIn, login, logout } = useAdminAuth();
+  const { isLoggedIn, login, logout, isLoading: authLoading } = useAdminAuth();
   const { notificarFuncionario, isNotifying } = useNotificacoes();
 
   // Data hooks
@@ -98,6 +98,23 @@ const Admin = () => {
   const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
   }, []);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <img 
+              src="/lovable-uploads/3b7074e8-e9f6-44ab-ba68-338592581b56.png" 
+              alt="AVB Logo" 
+              className="w-14 h-14 animate-pulse"
+            />
+          </div>
+          <p className="text-muted-foreground">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return <AdminLogin onLogin={login} />;

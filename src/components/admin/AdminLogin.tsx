@@ -7,44 +7,74 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 interface AdminLoginProps {
-  onLogin: () => void;
+  onLogin: (email: string, password: string) => Promise<{ error: any }>;
 }
 
 export const AdminLogin = ({ onLogin }: AdminLoginProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({ username: "", password: "" });
+  const [errors, setErrors] = useState({ email: "", password: "" });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // Reset errors
-    setErrors({ username: "", password: "" });
+    setErrors({ email: "", password: "" });
     
-    const newErrors = { username: "", password: "" };
+    // Validação básica
+    const newErrors = { email: "", password: "" };
     
-    if (loginData.username !== "admin") {
-      newErrors.username = "Usuário incorreto";
+    if (!loginData.email) {
+      newErrors.email = "Email é obrigatório";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginData.email)) {
+      newErrors.email = "Email inválido";
     }
     
-    if (loginData.password !== "admin123") {
-      newErrors.password = "Senha incorreta";
+    if (!loginData.password) {
+      newErrors.password = "Senha é obrigatória";
     }
     
-    if (newErrors.username || newErrors.password) {
+    if (newErrors.email || newErrors.password) {
       setErrors(newErrors);
       return;
     }
     
-    // Login successful
-    onLogin();
-    toast({
-      title: "Login realizado com sucesso",
-      description: "Bem-vindo ao painel administrativo",
-    });
+    setIsLoading(true);
+    
+    // Login com Supabase
+    const { error } = await onLogin(loginData.email, loginData.password);
+    
+    setIsLoading(false);
+    
+    if (error) {
+      if (error.message.includes("Invalid login credentials")) {
+        setErrors({ 
+          email: "Email ou senha incorretos",
+          password: "Email ou senha incorretos"
+        });
+      } else if (error.message.includes("Email not confirmed")) {
+        toast({
+          title: "Email não confirmado",
+          description: "Verifique seu email para confirmar sua conta",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro ao fazer login",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo ao painel administrativo",
+      });
+    }
   };
 
   return (
@@ -68,19 +98,21 @@ export const AdminLogin = ({ onLogin }: AdminLoginProps) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="username">Usuário</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="username"
-                  value={loginData.username}
+                  id="email"
+                  type="email"
+                  value={loginData.email}
                   onChange={(e) => {
-                    setLoginData({...loginData, username: e.target.value});
-                    setErrors({...errors, username: ""});
+                    setLoginData({...loginData, email: e.target.value});
+                    setErrors({...errors, email: ""});
                   }}
-                  placeholder="Digite seu usuário"
-                  className={errors.username ? "border-destructive" : ""}
+                  placeholder="Digite seu email"
+                  className={errors.email ? "border-destructive" : ""}
+                  disabled={isLoading}
                 />
-                {errors.username && (
-                  <p className="text-sm text-destructive mt-1">{errors.username}</p>
+                {errors.email && (
+                  <p className="text-sm text-destructive mt-1">{errors.email}</p>
                 )}
               </div>
               <div>
@@ -94,13 +126,20 @@ export const AdminLogin = ({ onLogin }: AdminLoginProps) => {
                       setLoginData({...loginData, password: e.target.value});
                       setErrors({...errors, password: ""});
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleLogin();
+                      }
+                    }}
                     placeholder="Digite sua senha"
                     className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -116,14 +155,23 @@ export const AdminLogin = ({ onLogin }: AdminLoginProps) => {
               <Button 
                 className="w-full" 
                 onClick={handleLogin}
-                disabled={!loginData.username || !loginData.password}
+                disabled={!loginData.email || !loginData.password || isLoading}
               >
-                <img 
-                  src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
-                  alt="AVB Logo" 
-                  className="w-4 h-4 mr-2 brightness-0 invert"
-                />
-                Entrar no Sistema
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Entrando...
+                  </>
+                ) : (
+                  <>
+                    <img 
+                      src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
+                      alt="AVB Logo" 
+                      className="w-4 h-4 mr-2 brightness-0 invert"
+                    />
+                    Entrar no Sistema
+                  </>
+                )}
               </Button>
               <div className="text-center">
                 <Button 
