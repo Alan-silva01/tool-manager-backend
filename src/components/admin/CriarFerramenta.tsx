@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { ferramentaValidationSchema } from '@/utils/validationSchemas';
+import { signWebhookPayload, getAuthHeaders } from '@/utils/webhookAuth';
+import { z } from 'zod';
 
 export const CriarFerramenta = () => {
   const [formData, setFormData] = useState({
@@ -41,11 +44,28 @@ export const CriarFerramenta = () => {
         caracteristicas: formData.caracteristicas
       };
 
+      // Validar dados
+      try {
+        ferramentaValidationSchema.parse(webhookData);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          toast({
+            title: "Erro de validação",
+            description: validationError.errors[0].message,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Assinar payload
+      const signature = await signWebhookPayload(webhookData);
+      const headers = getAuthHeaders(signature);
+
       const response = await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/salvar-ferramenta', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(webhookData),
       });
 

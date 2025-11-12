@@ -11,6 +11,10 @@ import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { pegarFerramentaSchema } from "@/utils/validationSchemas";
+import { signWebhookPayload, getAuthHeaders } from "@/utils/webhookAuth";
+import { z } from "zod";
 
 type CartItem = {
   id: string;
@@ -119,10 +123,7 @@ const PegarItem = () => {
     }));
   };
 
-  const handleMatriculaSubmit = () => {
-    console.log('Tentando buscar funcionário com matrícula:', matricula);
-    console.log('Funcionários disponíveis:', Object.keys(funcionarios));
-    
+  const handleMatriculaSubmit = async () => {
     if (!matricula.trim()) {
       toast({
         title: "Matrícula inválida",
@@ -132,30 +133,42 @@ const PegarItem = () => {
       return;
     }
 
-    const func = buscarFuncionario(matricula.trim());
-    console.log('Resultado da busca:', func);
-    
-    if (func) {
-      setFuncionario(func);
-      setStep('fotos');
+    try {
+      const { data, error } = await supabase
+        .rpc('validate_employee', { p_matricula: Number(matricula.trim()) });
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const func = data[0];
+        setFuncionario({
+          ...func,
+          matricula: matricula.trim()
+        });
+        setStep('fotos');
+        toast({
+          title: "Funcionário encontrado!",
+          description: `${func.nome} - ${func.setor}`,
+        });
+      } else {
+        toast({
+          title: "Matrícula não encontrada",
+          description: `Funcionário com matrícula ${matricula} não foi encontrado`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar funcionário:', error);
       toast({
-        title: "Funcionário encontrado!",
-        description: `${func.nome} - ${func.setor}`,
-      });
-    } else {
-      toast({
-        title: "Matrícula não encontrada",
-        description: `Funcionário com matrícula ${matricula} não foi encontrado`,
+        title: "Erro ao buscar funcionário",
+        description: "Tente novamente",
         variant: "destructive",
       });
     }
   };
 
-  const handleNFCScan = () => {
-    console.log('Simulando leitura NFC...');
-    
+  const handleNFCScan = async () => {
     const matriculasDisponiveis = Object.keys(funcionarios);
-    console.log('Matrículas disponíveis para NFC:', matriculasDisponiveis);
     
     if (matriculasDisponiveis.length === 0) {
       toast({
@@ -167,22 +180,37 @@ const PegarItem = () => {
     }
 
     const randomMatricula = matriculasDisponiveis[Math.floor(Math.random() * matriculasDisponiveis.length)];
-    console.log('Matrícula selecionada por NFC:', randomMatricula);
-    
     setMatricula(randomMatricula);
     
-    const func = buscarFuncionario(randomMatricula);
-    if (func) {
-      setFuncionario(func);
-      setStep('fotos');
-      toast({
-        title: "Crachá lido com sucesso!",
-        description: `Funcionário: ${func.nome} - ${func.setor}`,
-      });
-    } else {
+    try {
+      const { data, error } = await supabase
+        .rpc('validate_employee', { p_matricula: Number(randomMatricula) });
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const func = data[0];
+        setFuncionario({
+          ...func,
+          matricula: randomMatricula
+        });
+        setStep('fotos');
+        toast({
+          title: "Crachá lido com sucesso!",
+          description: `Funcionário: ${func.nome} - ${func.setor}`,
+        });
+      } else {
+        toast({
+          title: "Erro na leitura NFC",
+          description: "Não foi possível identificar o funcionário",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro na leitura NFC:', error);
       toast({
         title: "Erro na leitura NFC",
-        description: "Não foi possível identificar o funcionário",
+        description: "Tente novamente",
         variant: "destructive",
       });
     }
@@ -297,49 +325,64 @@ const PegarItem = () => {
         }
       }
 
-      // Enviar dados principais para o webhook
-      const formData = new FormData();
-      
-      formData.append('funcionario_matricula', matricula);
-      formData.append('funcionario_nome', funcionario.nome);
-      formData.append('funcionario_setor', funcionario.setor);
-      
-      carrinho.forEach((item, index) => {
-        formData.append(`item_${index}_id`, item.id);
-        formData.append(`item_${index}_nome`, item.nome);
-        formData.append(`item_${index}_tag`, item.tag);
-        formData.append(`item_${index}_quantidade`, item.quantidade.toString());
-        formData.append(`item_${index}_tipo`, item.tipo);
-      });
-      
-      formData.append('data', new Date().toISOString());
-      formData.append('timestamp', new Date().toISOString());
-      formData.append('total_itens', carrinho.length.toString());
-      formData.append('categoria', categoria);
+      // Preparar e validar dados para o webhook
+      const webhookData: any = {
+        funcionario_matricula: matricula,
+        funcionario_nome: funcionario.nome,
+        item_nome: carrinho.map(i => i.nome).join(', '),
+        item_tag: carrinho.map(i => i.tag).join(', '),
+        data: new Date().toISOString(),
+      };
 
+      try {
+        pegarFerramentaSchema.parse(webhookData);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          toast({
+            title: "Erro de validação",
+            description: validationError.errors[0].message,
+            variant: "destructive",
+          });
+          setConfirmando(false);
+          return;
+        }
+      }
+
+      // Assinar payload
+      const signature = await signWebhookPayload(webhookData);
+      const headers = getAuthHeaders(signature);
+
+      // Enviar dados principais para o webhook
       await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta', {
         method: 'POST',
-        mode: 'no-cors',
-        body: formData,
+        headers,
+        body: JSON.stringify(webhookData),
       });
 
-      // Enviar cada foto individualmente com o nome do item
+      // Enviar cada foto individualmente
       for (const item of carrinho) {
         const foto = fotosItens[item.id];
         if (foto) {
+          const fotoData = {
+            funcionario_matricula: matricula,
+            funcionario_nome: funcionario.nome,
+            item_nome: item.nome,
+            item_tag: item.tag,
+            timestamp: new Date().toISOString(),
+          };
+
+          const fotoSignature = await signWebhookPayload(fotoData);
+          const fotoHeaders = getAuthHeaders(fotoSignature);
+
           const fotoFormData = new FormData();
-          fotoFormData.append('funcionario_matricula', matricula);
-          fotoFormData.append('funcionario_nome', funcionario.nome);
-          fotoFormData.append('item_nome', item.nome);
-          fotoFormData.append('item_tag', item.tag);
-          fotoFormData.append('item_tipo', item.tipo);
+          Object.entries(fotoData).forEach(([key, value]) => {
+            fotoFormData.append(key, value);
+          });
           fotoFormData.append('foto', foto, foto.name);
-          fotoFormData.append('timestamp', new Date().toISOString());
-          fotoFormData.append('categoria', categoria);
 
           await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta-imagem', {
             method: 'POST',
-            mode: 'no-cors',
+            headers: { 'X-Webhook-Signature': fotoSignature },
             body: fotoFormData,
           });
         }

@@ -1,6 +1,9 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { notificacaoSchema } from '@/utils/validationSchemas';
+import { signWebhookPayload, getAuthHeaders } from '@/utils/webhookAuth';
+import { z } from 'zod';
 
 export const useNotificacoes = () => {
   const { toast } = useToast();
@@ -26,14 +29,31 @@ export const useNotificacoes = () => {
         matricula: funcionario.matricula,
         nome_ferramenta: ferramenta.nome,
         tag_ferramenta: ferramenta.tag,
-        numero_whatsapp: funcionario.numero_whatsapp // Enviando exatamente como está no banco (com 55)
+        numero_whatsapp: funcionario.numero_whatsapp
       };
+
+      // Validar dados
+      try {
+        notificacaoSchema.parse(webhookData);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          toast({
+            title: "Erro de validação",
+            description: validationError.errors[0].message,
+            variant: "destructive",
+          });
+          setIsNotifying(null);
+          return;
+        }
+      }
+
+      // Assinar payload
+      const signature = await signWebhookPayload(webhookData);
+      const headers = getAuthHeaders(signature);
 
       const response = await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/notificar-funcionario', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(webhookData),
       });
 

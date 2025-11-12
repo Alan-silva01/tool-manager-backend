@@ -11,6 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { devolverFerramentaSchema } from "@/utils/validationSchemas";
+import { signWebhookPayload, getAuthHeaders } from "@/utils/webhookAuth";
+import { z } from "zod";
 
 const DevolverItem = () => {
   const navigate = useNavigate();
@@ -27,98 +31,124 @@ const DevolverItem = () => {
   const [fotosFerramentas, setFotosFerramentas] = useState<Record<string, File>>({});
   const [confirmando, setConfirmando] = useState(false);
 
-  const handleMatriculaSubmit = () => {
-    console.log('Buscando funcionário com matrícula:', matricula);
-    const func = buscarFuncionario(matricula);
-    
-    if (func) {
-      console.log('Funcionário encontrado:', func);
-      console.log('Ferramentas em posse:', func.posse_ferramentas);
+  const handleMatriculaSubmit = async () => {
+    try {
+      const { data, error } = await supabase
+        .rpc('validate_employee', { p_matricula: Number(matricula.trim()) });
       
-      const ferramentasDoFuncionario = [];
+      if (error) throw error;
       
-      if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
-        func.posse_ferramentas.forEach((tag: string) => {
-          const ferramenta = ferramentas.find(f => f.tag === tag);
-          if (ferramenta) {
-            ferramentasDoFuncionario.push({
-              id: ferramenta.id,
-              nome: ferramenta.nome,
-              tag: ferramenta.tag,
-              categoria: ferramenta.categoria,
-              dataRetirada: new Date().toISOString()
-            });
-          }
+      if (data && data.length > 0) {
+        const func = data[0];
+        
+        const ferramentasDoFuncionario = [];
+        
+        if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
+          func.posse_ferramentas.forEach((tag: string) => {
+            const ferramenta = ferramentas.find(f => f.tag === tag);
+            if (ferramenta) {
+              ferramentasDoFuncionario.push({
+                id: ferramenta.id,
+                nome: ferramenta.nome,
+                tag: ferramenta.tag,
+                categoria: ferramenta.categoria,
+                dataRetirada: new Date().toISOString()
+              });
+            }
+          });
+        }
+        
+        if (ferramentasDoFuncionario.length === 0) {
+          toast({
+            title: "Nenhuma ferramenta em posse",
+            description: "Este funcionário não possui ferramentas para devolver",
+          });
+          return;
+        }
+        
+        setFuncionario({
+          ...func,
+          matricula: matricula.trim()
         });
-      }
-      
-      console.log('Ferramentas encontradas para o funcionário:', ferramentasDoFuncionario);
-      
-      if (ferramentasDoFuncionario.length === 0) {
+        setFuncionarioFerramentas(ferramentasDoFuncionario);
+        setStep('ferramentas');
+      } else {
         toast({
-          title: "Nenhuma ferramenta em posse",
-          description: "Este funcionário não possui ferramentas para devolver",
+          title: "Matrícula não encontrada",
+          description: "Verifique a matrícula digitada",
+          variant: "destructive",
         });
-        return;
       }
-      
-      setFuncionario(func);
-      setFuncionarioFerramentas(ferramentasDoFuncionario);
-      setStep('ferramentas');
-    } else {
+    } catch (error) {
+      console.error('Erro ao buscar funcionário:', error);
       toast({
-        title: "Matrícula não encontrada",
-        description: "Verifique a matrícula digitada",
+        title: "Erro ao buscar funcionário",
+        description: "Tente novamente",
         variant: "destructive",
       });
     }
   };
 
-  const handleNFCScan = () => {
+  const handleNFCScan = async () => {
     const nfcMatriculas = ['13812', '7203', '8854', '7679'];
     const randomMatricula = nfcMatriculas[Math.floor(Math.random() * nfcMatriculas.length)];
     setMatricula(randomMatricula);
     
-    console.log('Simulando NFC para matrícula:', randomMatricula);
-    const func = buscarFuncionario(randomMatricula);
-    
-    if (func) {
-      const ferramentasDoFuncionario = [];
+    try {
+      const { data, error } = await supabase
+        .rpc('validate_employee', { p_matricula: Number(randomMatricula) });
       
-      if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
-        func.posse_ferramentas.forEach((tag: string) => {
-          const ferramenta = ferramentas.find(f => f.tag === tag);
-          if (ferramenta) {
-            ferramentasDoFuncionario.push({
-              id: ferramenta.id,
-              nome: ferramenta.nome,
-              tag: ferramenta.tag,
-              categoria: ferramenta.categoria,
-              dataRetirada: new Date().toISOString()
-            });
-          }
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const func = data[0];
+        const ferramentasDoFuncionario = [];
+        
+        if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
+          func.posse_ferramentas.forEach((tag: string) => {
+            const ferramenta = ferramentas.find(f => f.tag === tag);
+            if (ferramenta) {
+              ferramentasDoFuncionario.push({
+                id: ferramenta.id,
+                nome: ferramenta.nome,
+                tag: ferramenta.tag,
+                categoria: ferramenta.categoria,
+                dataRetirada: new Date().toISOString()
+              });
+            }
+          });
+        }
+        
+        if (ferramentasDoFuncionario.length === 0) {
+          toast({
+            title: "Nenhuma ferramenta em posse",
+            description: "Este funcionário não possui ferramentas para devolver",
+          });
+          return;
+        }
+        
+        setFuncionario({
+          ...func,
+          matricula: randomMatricula
         });
-      }
-      
-      if (ferramentasDoFuncionario.length === 0) {
+        setFuncionarioFerramentas(ferramentasDoFuncionario);
+        setStep('ferramentas');
         toast({
-          title: "Nenhuma ferramenta em posse",
-          description: "Este funcionário não possui ferramentas para devolver",
+          title: "Crachá lido com sucesso!",
+          description: `Funcionário: ${func.nome}`,
         });
-        return;
+      } else {
+        toast({
+          title: "Funcionário não encontrado",
+          description: "Não foi possível identificar o funcionário",
+          variant: "destructive",
+        });
       }
-      
-      setFuncionario(func);
-      setFuncionarioFerramentas(ferramentasDoFuncionario);
-      setStep('ferramentas');
+    } catch (error) {
+      console.error('Erro na leitura NFC:', error);
       toast({
-        title: "Crachá lido com sucesso!",
-        description: `Funcionário: ${func.nome}`,
-      });
-    } else {
-      toast({
-        title: "Funcionário não encontrado",
-        description: "Não foi possível identificar o funcionário",
+        title: "Erro na leitura NFC",
+        description: "Tente novamente",
         variant: "destructive",
       });
     }
@@ -185,45 +215,62 @@ const DevolverItem = () => {
     setConfirmando(true);
 
     try {
-      const formData = new FormData();
-      
-      formData.append('funcionario_matricula', matricula);
-      formData.append('funcionario_nome', funcionario.nome);
-      formData.append('funcionario_setor', funcionario.setor);
-      
-      ferramentasSelecionadas.forEach((ferramenta, index) => {
-        formData.append(`ferramenta_${index}_id`, ferramenta.id);
-        formData.append(`ferramenta_${index}_nome`, ferramenta.nome);
-        formData.append(`ferramenta_${index}_tag`, ferramenta.tag);
-        formData.append(`ferramenta_${index}_categoria`, ferramenta.categoria);
-        formData.append(`ferramenta_${index}_dataRetirada`, ferramenta.dataRetirada);
-      });
-      
-      formData.append('data', new Date().toISOString());
-      formData.append('timestamp', new Date().toISOString());
-      formData.append('total_ferramentas', ferramentasSelecionadas.length.toString());
+      // Preparar e validar dados para o webhook
+      const webhookData: any = {
+        funcionario_matricula: matricula,
+        funcionario_nome: funcionario.nome,
+        item_nome: ferramentasSelecionadas.map(f => f.nome).join(', '),
+        item_tag: ferramentasSelecionadas.map(f => f.tag).join(', '),
+        data: new Date().toISOString(),
+      };
+
+      try {
+        devolverFerramentaSchema.parse(webhookData);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          toast({
+            title: "Erro de validação",
+            description: validationError.errors[0].message,
+            variant: "destructive",
+          });
+          setConfirmando(false);
+          return;
+        }
+      }
+
+      // Assinar payload
+      const signature = await signWebhookPayload(webhookData);
+      const headers = getAuthHeaders(signature);
 
       await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/devolver-ferramenta', {
         method: 'POST',
-        mode: 'no-cors',
-        body: formData,
+        headers,
+        body: JSON.stringify(webhookData),
       });
 
-      // Enviar cada foto individualmente com o nome da ferramenta
+      // Enviar cada foto individualmente
       for (const ferramenta of ferramentasSelecionadas) {
         const foto = fotosFerramentas[ferramenta.id];
         if (foto) {
+          const fotoData = {
+            funcionario_matricula: matricula,
+            funcionario_nome: funcionario.nome,
+            ferramenta_nome: ferramenta.nome,
+            ferramenta_tag: ferramenta.tag,
+            timestamp: new Date().toISOString(),
+          };
+
+          const fotoSignature = await signWebhookPayload(fotoData);
+
           const fotoFormData = new FormData();
-          fotoFormData.append('funcionario_matricula', matricula);
-          fotoFormData.append('funcionario_nome', funcionario.nome);
-          fotoFormData.append('ferramenta_nome', ferramenta.nome);
-          fotoFormData.append('ferramenta_tag', ferramenta.tag);
+          Object.entries(fotoData).forEach(([key, value]) => {
+            fotoFormData.append(key, value);
+          });
           fotoFormData.append('foto', foto, foto.name);
-          fotoFormData.append('timestamp', new Date().toISOString());
 
           await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/devolver-ferramenta-imagem', {
             method: 'POST',
-            mode: 'no-cors',
+            headers: { 'X-Webhook-Signature': fotoSignature },
             body: fotoFormData,
           });
         }
