@@ -25,39 +25,27 @@ export const useFerramentasData = (refreshKey: number = 0) => {
     const controller = new AbortController();
     
     try {
-      // Query otimizada com índices
       const { data, error } = await supabase
         .from('ferramentas')
         .select('id, nome, tag, quantidade, categoria, caracteristicas, saiu, reserva, matricula_reserva, status, funcionario_emprestado')
         .abortSignal(controller.signal);
 
-      if (error) {
-        console.error('Erro ao buscar ferramentas:', error);
-        return;
-      }
+      if (error) throw error;
 
       if (Array.isArray(data)) {
-        // Processar dados de forma mais eficiente
-        const ferramentasFormatadas: Ferramenta[] = data.map((f: FerramentaRow) => {
-          const quantidadeTotal = Number(f.quantidade ?? 0);
-          const saiuNum = Number(f.saiu ?? 0);
-          const quantidadeDisponivel = Math.max(0, quantidadeTotal - saiuNum);
-          const statusBanco = f.status ?? (saiuNum === 1 ? 'emprestada' : 'disponível');
-
-          return {
-            id: f.id,
-            nome: f.nome ?? '',
-            tag: f.tag,
-            quantidade: quantidadeDisponivel,
-            categoria: f.categoria ?? undefined,
-            caracteristicas: f.caracteristicas ?? undefined,
-            saiu: saiuNum,
-            reserva: f.reserva ?? false,
-            matricula_reserva: f.matricula_reserva ?? undefined,
-            status: statusBanco,
-            funcionario_emprestado: f.funcionario_emprestado ?? undefined,
-          };
-        });
+        const ferramentasFormatadas: Ferramenta[] = data.map((f: FerramentaRow) => ({
+          id: f.id,
+          nome: f.nome ?? '',
+          tag: f.tag,
+          quantidade: Math.max(0, Number(f.quantidade ?? 0) - Number(f.saiu ?? 0)),
+          categoria: f.categoria ?? undefined,
+          caracteristicas: f.caracteristicas ?? undefined,
+          saiu: Number(f.saiu ?? 0),
+          reserva: f.reserva ?? false,
+          matricula_reserva: f.matricula_reserva ?? undefined,
+          status: f.status ?? (Number(f.saiu ?? 0) === 1 ? 'emprestada' : 'disponível'),
+          funcionario_emprestado: f.funcionario_emprestado ?? undefined,
+        }));
 
         setFerramentas(ferramentasFormatadas);
       }

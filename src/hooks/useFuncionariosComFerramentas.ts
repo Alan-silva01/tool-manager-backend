@@ -45,29 +45,19 @@ export const useFuncionariosComFerramentas = (ferramentas: Ferramenta[], refresh
 
   const fetchFuncionariosComFerramentas = useCallback(async () => {
     try {
-      console.log('Buscando funcionários com ferramentas...');
-      
-      // Query otimizada
       const { data, error } = await supabase
         .from('funcionarios')
         .select('id, nome, matricula, setor, posse_ferramentas, numero_whatsapp')
         .not('posse_ferramentas', 'is', null)
         .neq('posse_ferramentas', '[]');
 
-      if (error) {
-        console.error('Erro ao buscar funcionários:', error);
-        return;
-      }
+      if (error) throw error;
 
       if (data && Array.isArray(data)) {
-        console.log('Funcionários encontrados:', data);
-        
-        // Processar dados de forma mais eficiente
         const funcionariosFormatados = data
           .map(processFuncionario)
           .filter((func): func is FuncionarioComFerramentas => func !== null);
 
-        console.log('Funcionários formatados:', funcionariosFormatados);
         setFuncionariosComFerramentas(funcionariosFormatados);
       }
     } catch (error) {

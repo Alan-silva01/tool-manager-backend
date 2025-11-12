@@ -50,23 +50,14 @@ export const useFuncionariosData = (refreshKey?: number) => {
 
     const fetchFuncionarios = async () => {
       try {
-        console.log('Buscando funcionários...');
-        
-        // Query otimizada
         const { data, error } = await supabase
           .from('funcionarios')
           .select('id, nome, matricula, setor, numero_whatsapp, posse_ferramentas')
           .abortSignal(controller.signal);
 
-        if (error) {
-          console.error('Erro ao buscar funcionários:', error);
-          return;
-        }
+        if (error) throw error;
 
         if (data && mounted) {
-          console.log('Funcionários encontrados:', data.length);
-          
-          // Processar de forma mais eficiente
           const funcionariosMap = data.reduce((acc, func) => {
             const result = processFuncionario(func);
             if (result) {
@@ -75,7 +66,6 @@ export const useFuncionariosData = (refreshKey?: number) => {
             return acc;
           }, {} as Record<string, Funcionario>);
 
-          console.log('Funcionários mapeados:', funcionariosMap);
           setFuncionarios(funcionariosMap);
         }
       } catch (error) {
