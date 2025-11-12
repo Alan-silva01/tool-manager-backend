@@ -29,8 +29,6 @@ export const useNotificacoes = () => {
         numero_whatsapp: funcionario.numero_whatsapp // Enviando exatamente como está no banco (com 55)
       };
 
-      console.log('Enviando notificação:', webhookData);
-
       const response = await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/notificar-funcionario', {
         method: 'POST',
         headers: {

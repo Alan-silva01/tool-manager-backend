@@ -37,31 +37,26 @@ export const CriarFuncionario = ({ onClose, onFuncionarioAdicionado }: CriarFunc
     
     // Remove toda formatação
     const cleanNumber = removeWhatsAppFormatting(whatsappFormatted);
-    console.log('Número limpo:', cleanNumber);
     
     // Se tem 11 dígitos (DDD + 9 + número), remove o 9 extra
     if (cleanNumber.length === 11) {
       const ddd = cleanNumber.slice(0, 2);
       const numeroSem9 = cleanNumber.slice(3); // Remove o 9 do meio
       const numeroFinal = `55${ddd}${numeroSem9}`;
-      console.log('Número formatado para salvar (11 dígitos):', numeroFinal);
       return numeroFinal;
     }
     
     // Se tem 10 dígitos (DDD + número sem 9), adiciona 55 na frente
     if (cleanNumber.length === 10) {
       const numeroFinal = `55${cleanNumber}`;
-      console.log('Número formatado para salvar (10 dígitos):', numeroFinal);
       return numeroFinal;
     }
     
     // Se já tem 12 dígitos e começa com 55, pode estar no formato correto
     if (cleanNumber.length === 12 && cleanNumber.startsWith('55')) {
-      console.log('Número já no formato correto:', cleanNumber);
       return cleanNumber;
     }
     
-    console.log('Formato não reconhecido, retornando como está:', cleanNumber);
     return cleanNumber;
   };
 
@@ -81,14 +76,6 @@ export const CriarFuncionario = ({ onClose, onFuncionarioAdicionado }: CriarFunc
 
     try {
       const numeroParaSalvar = formatWhatsAppForSave(whatsapp);
-      
-      console.log('Dados para salvar:', {
-        nome,
-        matricula: parseInt(matricula),
-        setor,
-        numero_whatsapp: numeroParaSalvar,
-        cod_nfc: codNfc ? parseInt(codNfc) : null
-      });
 
       const { error } = await supabase
         .from('funcionarios')

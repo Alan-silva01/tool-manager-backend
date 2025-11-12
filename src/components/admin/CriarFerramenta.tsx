@@ -21,11 +21,7 @@ export const CriarFerramenta = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('=== INÍCIO DO HANDLESUBMIT ===');
-    console.log('FormData:', formData);
-    
     if (!formData.nome || !formData.tag || !formData.quantidade || !formData.categoria) {
-      console.log('=== VALIDAÇÃO FALHOU ===');
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -34,7 +30,6 @@ export const CriarFerramenta = () => {
       return;
     }
 
-    console.log('=== VALIDAÇÃO PASSOU ===');
     setLoading(true);
 
     try {
@@ -46,10 +41,6 @@ export const CriarFerramenta = () => {
         caracteristicas: formData.caracteristicas
       };
 
-      console.log('=== ENVIANDO PARA WEBHOOK ===');
-      console.log('URL:', 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/salvar-ferramenta');
-      console.log('Data:', webhookData);
-
       const response = await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/salvar-ferramenta', {
         method: 'POST',
         headers: {
@@ -58,13 +49,7 @@ export const CriarFerramenta = () => {
         body: JSON.stringify(webhookData),
       });
 
-      console.log('=== RESPOSTA DO WEBHOOK ===');
-      console.log('Status:', response.status);
-      console.log('StatusText:', response.statusText);
-      console.log('Response OK:', response.ok);
-
       if (response.ok) {
-        console.log('=== WEBHOOK SUCESSO - LIMPANDO FORM ===');
         setFormData({
           nome: '',
           tag: '',
@@ -73,18 +58,16 @@ export const CriarFerramenta = () => {
           caracteristicas: ''
         });
 
-        console.log('=== MOSTRANDO TOAST DE SUCESSO ===');
         toast({
           title: "Sucesso",
           description: "Ferramenta cadastrada com sucesso!",
         });
       } else {
         const errorText = await response.text();
-        console.error('=== ERRO NA RESPOSTA DO WEBHOOK ===', errorText);
         throw new Error(`Erro no webhook: ${response.status} - ${errorText}`);
       }
     } catch (error) {
-      console.error('=== ERRO NO CATCH ===', error);
+      console.error('Erro ao cadastrar ferramenta:', error);
       toast({
         title: "Erro",
         description: "Erro ao cadastrar ferramenta. Tente novamente.",
@@ -92,20 +75,15 @@ export const CriarFerramenta = () => {
       });
     } finally {
       setLoading(false);
-      console.log('=== FIM DO HANDLESUBMIT ===');
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    console.log(`=== INPUT CHANGE === ${field}:`, value);
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
-
-  console.log('=== RENDER CriarFerramenta ===');
-  console.log('Loading state:', loading);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

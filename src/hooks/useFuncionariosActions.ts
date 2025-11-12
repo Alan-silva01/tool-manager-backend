@@ -9,8 +9,6 @@ export const useFuncionariosActions = (
 ) => {
   const adicionarFerramentaAoFuncionario = async (matricula: string, tag: string) => {
     try {
-      console.log('Adicionando ferramenta ao funcionário:', { matricula, tag });
-      
       const funcionario = funcionarios[matricula];
       if (!funcionario) {
         console.error('Funcionário não encontrado para matrícula:', matricula);
@@ -18,7 +16,6 @@ export const useFuncionariosActions = (
       }
 
       const novasPosseFerramenta = [...funcionario.posse_ferramentas, tag];
-      console.log('Novas ferramentas em posse:', novasPosseFerramenta);
 
       const { error } = await supabase
         .from('funcionarios')
@@ -39,7 +36,6 @@ export const useFuncionariosActions = (
         }
       }));
 
-      console.log('Ferramenta adicionada com sucesso');
       return true;
     } catch (error) {
       console.error('Erro ao adicionar ferramenta ao funcionário:', error);
@@ -49,11 +45,8 @@ export const useFuncionariosActions = (
 
   const atualizarNumeroWhatsApp = async (matricula: string, numeroWhatsApp: string) => {
     try {
-      console.log('Atualizando número WhatsApp:', { matricula, numeroWhatsApp });
-      
       // Formata o número para salvar no banco
       const numeroFormatadoParaSalvar = formatWhatsAppForSave(numeroWhatsApp);
-      console.log('Número formatado para salvar:', numeroFormatadoParaSalvar);
 
       const { error } = await supabase
         .from('funcionarios')
@@ -74,7 +67,6 @@ export const useFuncionariosActions = (
         }
       }));
 
-      console.log('Número WhatsApp atualizado com sucesso');
       return true;
     } catch (error) {
       console.error('Erro ao atualizar número WhatsApp:', error);
