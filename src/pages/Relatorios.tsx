@@ -8,15 +8,14 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, FileText, User, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
 
 const Relatorios = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { buscarFuncionario, loading: loadingFuncionarios } = useFuncionarios();
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais } = useMateriais();
   
@@ -25,13 +24,13 @@ const Relatorios = () => {
   const [funcionario, setFuncionario] = useState<any>(null);
   const [ferramentasEmPosse, setFerramentasEmPosse] = useState<any[]>([]);
 
-  const isLoading = loadingFuncionarios || loadingFerramentas || loadingMateriais;
+  const isLoading = loadingFerramentas || loadingMateriais;
 
   const handleRefresh = () => {
     window.location.reload();
   };
 
-  const handleBuscarFuncionario = () => {
+  const handleBuscarFuncionario = async () => {
     if (!matricula.trim()) {
       toast({
         title: "Erro",
@@ -41,25 +40,42 @@ const Relatorios = () => {
       return;
     }
     
-    const func = buscarFuncionario(matricula);
-    if (func) {
-      setFuncionario(func);
+    try {
+      const { data, error } = await supabase
+        .rpc('validate_employee', { p_matricula: Number(matricula.trim()) });
       
-      const ferramentasDoFuncionario = [];
-      if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
-        for (const tag of func.posse_ferramentas) {
-          const ferramenta = ferramentas.find(f => f.tag === tag);
-          if (ferramenta) {
-            ferramentasDoFuncionario.push(ferramenta);
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const func = data[0];
+        setFuncionario({
+          ...func,
+          matricula: matricula.trim()
+        });
+        
+        const ferramentasDoFuncionario = [];
+        if (func.posse_ferramentas && Array.isArray(func.posse_ferramentas)) {
+          for (const tag of func.posse_ferramentas) {
+            const ferramenta = ferramentas.find(f => f.tag === tag);
+            if (ferramenta) {
+              ferramentasDoFuncionario.push(ferramenta);
+            }
           }
         }
+        setFerramentasEmPosse(ferramentasDoFuncionario);
+        setView('funcionario');
+      } else {
+        toast({
+          title: "Matrícula não encontrada",
+          description: "Verifique a matrícula digitada",
+          variant: "destructive"
+        });
       }
-      setFerramentasEmPosse(ferramentasDoFuncionario);
-      setView('funcionario');
-    } else {
+    } catch (error) {
+      console.error('Erro ao buscar funcionário:', error);
       toast({
-        title: "Matrícula não encontrada",
-        description: "Verifique a matrícula digitada",
+        title: "Erro ao buscar funcionário",
+        description: "Tente novamente",
         variant: "destructive"
       });
     }

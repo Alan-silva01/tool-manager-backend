@@ -31,7 +31,7 @@ const PegarItem = () => {
   const { toast } = useToast();
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais } = useMateriais();
-  const { buscarFuncionario, buscarNomePorMatricula, adicionarFerramentaAoFuncionario, funcionarios, loading: loadingFuncionarios } = useFuncionarios();
+  const { buscarNomePorMatricula, funcionarios, loading: loadingFuncionarios } = useFuncionarios();
   
   const [step, setStep] = useState<'categoria' | 'lista' | 'carrinho' | 'funcionario' | 'fotos' | 'confirmacao'>('categoria');
   const [categoria, setCategoria] = useState<'ferramentas' | 'materiais'>('ferramentas');
@@ -309,26 +309,11 @@ const PegarItem = () => {
     setConfirmando(true);
 
     try {
-      // Adicionar ferramentas ao funcionário no banco de dados
-      if (categoria === 'ferramentas') {
-        for (const item of carrinho) {
-          const sucesso = await adicionarFerramentaAoFuncionario(matricula, item.tag);
-          if (!sucesso) {
-            toast({
-              title: "Erro ao registrar ferramenta",
-              description: `Erro ao registrar ${item.nome}`,
-              variant: "destructive",
-            });
-            setConfirmando(false);
-            return;
-          }
-        }
-      }
-
       // Preparar e validar dados para o webhook
       const webhookData: any = {
         funcionario_matricula: matricula,
         funcionario_nome: funcionario.nome,
+        funcionario_setor: funcionario.setor,
         item_nome: carrinho.map(i => i.nome).join(', '),
         item_tag: carrinho.map(i => i.tag).join(', '),
         data: new Date().toISOString(),
