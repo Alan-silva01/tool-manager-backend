@@ -34,7 +34,7 @@ export const devolverFerramentaSchema = z.object({
 export const notificacaoSchema = z.object({
   nome: z.string().trim().min(1).max(100),
   setor: z.string().trim().min(1).max(50),
-  matricula: z.string().trim().min(1),
+  matricula: z.coerce.number().int().positive(),
   nome_ferramenta: z.string().trim().min(1).max(100),
   tag_ferramenta: z.string().trim().min(1).max(50),
   numero_whatsapp: z.string().regex(/^\+?55\d{10,11}$/),

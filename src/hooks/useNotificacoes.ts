@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notificacaoSchema } from '@/utils/validationSchemas';
-import { signWebhookPayload } from '@/utils/webhookAuth';
 import { z } from 'zod';
 
 export const useNotificacoes = () => {
@@ -26,7 +25,7 @@ export const useNotificacoes = () => {
       const webhookData = {
         nome: funcionario.nome,
         setor: funcionario.setor,
-        matricula: funcionario.matricula,
+        matricula: Number(funcionario.matricula),
         nome_ferramenta: ferramenta.nome,
         tag_ferramenta: ferramenta.tag,
         numero_whatsapp: funcionario.numero_whatsapp
@@ -47,22 +46,14 @@ export const useNotificacoes = () => {
         }
       }
 
-      // Assinar payload
-      const signature = await signWebhookPayload(webhookData);
-
-      const response = await fetch('https://yjgwfwbyzufrwbkcbtzy.supabase.co/functions/v1/send-webhook', {
+      // Enviar diretamente em JSON para o webhook (formato antigo, sem autenticação)
+      const response = await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/notificar-funcionario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/notificar-funcionario',
-          data: webhookData,
-          signature,
-        }),
+        body: JSON.stringify(webhookData),
       });
 
-      const result = await response.json();
-      
-      if (result.ok) {
+      if (response.ok) {
         toast({
           title: "Notificação enviada",
           description: `Funcionário ${funcionario.nome} foi notificado sobre a devolução da ${ferramenta.nome}`,
