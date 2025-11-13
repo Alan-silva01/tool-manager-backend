@@ -12,7 +12,9 @@ import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
+import { devolverFerramentaSchema } from "@/utils/validationSchemas";
 import { signWebhookPayload, getAuthHeaders } from "@/utils/webhookAuth";
+import { z } from "zod";
 
 const DevolverItem = () => {
   const navigate = useNavigate();
@@ -213,42 +215,37 @@ const DevolverItem = () => {
     setConfirmando(true);
 
     try {
-      // Preparar dados para o webhook no formato antigo
-      const timestamp = new Date().toISOString();
+      // Preparar e validar dados para o webhook
       const webhookData: any = {
         funcionario_matricula: matricula,
         funcionario_nome: funcionario.nome,
-        funcionario_setor: funcionario.setor,
-        data: timestamp,
-        timestamp: timestamp,
-        total_itens: String(ferramentasSelecionadas.length),
-        categoria: 'ferramentas',
+        item_nome: ferramentasSelecionadas.map(f => f.nome).join(', '),
+        item_tag: ferramentasSelecionadas.map(f => f.tag).join(', '),
+        data: new Date().toISOString(),
       };
 
-      // Adicionar cada ferramenta selecionada como item_0_, item_1_, etc
-      ferramentasSelecionadas.forEach((ferramenta, index) => {
-        webhookData[`item_${index}_id`] = ferramenta.id;
-        webhookData[`item_${index}_nome`] = ferramenta.nome;
-        webhookData[`item_${index}_tag`] = ferramenta.tag;
-        webhookData[`item_${index}_quantidade`] = '1';
-        webhookData[`item_${index}_tipo`] = 'ferramenta';
-      });
+      try {
+        devolverFerramentaSchema.parse(webhookData);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          toast({
+            title: "Erro de validação",
+            description: validationError.errors[0].message,
+            variant: "destructive",
+          });
+          setConfirmando(false);
+          return;
+        }
+      }
 
       // Assinar payload
       const signature = await signWebhookPayload(webhookData);
-
-      // Criar FormData para enviar no formato correto
-      const formData = new FormData();
-      Object.entries(webhookData).forEach(([key, value]) => {
-        formData.append(key, String(value));
-      });
+      const headers = getAuthHeaders(signature);
 
       await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/devolver-ferramenta', {
         method: 'POST',
-        headers: { 
-          'X-Webhook-Signature': signature 
-        },
-        body: formData,
+        headers,
+        body: JSON.stringify(webhookData),
       });
 
       // Enviar cada foto individualmente
