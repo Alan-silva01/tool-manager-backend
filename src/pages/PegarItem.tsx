@@ -345,6 +345,7 @@ const PegarItem = () => {
       // Enviar dados principais para o webhook
       await fetch(webhookUrl, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 
           'X-Webhook-Signature': signature 
         },
@@ -374,6 +375,7 @@ const PegarItem = () => {
 
           await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta-imagem', {
             method: 'POST',
+            mode: 'no-cors',
             headers: { 'X-Webhook-Signature': fotoSignature },
             body: fotoFormData,
           });
