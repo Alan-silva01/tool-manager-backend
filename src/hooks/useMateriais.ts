@@ -48,9 +48,28 @@ export const useMateriais = (refreshKey?: number) => {
 
     fetchMateriais();
 
+    // Realtime subscription
+    const channel = supabase
+      .channel('materiais-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'materiais'
+        },
+        () => {
+          if (mounted) {
+            fetchMateriais();
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       mounted = false;
       controller.abort();
+      supabase.removeChannel(channel);
     };
   }, [refreshKey]);
 
