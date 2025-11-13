@@ -38,6 +38,13 @@ const Admin = () => {
   const { isLoggedIn, login, logout, isLoading: authLoading } = useAdminAuth();
   const { notificarFuncionario, isNotifying } = useNotificacoes();
 
+  // Recarregar dados automaticamente quando o login for concluído
+  React.useEffect(() => {
+    if (isLoggedIn && !authLoading) {
+      setRefreshKey(prev => prev + 1);
+    }
+  }, [isLoggedIn, authLoading]);
+
   const { funcionarios, loading: loadingFuncionarios } = useFuncionarios(refreshKey);
   const { ferramentas, loading: loadingFerramentas, refetch: refetchFerramentas } = useFerramentas(refreshKey);
   const { materiais, loading: loadingMateriais } = useMateriais(refreshKey);
