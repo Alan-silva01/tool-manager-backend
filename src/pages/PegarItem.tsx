@@ -12,9 +12,7 @@ import { useMateriais } from "@/hooks/useMateriais";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
-import { pegarFerramentaSchema } from "@/utils/validationSchemas";
 import { signWebhookPayload, getAuthHeaders } from "@/utils/webhookAuth";
-import { z } from "zod";
 
 type CartItem = {
   id: string;
@@ -309,39 +307,47 @@ const PegarItem = () => {
     setConfirmando(true);
 
     try {
-      // Preparar e validar dados para o webhook
+      // Preparar dados para o webhook no formato antigo
+      const timestamp = new Date().toISOString();
       const webhookData: any = {
         funcionario_matricula: matricula,
         funcionario_nome: funcionario.nome,
         funcionario_setor: funcionario.setor,
-        item_nome: carrinho.map(i => i.nome).join(', '),
-        item_tag: carrinho.map(i => i.tag).join(', '),
-        data: new Date().toISOString(),
+        data: timestamp,
+        timestamp: timestamp,
+        total_itens: String(carrinho.length),
+        categoria: categoria,
       };
 
-      try {
-        pegarFerramentaSchema.parse(webhookData);
-      } catch (validationError) {
-        if (validationError instanceof z.ZodError) {
-          toast({
-            title: "Erro de validação",
-            description: validationError.errors[0].message,
-            variant: "destructive",
-          });
-          setConfirmando(false);
-          return;
-        }
-      }
+      // Adicionar cada item do carrinho como item_0_, item_1_, etc
+      carrinho.forEach((item, index) => {
+        webhookData[`item_${index}_id`] = item.id;
+        webhookData[`item_${index}_nome`] = item.nome;
+        webhookData[`item_${index}_tag`] = item.tag;
+        webhookData[`item_${index}_quantidade`] = String(item.quantidade);
+        webhookData[`item_${index}_tipo`] = item.tipo;
+      });
 
       // Assinar payload
       const signature = await signWebhookPayload(webhookData);
       const headers = getAuthHeaders(signature);
 
+      // Determinar URL do webhook baseado na categoria
+      const webhookUrl = categoria === 'ferramentas' 
+        ? 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta'
+        : 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-material';
+
+      // Criar FormData para enviar no formato correto
+      const formData = new FormData();
+      Object.entries(webhookData).forEach(([key, value]) => {
+        formData.append(key, String(value));
+      });
+
       // Enviar dados principais para o webhook
-      await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta', {
+      await fetch(webhookUrl, {
         method: 'POST',
-        headers,
-        body: JSON.stringify(webhookData),
+        headers: { 'X-Webhook-Signature': signature },
+        body: formData,
       });
 
       // Enviar cada foto individualmente
