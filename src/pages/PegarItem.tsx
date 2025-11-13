@@ -328,14 +328,13 @@ const PegarItem = () => {
         webhookData[`item_${index}_tipo`] = item.tipo;
       });
 
-      // Assinar payload
-      const signature = await signWebhookPayload(webhookData);
-      const headers = getAuthHeaders(signature);
-
       // Determinar URL do webhook baseado na categoria
       const webhookUrl = categoria === 'ferramentas' 
         ? 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta'
         : 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-material';
+
+      // Assinar payload
+      const signature = await signWebhookPayload(webhookData);
 
       // Criar FormData para enviar no formato correto
       const formData = new FormData();
@@ -346,7 +345,9 @@ const PegarItem = () => {
       // Enviar dados principais para o webhook
       await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'X-Webhook-Signature': signature },
+        headers: { 
+          'X-Webhook-Signature': signature 
+        },
         body: formData,
       });
 
