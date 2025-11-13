@@ -22,13 +22,14 @@ export const useNotificacoes = () => {
     setIsNotifying(notificationKey);
 
     try {
+      const numeroWhats = String(funcionario.numero_whatsapp || '').replace(/\D/g, '');
       const webhookData = {
         nome: funcionario.nome,
         setor: funcionario.setor,
         matricula: Number(funcionario.matricula),
         nome_ferramenta: ferramenta.nome,
         tag_ferramenta: ferramenta.tag,
-        numero_whatsapp: funcionario.numero_whatsapp
+        numero_whatsapp: numeroWhats
       };
 
       // Validar dados
