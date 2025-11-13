@@ -62,6 +62,27 @@ export const useFerramentasData = (refreshKey: number = 0) => {
 
   useEffect(() => {
     fetchFerramentas();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('ferramentas-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ferramentas'
+        },
+        () => {
+          // Refetch all data when changes occur
+          fetchFerramentas();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [refreshKey, fetchFerramentas]);
 
   // Memoizar retorno

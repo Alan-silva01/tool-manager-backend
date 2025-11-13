@@ -128,9 +128,28 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
 
     fetchHistorico();
 
+    // Realtime subscription
+    const channel = supabase
+      .channel('registro-mate-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'registro_mate_funcionarios'
+        },
+        () => {
+          if (mounted) {
+            fetchHistorico();
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       mounted = false;
       controller.abort();
+      supabase.removeChannel(channel);
     };
   }, [refreshKey]);
 

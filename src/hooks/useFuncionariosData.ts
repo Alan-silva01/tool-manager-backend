@@ -81,9 +81,44 @@ export const useFuncionariosData = (refreshKey?: number) => {
 
     fetchFuncionarios();
 
+    // Realtime subscription
+    const channel = supabase
+      .channel('funcionarios-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'funcionarios'
+        },
+        (payload) => {
+          if (!mounted) return;
+          
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const result = processFuncionario(payload.new);
+            if (result) {
+              setFuncionarios(prev => ({
+                ...prev,
+                [result.key]: result.funcionario
+              }));
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const oldFunc = payload.old as any;
+            const matriculaStr = oldFunc.matricula?.toString() || '';
+            setFuncionarios(prev => {
+              const newState = { ...prev };
+              delete newState[matriculaStr];
+              return newState;
+            });
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       mounted = false;
       controller.abort();
+      supabase.removeChannel(channel);
     };
   }, [refreshKey, processFuncionario]);
 
