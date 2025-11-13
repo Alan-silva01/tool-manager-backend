@@ -329,10 +329,8 @@ const PegarItem = () => {
         webhookData[`item_${index}_tipo`] = item.tipo;
       });
 
-      // Determinar URL do webhook baseado na categoria
-      const webhookUrl = categoria === 'ferramentas' 
-        ? 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta'
-        : 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-material';
+      // Determinar URL do webhook - SEMPRE usa pegar-ferramenta para ambos
+      const webhookUrl = 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta';
 
       // Assinar payload
       const signature = await signWebhookPayload(webhookData);
@@ -375,9 +373,8 @@ const PegarItem = () => {
           });
           fotoFormData.append('foto', foto, foto.name);
 
-          const fotoWebhookUrl = categoria === 'ferramentas'
-            ? 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta-imagem'
-            : 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-material-imagem';
+          // SEMPRE usa pegar-ferramenta-imagem para ambos materiais e ferramentas
+          const fotoWebhookUrl = 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta-imagem';
 
           await fetch(fotoWebhookUrl, {
             method: 'POST',
