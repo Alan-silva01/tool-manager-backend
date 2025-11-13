@@ -290,8 +290,9 @@ const PegarItem = () => {
     // Verificação final: se alguma ferramenta está reservada para outro funcionário
     if (categoria === 'ferramentas') {
       for (const item of carrinho) {
-        if (item.reserva && item.matricula_reserva && item.matricula_reserva !== matricula.trim()) {
-          const nomeReservado = buscarNomePorMatricula(item.matricula_reserva);
+        // Verificar apenas se o item tem o campo reserva definido (é uma ferramenta)
+        if ((item as any).tipo === 'ferramentas' && (item as any).reserva && (item as any).matricula_reserva && (item as any).matricula_reserva !== matricula.trim()) {
+          const nomeReservado = buscarNomePorMatricula((item as any).matricula_reserva);
           const primeiroNome = nomeReservado ? nomeReservado.split(' ')[0] : 'outro funcionário';
           
           toast({
