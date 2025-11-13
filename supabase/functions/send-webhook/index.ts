@@ -37,14 +37,23 @@ serve(async (req: Request) => {
       form.append(k, String(v));
     });
 
-    const res = await fetch(String(url), {
+    let res = await fetch(String(url), {
       method: "POST",
       body: form,
     });
 
-    const bodyText = await res.text().catch(() => "");
-    
+    let bodyText = await res.text().catch(() => "");
     console.log(`Webhook response: ${res.status}`, bodyText);
+
+    // Fallback automático para N8N quando o workflow de produção não está ativo
+    // Tenta /webhook-test/ se /webhook/ responder 404 (não registrado)
+    if (res.status === 404 && String(url).includes('/webhook/')) {
+      const fallbackUrl = String(url).replace('/webhook/', '/webhook-test/');
+      console.log(`Primary webhook returned 404, retrying with test URL: ${fallbackUrl}`);
+      res = await fetch(fallbackUrl, { method: 'POST', body: form });
+      bodyText = await res.text().catch(() => "");
+      console.log(`Fallback webhook response: ${res.status}`, bodyText);
+    }
 
     return new Response(
       JSON.stringify({ ok: res.ok, status: res.status, body: bodyText }),
