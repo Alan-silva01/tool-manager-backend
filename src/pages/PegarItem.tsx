@@ -343,14 +343,26 @@ const PegarItem = () => {
       });
 
       // Enviar dados principais para o webhook
-      await fetch(webhookUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 
-          'X-Webhook-Signature': signature 
-        },
-        body: formData,
-      });
+      if (categoria === 'ferramentas') {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 
+            'X-Webhook-Signature': signature 
+          },
+          body: formData,
+        });
+      } else {
+        await fetch('https://yjgwfwbyzufrwbkcbtzy.supabase.co/functions/v1/send-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: webhookUrl,
+            data: webhookData,
+            signature,
+          }),
+        });
+      }
 
       // Enviar cada foto individualmente
       for (const item of carrinho) {
