@@ -341,18 +341,15 @@ const PegarItem = () => {
         formData.append(key, String(value));
       });
 
-      // Enviar dados principais via Edge Function (evita CORS e cabeçalhos restritos)
-      const { data: fnRes, error: fnError } = await supabase.functions.invoke('send-webhook', {
+      // Enviar dados principais via Edge Function (em background, não aguarda)
+      supabase.functions.invoke('send-webhook', {
         body: {
           url: webhookUrl,
           data: webhookData,
         },
-      });
-      if (fnError || !fnRes?.ok) {
-        throw new Error(`Falha ao enviar webhook: ${fnError?.message || fnRes?.status}`);
-      }
+      }).catch(err => console.error('Erro ao enviar webhook principal:', err));
 
-      // Enviar cada foto individualmente
+      // Enviar cada foto individualmente (em background, não aguarda)
       for (const item of carrinho) {
         const foto = fotosItens[item.id];
         if (foto) {
@@ -376,12 +373,12 @@ const PegarItem = () => {
           // SEMPRE usa pegar-ferramenta-imagem para ambos materiais e ferramentas
           const fotoWebhookUrl = 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta-imagem';
 
-          await fetch(fotoWebhookUrl, {
+          fetch(fotoWebhookUrl, {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'X-Webhook-Signature': fotoSignature },
             body: fotoFormData,
-          });
+          }).catch(err => console.error('Erro ao enviar foto:', err));
         }
       }
 
