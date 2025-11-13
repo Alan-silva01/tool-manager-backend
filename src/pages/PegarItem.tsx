@@ -374,7 +374,11 @@ const PegarItem = () => {
           });
           fotoFormData.append('foto', foto, foto.name);
 
-          await fetch('https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta-imagem', {
+          const fotoWebhookUrl = categoria === 'ferramentas'
+            ? 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-ferramenta-imagem'
+            : 'https://autonomia-n8n-webhook.gm2doz.easypanel.host/webhook/pegar-material-imagem';
+
+          await fetch(fotoWebhookUrl, {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'X-Webhook-Signature': fotoSignature },
