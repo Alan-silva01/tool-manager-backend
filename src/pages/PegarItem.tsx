@@ -342,15 +342,16 @@ const PegarItem = () => {
         formData.append(key, String(value));
       });
 
-      // Enviar dados principais para o webhook
-      await fetch(webhookUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 
-          'X-Webhook-Signature': signature 
+      // Enviar dados principais via Edge Function (evita CORS e cabeçalhos restritos)
+      const { data: fnRes, error: fnError } = await supabase.functions.invoke('send-webhook', {
+        body: {
+          url: webhookUrl,
+          data: webhookData,
         },
-        body: formData,
       });
+      if (fnError || !fnRes?.ok) {
+        throw new Error(`Falha ao enviar webhook: ${fnError?.message || fnRes?.status}`);
+      }
 
       // Enviar cada foto individualmente
       for (const item of carrinho) {
