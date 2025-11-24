@@ -11,7 +11,7 @@ interface AdminHeaderProps {
 
 export const AdminHeader = ({ onRefresh, onLogout, isRefreshing }: AdminHeaderProps) => {
   return (
-    <header className="bg-primary text-primary-foreground p-4 shadow-lg">
+    <header className="sticky top-0 z-50 bg-primary text-primary-foreground p-4 shadow-lg">
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center">

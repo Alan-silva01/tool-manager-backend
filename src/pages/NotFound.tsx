@@ -17,7 +17,7 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="p-4 flex justify-end">
+      <header className="sticky top-0 z-50 bg-background p-4 flex justify-end">
         <ThemeToggle />
       </header>
       <div className="flex-1 flex items-center justify-center">
