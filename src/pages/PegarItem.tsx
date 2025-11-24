@@ -610,7 +610,27 @@ const PegarItem = () => {
               <Badge variant="secondary">{carrinho.length} itens</Badge>
             </div>
 
-            {carrinho.map((item) => {
+            {carrinho.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center space-y-4">
+                  <ShoppingCart className="w-16 h-16 mx-auto text-muted-foreground" />
+                  <div>
+                    <h3 className="font-semibold text-lg">Carrinho vazio</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Adicione itens para continuar
+                    </p>
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => setStep('lista')}
+                  >
+                    Voltar para Lista
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {carrinho.map((item) => {
               const itemDisponivel = getItemDisponivel(item.id);
               const quantidadeMaxima = itemDisponivel ? itemDisponivel.quantidade : 0;
               const nomeReservado = item.tipo === 'ferramenta' && item.reserva && item.matricula_reserva 
@@ -667,16 +687,16 @@ const PegarItem = () => {
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })}
+                );
+              })}
 
-            {carrinho.length > 0 && (
               <Button 
                 className="w-full" 
                 onClick={() => setStep('funcionario')}
               >
                 Continuar
               </Button>
+            </>
             )}
           </div>
         )}
