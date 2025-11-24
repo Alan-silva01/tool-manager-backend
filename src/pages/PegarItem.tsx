@@ -581,14 +581,19 @@ const PegarItem = () => {
                            </Badge>
                          )}
                        </div>
-                      <Button 
-                        onClick={() => addToCart(item)}
-                        size="sm"
-                        className="ml-2"
-                        disabled={item.quantidade <= 0 || !podeAdicionarMais}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
+                       <Button 
+                         onClick={() => addToCart(item)}
+                         size="sm"
+                         className="ml-2"
+                         variant={itemNoCarrinho ? "destructive" : "default"}
+                         disabled={item.quantidade <= 0 && !itemNoCarrinho}
+                       >
+                         {itemNoCarrinho ? (
+                           <Minus className="w-4 h-4" />
+                         ) : (
+                           <Plus className="w-4 h-4" />
+                         )}
+                       </Button>
                     </div>
                   </CardContent>
                 </Card>
