@@ -83,7 +83,7 @@ const Relatorios = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-primary text-primary-foreground p-4 shadow-sm">
+      <header className="sticky top-0 z-50 bg-primary text-primary-foreground p-4 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button 
