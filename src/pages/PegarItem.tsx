@@ -54,34 +54,27 @@ const PegarItem = () => {
 
   const addToCart = (item: any) => {
     const existingItem = carrinho.find(c => c.id === item.id);
-    const quantidadeNoCarrinho = existingItem ? existingItem.quantidade : 0;
     
-    if (quantidadeNoCarrinho >= item.quantidade) {
+    // Se já está no carrinho, remove (desseleciona)
+    if (existingItem) {
+      removeFromCart(item.id);
       toast({
-        title: "Quantidade indisponível",
-        description: `Só há ${item.quantidade} ${item.nome} disponível(is)`,
-        variant: "destructive",
+        title: "Item removido",
+        description: `${item.nome} foi removido do carrinho`,
       });
       return;
     }
-
-    if (existingItem) {
-      setCarrinho(carrinho.map(c => 
-        c.id === item.id 
-          ? { ...c, quantidade: c.quantidade + 1 }
-          : c
-      ));
-    } else {
-      setCarrinho([...carrinho, {
-        id: item.id,
-        nome: item.nome,
-        tag: String(item.tag),
-        quantidade: 1,
-        tipo: categoria === 'ferramentas' ? 'ferramenta' : 'material',
-        reserva: item.reserva || false,
-        matricula_reserva: item.matricula_reserva || ''
-      }]);
-    }
+    
+    // Se não está no carrinho, adiciona
+    setCarrinho([...carrinho, {
+      id: item.id,
+      nome: item.nome,
+      tag: String(item.tag),
+      quantidade: 1,
+      tipo: categoria === 'ferramentas' ? 'ferramenta' : 'material',
+      reserva: item.reserva || false,
+      matricula_reserva: item.matricula_reserva || ''
+    }]);
     toast({
       title: "Item adicionado",
       description: `${item.nome} foi adicionado ao carrinho`,
