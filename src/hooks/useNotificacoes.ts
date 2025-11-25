@@ -48,7 +48,7 @@ export const useNotificacoes = () => {
       }
 
       // Enviar diretamente em JSON para o webhook (formato antigo, sem autenticação)
-      const response = await fetch('http://165.22.131.157:8000/webhook/notificar-funcionario', {
+      const response = await fetch('https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/notificar-funcionario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(webhookData),

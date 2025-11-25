@@ -243,7 +243,7 @@ const DevolverItem = () => {
         formData.append(key, String(value));
       });
 
-      await fetch('http://165.22.131.157:8000/webhook/devolver-ferramenta', {
+      await fetch('https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/devolver-ferramenta', {
         method: 'POST',
         headers: { 
           'X-Webhook-Signature': signature 
@@ -271,7 +271,7 @@ const DevolverItem = () => {
           });
           fotoFormData.append('foto', foto, foto.name);
 
-          await fetch('http://165.22.131.157:8000/webhook/devolver-ferramenta-imagem', {
+          await fetch('https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/devolver-ferramenta-imagem', {
             method: 'POST',
             headers: { 'X-Webhook-Signature': fotoSignature },
             body: fotoFormData,

@@ -63,7 +63,7 @@ export const CriarFerramenta = () => {
       const signature = await signWebhookPayload(webhookData);
       const headers = getAuthHeaders(signature);
 
-      const response = await fetch('http://165.22.131.157:8000/webhook/salvar-ferramenta', {
+      const response = await fetch('https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/salvar-ferramenta', {
         method: 'POST',
         headers,
         body: JSON.stringify(webhookData),
