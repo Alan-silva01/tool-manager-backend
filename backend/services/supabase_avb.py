@@ -67,28 +67,53 @@ def obter_historico_chat_supabase(session_id: str, limit: int = 8) -> list[dict]
 # ─────────────────────────────────────────
 #  FERRAMENTAS
 # ─────────────────────────────────────────
+# ─────────────────────────────────────────
+#  AUXILIARES
+# ─────────────────────────────────────────
+
+def _obter_tags_funcionario(posse_raw) -> list[str]:
+    """Normaliza o campo posse_ferramentas que pode vir como lista ou string JSON."""
+    if not posse_raw:
+        return []
+    if isinstance(posse_raw, list):
+        return [str(t) for t in posse_raw if t]
+    if isinstance(posse_raw, str):
+        try:
+            import json
+            parsed = json.loads(posse_raw)
+            if isinstance(parsed, list):
+                return [str(t) for t in parsed if t]
+        except Exception:
+            pass
+    return []
+
+
+# ─────────────────────────────────────────
+#  FERRAMENTAS
+# ─────────────────────────────────────────
 
 def consultar_ferramenta(nome_ferramenta: str) -> dict:
     """
     Busca uma ferramenta pelo nome (busca parcial, case-insensitive).
-    Retorna disponibilidade, quem está com ela e desde quando.
+    Verifica no cadastro de ferramentas e cruza com a posse_ferramentas dos funcionários.
     """
     try:
         sb = get_supabase()
+        termo = nome_ferramenta.strip()
         response = (
             sb.table("ferramentas")
-            .select("nome, quantidade, saiu, funcionario_emprestado, matricula, data_emprestado, status, tag")
-            .ilike("nome", f"%{nome_ferramenta}%")
+            .select("tag, nome, quantidade, status")
+            .ilike("nome", f"%{termo}%")
             .execute()
         )
 
         # Se não achou com o nome completo, tenta buscar por cada palavra relevante
         if not response.data:
-            palavras = [p for p in nome_ferramenta.split() if len(p) > 3 and p.lower() not in ["para", "com", "sem", "jogo", "kit"]]
+            palavras = [p for p in termo.split() if len(p) > 3 and p.lower() not in ["para", "com", "sem", "jogo", "kit", "das", "dos", "uma", "uns"]]
             for palavra in palavras:
                 res_palavra = (
                     sb.table("ferramentas")
-                    .select("nome, quantidade, saiu, funcionario_emprestado, matricula, data_emprestado, status, tag")
+                    .select("tag, nome, quantidade, status")
                     .ilike("nome", f"%{palavra}%")
                     .execute()
                 )
@@ -102,43 +127,65 @@ def consultar_ferramenta(nome_ferramenta: str) -> dict:
                 "mensagem": f"Nenhuma ferramenta encontrada com o termo '{nome_ferramenta}'. Verifique o nome correto da ferramenta."
             }
 
-        ferramenta = response.data[0]
-        nome = ferramenta.get("nome", nome_ferramenta)
-        saiu = ferramenta.get("saiu", 0)
-        status = ferramenta.get("status", "")
-        funcionario = ferramenta.get("funcionario_emprestado")
-        matricula = ferramenta.get("matricula")
-        data_emprestado = ferramenta.get("data_emprestado")
+        ferramentas_encontradas = response.data
 
-        # Considera emprestada se saiu > 0 ou status indica emprestado
-        esta_emprestada = saiu > 0 or status in ("emprestado", "retirado", "emprestada")
-        quantidade_total = int(ferramenta.get("quantidade") or 1)
-        quantidade_disponivel = max(0, quantidade_total - saiu)
+        # Busca todos os funcionários que possuem alguma ferramenta em posse
+        res_funcs = (
+            sb.table("funcionarios")
+            .select("nome, matricula, setor, posse_ferramentas")
+            .not_.is_("posse_ferramentas", "null")
+            .execute()
+        )
 
-        if esta_emprestada and funcionario and quantidade_disponivel == 0:
+        # Mapeia qual tag está com qual funcionário
+        tag_para_funcionario = {}
+        for func in (res_funcs.data or []):
+            tags_func = _obter_tags_funcionario(func.get("posse_ferramentas"))
+            for t in tags_func:
+                tag_para_funcionario[t] = {
+                    "nome": func.get("nome"),
+                    "matricula": func.get("matricula"),
+                    "setor": func.get("setor")
+                }
+
+        # Analisa cada ferramenta encontrada
+        emprestadas = []
+        disponiveis = []
+
+        for f in ferramentas_encontradas:
+            tag = f.get("tag")
+            nome = f.get("nome")
+            if tag in tag_para_funcionario:
+                func_info = tag_para_funcionario[tag]
+                emprestadas.append({
+                    "nome": nome,
+                    "tag": tag,
+                    "funcionario": func_info["nome"],
+                    "matricula": func_info["matricula"]
+                })
+            else:
+                disponiveis.append(f)
+
+        if emprestadas and not disponiveis:
+            detalhes = "\n".join([f"- {e['nome']} (tag: {e['tag']}): em posse de *{e['funcionario']}* (matrícula: {e['matricula']})" for e in emprestadas])
             return {
                 "encontrado": True,
                 "disponivel": False,
-                "nome": nome,
-                "quantidade_total": quantidade_total,
-                "quantidade_disponivel": 0,
-                "funcionario": funcionario,
-                "matricula": matricula,
-                "data_emprestado": data_emprestado,
-                "mensagem": (
-                    f"A {nome} foi retirada por {funcionario} "
-                    f"(matrícula: {matricula}) em {data_emprestado} "
-                    f"e ainda não foi devolvida à ferramentaria (0 unidades disponíveis)."
-                )
+                "mensagem": f"A(s) ferramenta(s) solicitada(s) está(ão) emprestada(s) no momento:\n{detalhes}"
             }
-        else:
+        elif emprestadas and disponiveis:
+            detalhes_emp = "\n".join([f"- {e['nome']} (tag: {e['tag']}): com *{e['funcionario']}* (matrícula: {e['matricula']})" for e in emprestadas])
             return {
                 "encontrado": True,
                 "disponivel": True,
-                "nome": nome,
-                "quantidade_total": quantidade_total,
-                "quantidade_disponivel": quantidade_disponivel,
-                "mensagem": f"A {nome} está disponível na ferramentaria. Temos {quantidade_disponivel} unidade(s) disponível(is)."
+                "mensagem": f"Temos {len(disponiveis)} unidade(s) disponível(is) na ferramentaria.\n\n⚠️ Emprestada(s) no momento:\n{detalhes_emp}"
+            }
+        else:
+            primeiro_nome = ferramentas_encontradas[0].get("nome", nome_ferramenta)
+            return {
+                "encontrado": True,
+                "disponivel": True,
+                "mensagem": f"A *{primeiro_nome}* está disponível na ferramentaria ({len(disponiveis)} unidade(s)). Nenhuma está emprestada no momento."
             }
 
     except Exception as e:
@@ -183,7 +230,7 @@ def consultar_material(nome_material: str) -> dict:
                 "encontrado": True,
                 "estoque": 0,
                 "nome": nome,
-                "mensagem": f"O estoque de {nome} está zerado. Não há unidades disponíveis."
+                "mensagem": f"O estoque de *{nome}* está zerado. Não há unidades disponíveis."
             }
 
         aviso_minimo = ""
@@ -195,7 +242,7 @@ def consultar_material(nome_material: str) -> dict:
             "estoque": estoque_atual,
             "nome": nome,
             "unidade": unidade,
-            "mensagem": f"Temos {estoque_atual} {unidade} de {nome} no estoque.{aviso_minimo}"
+            "mensagem": f"Temos *{estoque_atual} {unidade}* de *{nome}* no estoque.{aviso_minimo}"
         }
 
     except Exception as e:
@@ -208,45 +255,56 @@ def consultar_material(nome_material: str) -> dict:
 
 def listar_ferramentas_funcionario(nome_funcionario: str, matricula: Optional[str] = None) -> dict:
     """
-    Lista todas as ferramentas que um funcionário está com posse.
+    Lista todas as ferramentas que um funcionário está com posse consultando posse_ferramentas na tabela funcionarios.
     """
     try:
         sb = get_supabase()
-
-        # Busca ferramentas emprestadas para o funcionário
-        query = (
-            sb.table("ferramentas")
-            .select("nome, tag, data_emprestado, status")
-            .ilike("funcionario_emprestado", f"%{nome_funcionario}%")
-        )
-
+        query = sb.table("funcionarios").select("id, nome, matricula, setor, posse_ferramentas, numero_whatsapp")
+        
         if matricula:
-            query = query.eq("matricula", matricula)
+            res_func = query.eq("matricula", matricula).execute()
+        else:
+            res_func = query.ilike("nome", f"%{nome_funcionario.strip()}%").execute()
+            if not res_func.data:
+                # Tenta pelo primeiro nome se o usuário digitou só 'alan' ou similar
+                primeiro_nome = nome_funcionario.strip().split()[0]
+                if len(primeiro_nome) >= 3:
+                    res_func = sb.table("funcionarios").select("id, nome, matricula, setor, posse_ferramentas, numero_whatsapp").ilike("nome", f"%{primeiro_nome}%").execute()
 
-        response = query.execute()
+        if not res_func.data:
+            return {
+                "encontrado": False,
+                "mensagem": f"Funcionário '{nome_funcionario}' não foi encontrado no cadastro."
+            }
 
-        if not response.data:
+        funcionario = res_func.data[0]
+        nome_completo = funcionario.get("nome", nome_funcionario)
+        mat = funcionario.get("matricula", "")
+        tags = _obter_tags_funcionario(funcionario.get("posse_ferramentas"))
+
+        if not tags:
             return {
                 "encontrado": True,
                 "ferramentas": [],
-                "mensagem": f"{nome_funcionario} não possui nenhuma ferramenta retirada atualmente."
+                "mensagem": f"O colaborador *{nome_completo}* (matrícula: {mat}) não possui nenhuma ferramenta em posse no momento."
             }
 
-        ferramentas = response.data
-        lista = "\n".join(
-            [f"- {f.get('nome')} (retirada em {f.get('data_emprestado', 'data não registrada')})"
-             for f in ferramentas]
-        )
+        # Busca os nomes das ferramentas pelas tags
+        res_ferramentas = sb.table("ferramentas").select("tag, nome, status").in_("tag", tags).execute()
+        ferramentas_map = {f["tag"]: f.get("nome", "Ferramenta") for f in (res_ferramentas.data or [])}
+
+        itens = [f"- {ferramentas_map.get(tag, 'Ferramenta')} (tag: `{tag}`)" for tag in tags]
+        lista_str = "\n".join(itens)
 
         return {
             "encontrado": True,
-            "ferramentas": ferramentas,
-            "mensagem": f"{nome_funcionario} está com {len(ferramentas)} ferramenta(s):\n{lista}"
+            "ferramentas": [{"tag": t, "nome": ferramentas_map.get(t, "Ferramenta")} for t in tags],
+            "mensagem": f"*{nome_completo}* (matrícula: {mat}) está atualmente em posse de {len(tags)} ferramenta(s):\n{lista_str}"
         }
 
     except Exception as e:
         print(f"❌ Erro ao listar ferramentas do funcionário '{nome_funcionario}': {e}")
         return {
             "encontrado": False,
-            "mensagem": "Ocorreu um erro ao consultar. Tente novamente."
+            "mensagem": "Ocorreu um erro ao consultar as ferramentas do funcionário."
         }
