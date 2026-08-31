@@ -213,70 +213,60 @@ const DevolverItem = () => {
     setConfirmando(true);
 
     try {
-      // Preparar dados para o webhook no formato antigo
-      const timestamp = new Date().toISOString();
-      const webhookData: any = {
-        funcionario_matricula: matricula,
-        funcionario_nome: funcionario.nome,
-        funcionario_setor: funcionario.setor,
-        data: timestamp,
-        timestamp: timestamp,
-        total_itens: String(ferramentasSelecionadas.length),
-        categoria: 'ferramentas',
-      };
+      // 1. Atualizar banco Supabase diretamente
+      const matNum = parseInt(matricula.trim());
 
-      // Adicionar cada ferramenta selecionada como item_0_, item_1_, etc
-      ferramentasSelecionadas.forEach((ferramenta, index) => {
-        webhookData[`item_${index}_id`] = ferramenta.id;
-        webhookData[`item_${index}_nome`] = ferramenta.nome;
-        webhookData[`item_${index}_tag`] = ferramenta.tag;
-        webhookData[`item_${index}_quantidade`] = '1';
-        webhookData[`item_${index}_tipo`] = 'ferramenta';
-      });
+      for (const ferramenta of ferramentasSelecionadas) {
+        // Marca a ferramenta como devolvida (disponível, saiu=0, limpa funcionario)
+        await supabase
+          .from('ferramentas')
+          .update({
+            saiu: 0,
+            funcionario_emprestado: null,
+            matricula: null,
+            data_emprestado: null,
+            status: 'disponível'
+          })
+          .eq('id', ferramenta.id);
+      }
 
-      // Assinar payload
-      const signature = await signWebhookPayload(webhookData);
+      // Remove as ferramentas da posse_ferramentas do colaborador
+      const tagsDevolvidas = ferramentasSelecionadas.map(f => f.tag);
+      const { data: funcData } = await supabase
+        .from('funcionarios')
+        .select('posse_ferramentas')
+        .eq('matricula', matNum)
+        .single();
 
-      // Criar FormData para enviar no formato correto
-      const formData = new FormData();
-      Object.entries(webhookData).forEach(([key, value]) => {
-        formData.append(key, String(value));
-      });
+      if (funcData?.posse_ferramentas) {
+        let posseAtual: string[] = Array.isArray(funcData.posse_ferramentas)
+          ? funcData.posse_ferramentas
+          : JSON.parse(String(funcData.posse_ferramentas) || '[]');
 
-      await fetch('https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/devolver-ferramenta', {
-        method: 'POST',
-        headers: { 
-          'X-Webhook-Signature': signature 
-        },
-        body: formData,
-      });
+        const novaPosse = posseAtual.filter(tag => !tagsDevolvidas.includes(tag));
+        await supabase
+          .from('funcionarios')
+          .update({ posse_ferramentas: novaPosse })
+          .eq('matricula', matNum);
+      }
 
-      // Enviar cada foto individualmente
+      // Enviar notificação e foto de devolução para o Backend do WhatsApp
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       for (const ferramenta of ferramentasSelecionadas) {
         const foto = fotosFerramentas[ferramenta.id];
+        const formDataFoto = new FormData();
+        formDataFoto.append('funcionario', funcionario.nome);
+        formDataFoto.append('matricula', matricula);
+        formDataFoto.append('item_nome', ferramenta.nome);
+        formDataFoto.append('item_tipo', 'ferramenta');
         if (foto) {
-          const fotoData = {
-            funcionario_matricula: matricula,
-            funcionario_nome: funcionario.nome,
-            ferramenta_nome: ferramenta.nome,
-            ferramenta_tag: ferramenta.tag,
-            timestamp: new Date().toISOString(),
-          };
-
-          const fotoSignature = await signWebhookPayload(fotoData);
-
-          const fotoFormData = new FormData();
-          Object.entries(fotoData).forEach(([key, value]) => {
-            fotoFormData.append(key, value);
-          });
-          fotoFormData.append('foto', foto, foto.name);
-
-          await fetch('https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/devolver-ferramenta-imagem', {
-            method: 'POST',
-            headers: { 'X-Webhook-Signature': fotoSignature },
-            body: fotoFormData,
-          });
+          formDataFoto.append('foto', foto, foto.name);
         }
+
+        fetch(`${backendUrl}/api/notificar/devolucao-form`, {
+          method: 'POST',
+          body: formDataFoto,
+        }).catch(err => console.error('Erro ao enviar devolução ao WhatsApp:', err));
       }
 
       toast({

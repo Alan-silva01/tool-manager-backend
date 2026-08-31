@@ -47,17 +47,23 @@ export const useNotificacoes = () => {
         }
       }
 
-      // Enviar diretamente em JSON para o webhook (formato antigo, sem autenticação)
-      const response = await fetch('https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/notificar-funcionario', {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
+      const response = await fetch(`${backendUrl}/api/notificar/solicitar-devolucao`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(webhookData),
+        body: JSON.stringify({
+          nome: funcionario.nome,
+          numero_whatsapp: numeroWhats,
+          nome_ferramenta: ferramenta.nome,
+          tag_ferramenta: ferramenta.tag,
+          data_retirada: ferramenta.data_emprestado || null,
+        }),
       });
 
       if (response.ok) {
         toast({
-          title: "Notificação enviada",
-          description: `Funcionário ${funcionario.nome} foi notificado sobre a devolução da ${ferramenta.nome}`,
+          title: "Solicitação enviada no PV",
+          description: `Mensagem enviada para o WhatsApp de ${funcionario.nome} solicitando a devolução da ${ferramenta.nome}.`,
         });
       } else {
         throw new Error('Erro ao enviar notificação');

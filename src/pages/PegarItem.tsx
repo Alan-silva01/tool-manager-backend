@@ -301,78 +301,91 @@ const PegarItem = () => {
     setConfirmando(true);
 
     try {
-      // Preparar dados para o webhook no formato antigo
-      const timestamp = new Date().toISOString();
-      const webhookData: any = {
-        funcionario_matricula: matricula,
-        funcionario_nome: funcionario.nome,
-        funcionario_setor: funcionario.setor,
-        data: timestamp,
-        timestamp: timestamp,
-        total_itens: String(carrinho.length),
-        categoria: categoria,
-      };
+      // 1. Atualizar banco Supabase diretamente
+      const matNum = parseInt(matricula.trim());
+      const dataFormatada = new Date().toLocaleDateString('pt-BR');
 
-      // Adicionar cada item do carrinho como item_0_, item_1_, etc
-      carrinho.forEach((item, index) => {
-        webhookData[`item_${index}_id`] = item.id;
-        webhookData[`item_${index}_nome`] = item.nome;
-        webhookData[`item_${index}_tag`] = item.tag;
-        webhookData[`item_${index}_quantidade`] = String(item.quantidade);
-        webhookData[`item_${index}_tipo`] = item.tipo;
-      });
+      for (const item of carrinho) {
+        if (item.tipo === 'ferramenta' || categoria === 'ferramentas') {
+          // Atualiza a tabela ferramentas: saiu=1, funcionario_emprestado, matricula, status
+          await supabase
+            .from('ferramentas')
+            .update({
+              saiu: 1,
+              funcionario_emprestado: funcionario.nome,
+              matricula: matNum,
+              data_emprestado: dataFormatada,
+              status: 'emprestada'
+            })
+            .eq('id', item.id);
 
-      // Determinar URL do webhook - SEMPRE usa pegar-ferramenta para ambos
-      const webhookUrl = 'https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/pegar-ferramenta';
+          // Atualiza posse_ferramentas do colaborador
+          const { data: funcData } = await supabase
+            .from('funcionarios')
+            .select('posse_ferramentas')
+            .eq('matricula', matNum)
+            .single();
 
-      // Assinar payload
-      const signature = await signWebhookPayload(webhookData);
+          let posseAtual: string[] = [];
+          if (funcData?.posse_ferramentas) {
+            posseAtual = Array.isArray(funcData.posse_ferramentas) 
+              ? funcData.posse_ferramentas 
+              : JSON.parse(String(funcData.posse_ferramentas) || '[]');
+          }
+          if (!posseAtual.includes(item.tag)) {
+            posseAtual.push(item.tag);
+            await supabase
+              .from('funcionarios')
+              .update({ posse_ferramentas: posseAtual })
+              .eq('matricula', matNum);
+          }
+        } else {
+          // É material: incrementa saída na tabela materiais
+          const { data: matData } = await supabase
+            .from('materiais')
+            .select('saida')
+            .eq('id', item.id)
+            .single();
 
-      // Criar FormData para enviar no formato correto
-      const formData = new FormData();
-      Object.entries(webhookData).forEach(([key, value]) => {
-        formData.append(key, String(value));
-      });
+          const saidaAtual = Number(matData?.saida || 0);
+          const novaSaida = saidaAtual + (item.quantidade || 1);
 
-      // Enviar dados principais via Edge Function (em background, não aguarda)
-      supabase.functions.invoke('send-webhook', {
-        body: {
-          url: webhookUrl,
-          data: webhookData,
-        },
-      }).catch(err => console.error('Erro ao enviar webhook principal:', err));
+          await supabase
+            .from('materiais')
+            .update({ saida: novaSaida })
+            .eq('id', item.id);
 
-      // Enviar cada foto individualmente (em background, não aguarda)
+          // Registra histórico em registro_mate_funcionarios
+          await supabase
+            .from('registro_mate_funcionarios')
+            .insert({
+              funcionario: funcionario.nome,
+              matricula: String(matNum),
+              material: item.tag ? String(item.tag) : undefined,
+              quantidade: item.quantidade || 1,
+              data: dataFormatada
+            });
+        }
+      }
+
+      // Enviar notificação e fotos ao Backend do WhatsApp do Agente
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       for (const item of carrinho) {
         const foto = fotosItens[item.id];
+        const formData = new FormData();
+        formData.append('funcionario', funcionario.nome);
+        formData.append('matricula', matricula);
+        formData.append('item_nome', item.nome);
+        formData.append('item_tipo', item.tipo || 'ferramenta');
+        formData.append('quantidade', String(item.quantidade || 1));
         if (foto) {
-          const fotoData = {
-            funcionario_matricula: matricula,
-            funcionario_nome: funcionario.nome,
-            item_nome: item.nome,
-            item_tag: item.tag,
-            timestamp: new Date().toISOString(),
-          };
-
-          const fotoSignature = await signWebhookPayload(fotoData);
-          const fotoHeaders = getAuthHeaders(fotoSignature);
-
-          const fotoFormData = new FormData();
-          Object.entries(fotoData).forEach(([key, value]) => {
-            fotoFormData.append(key, value);
-          });
-          fotoFormData.append('foto', foto, foto.name);
-
-          // SEMPRE usa pegar-ferramenta-imagem para ambos materiais e ferramentas
-          const fotoWebhookUrl = 'https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/pegar-ferramenta-imagem';
-
-          fetch(fotoWebhookUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'X-Webhook-Signature': fotoSignature },
-            body: fotoFormData,
-          }).catch(err => console.error('Erro ao enviar foto:', err));
+          formData.append('foto', foto, foto.name);
         }
+
+        fetch(`${backendUrl}/api/notificar/retirada-form`, {
+          method: 'POST',
+          body: formData,
+        }).catch(err => console.error('Erro ao enviar notificação ao WhatsApp:', err));
       }
 
       toast({
