@@ -73,8 +73,10 @@ async def test_notificar_com_api_key_valida_retorna_200():
 
 
 @pytest.mark.asyncio
-async def test_webhook_sem_secret_retorna_403():
-    """Webhook sem secret deve retornar 403 Forbidden."""
+async def test_webhook_com_secret_invalido_retorna_403():
+    """Webhook com secret incorreto no header deve retornar 403 Forbidden."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.post("/webhook/grupo", json={})
+        headers = {"X-Webhook-Secret": "secret_invalido_123"}
+        response = await ac.post("/webhook/grupo", json={}, headers=headers)
         assert response.status_code == 403
+

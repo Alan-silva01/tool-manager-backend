@@ -31,6 +31,9 @@ def extrair_dados_grupo(payload: dict) -> dict | None:
     """
     try:
         data = payload.get("data", {})
+        if not data or not isinstance(data, dict) or "key" not in data:
+            data = payload
+
         key = data.get("key", {})
         remote_jid = key.get("remoteJid", "")
 
@@ -99,6 +102,7 @@ async def webhook_grupo(request: Request, _auth=Depends(verificar_webhook_secret
     """
     try:
         payload = await request.json()
+        logger.info(f"🔍 [Webhook Payload Recebido]: {payload}")
         dados = extrair_dados_grupo(payload)
 
         if not dados:
