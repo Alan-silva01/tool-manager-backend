@@ -1,6 +1,7 @@
 import os
 import httpx
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
@@ -10,12 +11,18 @@ from pathlib import Path
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
+TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+
+def obter_agora_brasilia() -> datetime:
+    return datetime.now(TZ_BRASILIA)
+
 EVOLUTION_API_URL = os.getenv("EVOLUTION_API_URL", "").rstrip("/")
 EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", "")
 EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
 GRUPO_JID = os.getenv("GRUPO_JID", "")
 
 router = APIRouter()
+
 
 
 # ─── Schemas ───────────────────────────────────────
@@ -104,7 +111,7 @@ async def notificar_retirada(payload: RetiradaPayload):
     Chamado pelo frontend quando um funcionário retira uma ferramenta ou material.
     Envia notificação no grupo do WhatsApp com texto e imagem.
     """
-    agora = datetime.now()
+    agora = obter_agora_brasilia()
     data = payload.data or agora.strftime("%d/%m/%Y")
     hora = payload.hora or agora.strftime("%H:%M")
 
@@ -144,7 +151,7 @@ async def notificar_devolucao(payload: DevolucaoPayload):
     Chamado pelo frontend quando um funcionário devolve uma ferramenta.
     Envia notificação no grupo do WhatsApp.
     """
-    agora = datetime.now()
+    agora = obter_agora_brasilia()
     data = payload.data or agora.strftime("%d/%m/%Y")
     hora = payload.hora or agora.strftime("%H:%M")
 
@@ -185,7 +192,7 @@ async def notificar_retirada_form(
     """
     Recebe multipart/form-data com a foto tirada pelo frontend e envia ao WhatsApp.
     """
-    agora = datetime.now()
+    agora = obter_agora_brasilia()
     data_str = data or agora.strftime("%d/%m/%Y")
     hora_str = hora or agora.strftime("%H:%M")
 
@@ -228,7 +235,7 @@ async def notificar_devolucao_form(
     """
     Recebe multipart/form-data com a foto da devolução tirada pelo frontend e envia ao WhatsApp.
     """
-    agora = datetime.now()
+    agora = obter_agora_brasilia()
     data_str = data or agora.strftime("%d/%m/%Y")
     hora_str = hora or agora.strftime("%H:%M")
 

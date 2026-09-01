@@ -1,8 +1,12 @@
 import os
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from openai import OpenAI
 from dotenv import load_dotenv
+
+TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+
 
 from tools.avb_tools import TOOLS_AVB
 from prompts.avb_prompt import AVB_SYSTEM_PROMPT
@@ -80,7 +84,7 @@ async def processar_mensagem_grupo(
     try:
         client = get_openai_client()
 
-        data_hora = datetime.now().strftime("%d/%m/%Y %H:%M")
+        data_hora = datetime.now(TZ_BRASILIA).strftime("%d/%m/%Y %H:%M")
         system_prompt = AVB_SYSTEM_PROMPT.format(data_hora=data_hora)
 
         user_content = f"[{remetente_nome}] perguntou: {texto_mensagem}"

@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Instala dependências do sistema
+# Instala dependências do sistema e tzdata para fuso horário de Brasília
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia requirements e instala
@@ -16,8 +17,10 @@ COPY backend/ /app/backend/
 
 WORKDIR /app/backend
 
+ENV TZ="America/Sao_Paulo"
 ENV PORT=8001
 ENV PYTHONUNBUFFERED=1
+
 
 EXPOSE 8001
 
