@@ -390,7 +390,7 @@ def listar_todas_ferramentas() -> dict:
 
 def listar_todos_materiais() -> dict:
     """
-    Lista todos os materiais de consumo cadastrados com Estoque Atual (Entrada - Saída) e Unidade.
+    Lista todos os materiais de consumo cadastrados organizados por status (Em Estoque, Estoque Baixo, Zerado).
     """
     try:
         sb = get_supabase()
@@ -403,33 +403,65 @@ def listar_todos_materiais() -> dict:
                 "mensagem": "Não há materiais de consumo cadastrados no estoque."
             }
             
-        linhas = []
+        em_estoque = []
+        estoque_baixo = []
+        zerados = []
+        
         for m in materiais:
-            nome = m.get("nome", "Material")
-            entrada = m.get("entrada", 0)
-            saida = m.get("saida", 0)
-            estoque = entrada - saida
-            unidade = m.get("unidade", "un")
-            minimo = m.get("quantidade_minima", 0)
+            nome = m.get("nome", "Material").strip()
+            entrada = m.get("entrada", 0) or 0
+            saida = m.get("saida", 0) or 0
+            estoque = max(0, entrada - saida)
+            minimo = m.get("quantidade_minima", 0) or 0
+            is_baixo = m.get("estoque_baixo", False)
             
-            if estoque <= 0:
-                status_str = f"🔴 *Esgotado* (0 {unidade})"
-            elif estoque <= minimo:
-                status_str = f"⚠️ *Baixo Estoque:* {estoque} {unidade} (Mín: {minimo})"
+            if estoque == 0:
+                zerados.append({
+                    "nome": nome,
+                    "minimo": minimo
+                })
+            elif is_baixo or (minimo > 0 and estoque <= minimo):
+                estoque_baixo.append({
+                    "nome": nome,
+                    "estoque": estoque,
+                    "minimo": minimo
+                })
             else:
-                status_str = f"🟢 *Em Estoque:* {estoque} {unidade}"
+                em_estoque.append({
+                    "nome": nome,
+                    "estoque": estoque
+                })
                 
-            linhas.append(f"📦 *{nome}* ➔ {status_str}")
+        secoes = ["📦 *ESTOQUE — FERRAMENTARIA AVB*\n"]
+        
+        if em_estoque:
+            secoes.append("🟢 *EM ESTOQUE*")
+            for item in em_estoque:
+                secoes.append(f"• {item['nome']} — {item['estoque']}")
+                
+        if estoque_baixo:
+            secoes.append("\n⚠️ *ESTOQUE BAIXO*")
+            for item in estoque_baixo:
+                secoes.append(f"• {item['nome']} — {item['estoque']}\n  Mínimo: {item['minimo']}")
+                
+        if zerados:
+            secoes.append("\n🔴 *ZERADO / ESGOTADO*")
+            for item in zerados:
+                secoes.append(f"• {item['nome']} — 0\n  Mínimo: {item['minimo']}")
+                
+        total_itens = len(materiais)
+        total_atencao = len(estoque_baixo) + len(zerados)
+        
+        secoes.append(f"\n📊 *Total de itens:* {total_itens}")
+        if total_atencao > 0:
+            secoes.append(f"⚠️ *Itens para atenção:* {total_atencao}")
             
-        mensagem_final = (
-            f"📋 *ESTOQUE DE MATERIAIS — Ferramentaria AVB*\n"
-            f"────────────────────────────\n"
-            + "\n".join(linhas)
-        )
+        mensagem_final = "\n".join(secoes)
         
         return {
             "encontrado": True,
-            "total": len(materiais),
+            "total": total_itens,
+            "atencao": total_atencao,
             "mensagem": mensagem_final
         }
     except Exception as e:
@@ -438,4 +470,5 @@ def listar_todos_materiais() -> dict:
             "encontrado": False,
             "mensagem": "Ocorreu um erro ao consultar o estoque de materiais."
         }
+
 
