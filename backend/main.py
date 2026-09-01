@@ -24,7 +24,7 @@ from config import CORS_ORIGINS, PORT
 from routers.grupo_webhook import router as grupo_router
 from routers.notificacoes import router as notificacoes_router
 from routers.operacoes import router as operacoes_router
-from services.queue import worker_fila_whatsapp
+from services.queue import worker_fila_whatsapp, get_redis_client, FILA_WHATSAPP_KEY, FILA_WHATSAPP_DLQ_KEY
 from utils.logger import get_logger
 
 logger = get_logger("main")
@@ -70,13 +70,30 @@ app.include_router(operacoes_router)
 
 
 @app.get("/")
-def health_check():
+async def health_check():
+    redis_status = "offline (fallback memória ativo)"
+    fila_tamanho = 0
+    dlq_tamanho = 0
+
+    try:
+        r = await get_redis_client()
+        if r:
+            redis_status = "conectado"
+            fila_tamanho = await r.llen(FILA_WHATSAPP_KEY)
+            dlq_tamanho = await r.llen(FILA_WHATSAPP_DLQ_KEY)
+    except Exception:
+        pass
+
     return {
         "status": "ok",
         "servico": "Agente IA — Ferramentaria AVB (Enterprise)",
         "seguranca": "CORS restrito + X-API-Key + Webhook Secret",
         "concorrencia": "Transações ACID (PostgreSQL FOR UPDATE)",
-        "mensageria": "Redis Queue Assíncrono com Fallback Gracioso",
+        "mensageria": {
+            "redis_status": redis_status,
+            "fila_pendentes": fila_tamanho,
+            "fila_dlq_falhas": dlq_tamanho
+        },
         "endpoints": {
             "webhook_grupo": "POST /webhook/grupo",
             "operacoes_retirar": "POST /api/operacoes/retirar",

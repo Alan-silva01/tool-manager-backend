@@ -14,6 +14,7 @@ from utils.logger import get_logger
 logger = get_logger("queue_service")
 
 FILA_WHATSAPP_KEY = "fila:whatsapp:notificacoes"
+FILA_WHATSAPP_DLQ_KEY = "fila:whatsapp:falhas_dlq"
 
 
 _redis_client: Optional[aioredis.Redis] = None
@@ -131,7 +132,11 @@ async def worker_fila_whatsapp():
                     await asyncio.sleep(2.0)
                     await r.rpush(FILA_WHATSAPP_KEY, json.dumps(job))
                 else:
-                    logger.error(f"❌ Descartando mensagem para {job['recipient']} após 3 tentativas falhas.")
+                    logger.error(f"❌ Movendo mensagem para DLQ ({FILA_WHATSAPP_DLQ_KEY}) para {job['recipient']} após 3 tentativas falhas.")
+                    try:
+                        await r.rpush(FILA_WHATSAPP_DLQ_KEY, json.dumps(job))
+                    except Exception as dlq_err:
+                        logger.error(f"Erro ao salvar na DLQ: {dlq_err}")
 
         except asyncio.CancelledError:
             logger.info("Worker da fila cancelado.")
