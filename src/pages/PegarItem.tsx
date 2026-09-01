@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFerramentas } from "@/hooks/useFerramentas";
 import { useMateriais } from "@/hooks/useMateriais";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { apiRequestFormData } from "@/lib/api";
 
