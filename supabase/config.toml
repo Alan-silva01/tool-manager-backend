@@ -1,4 +1,1 @@
 project_id = "lqslvopuzcffwhkshvvg"
-
-[functions.send-webhook]
-verify_jwt = false

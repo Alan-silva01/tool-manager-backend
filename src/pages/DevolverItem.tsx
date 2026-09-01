@@ -10,9 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { useFerramentas } from "@/hooks/useFerramentas";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
-import { signWebhookPayload, getAuthHeaders } from "@/utils/webhookAuth";
 import { apiRequestFormData } from "@/lib/api";
 
 const DevolverItem = () => {

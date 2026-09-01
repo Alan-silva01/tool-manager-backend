@@ -1,12 +1,13 @@
+"""
+agents/avb_agent.py — Agente de IA para a Ferramentaria AVB com OpenAI Function Calling e Memória.
+"""
+
 import os
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from openai import OpenAI
 from dotenv import load_dotenv
-
-TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
-
 
 from tools.avb_tools import TOOLS_AVB
 from prompts.avb_prompt import AVB_SYSTEM_PROMPT
@@ -19,6 +20,11 @@ from services.supabase_avb import (
     salvar_mensagem_chat_supabase,
     obter_historico_chat_supabase,
 )
+from utils.logger import get_logger
+
+logger = get_logger("avb_agent")
+
+TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
 
 from pathlib import Path
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
@@ -58,18 +64,24 @@ def executar_tool(fn_name: str, args: dict) -> dict:
     elif fn_name == "listar_todos_materiais":
         return listar_todos_materiais()
 
-    return {"erro": f"Tool '{fn_name}' não reconhecida."}
-
+    return {"erro": f"Tool '{fn_name}' não reconhecida"}
 
 
 def obter_historico(grupo_jid: str) -> list[dict]:
-    """Obtém o histórico de mensagens gravadas no Supabase."""
-    return obter_historico_chat_supabase(session_id=grupo_jid, limit=8)
+    """Carrega histórico de mensagens persistidas no Supabase."""
+    try:
+        return obter_historico_chat_supabase(session_id=grupo_jid, limit=6)
+    except Exception as e:
+        logger.error(f"Erro ao carregar histórico: {e}")
+        return []
 
 
 def salvar_historico(grupo_jid: str, role: str, content: str):
-    """Salva a mensagem no Supabase de forma persistente."""
-    salvar_mensagem_chat_supabase(session_id=grupo_jid, role=role, content=content)
+    """Salva mensagem no histórico do Supabase."""
+    try:
+        salvar_mensagem_chat_supabase(session_id=grupo_jid, role=role, content=content)
+    except Exception as e:
+        logger.error(f"Erro ao salvar mensagem no histórico: {e}")
 
 
 async def processar_mensagem_grupo(
@@ -98,7 +110,7 @@ async def processar_mensagem_grupo(
             {"role": "user", "content": user_content}
         ]
 
-        print(f"🤖 [AVB Agent] Processando mensagem com memória de {remetente_nome}: '{texto_mensagem}'")
+        logger.info(f"🤖 Processando mensagem com memória de {remetente_nome}: '{texto_mensagem}'")
 
         # Salva a mensagem do usuário no histórico
         salvar_historico(grupo_jid, "user", user_content)
@@ -127,9 +139,9 @@ async def processar_mensagem_grupo(
             fn_name = tool_call.function.name
             args = json.loads(tool_call.function.arguments)
 
-            print(f"🔧 [AVB Agent] Executando tool: {fn_name}({args})")
+            logger.info(f"🔧 Executando tool: {fn_name}({args})")
             resultado = executar_tool(fn_name, args)
-            print(f"📊 [AVB Agent] Resultado: {resultado}")
+            logger.debug(f"📊 Resultado da tool {fn_name}: {resultado}")
 
             messages.append({
                 "role": "tool",
@@ -145,9 +157,9 @@ async def processar_mensagem_grupo(
 
         resposta_final = response_final.choices[0].message.content or ""
         salvar_historico(grupo_jid, "assistant", resposta_final)
-        print(f"✅ [AVB Agent] Resposta gerada: '{resposta_final}'")
+        logger.info(f"✅ Resposta gerada com sucesso para {remetente_nome}")
         return resposta_final
 
     except Exception as e:
-        print(f"❌ [AVB Agent] Erro ao processar mensagem: {e}")
+        logger.exception(f"Erro ao processar mensagem do grupo: {e}")
         return "Ocorreu um erro ao consultar o sistema. Por favor, tente novamente."
