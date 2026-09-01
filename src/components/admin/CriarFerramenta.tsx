@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { ferramentaValidationSchema } from '@/utils/validationSchemas';
-import { signWebhookPayload, getAuthHeaders } from '@/utils/webhookAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
 export const CriarFerramenta = () => {
@@ -59,38 +59,40 @@ export const CriarFerramenta = () => {
         }
       }
 
-      // Assinar payload
-      const signature = await signWebhookPayload(webhookData);
-      const headers = getAuthHeaders(signature);
+      // Inserir diretamente no Supabase
+      const { error: insertError } = await supabase
+        .from('ferramentas')
+        .insert({
+          nome: formData.nome,
+          tag: formData.tag,
+          quantidade: parseInt(formData.quantidade) || 1,
+          categoria: formData.categoria,
+          caracteristicas: formData.caracteristicas,
+          status: 'disponível',
+          saiu: 0
+        });
 
-      const response = await fetch('https://autonomia-n8n-editor.w8liji.easypanel.host/webhook/salvar-ferramenta', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(webhookData),
+      if (insertError) {
+        throw insertError;
+      }
+
+      setFormData({
+        nome: '',
+        tag: '',
+        quantidade: '',
+        categoria: '',
+        caracteristicas: ''
       });
 
-      if (response.ok) {
-        setFormData({
-          nome: '',
-          tag: '',
-          quantidade: '',
-          categoria: '',
-          caracteristicas: ''
-        });
-
-        toast({
-          title: "Sucesso",
-          description: "Ferramenta cadastrada com sucesso!",
-        });
-      } else {
-        const errorText = await response.text();
-        throw new Error(`Erro no webhook: ${response.status} - ${errorText}`);
-      }
-    } catch (error) {
+      toast({
+        title: "Sucesso",
+        description: "Ferramenta cadastrada com sucesso no estoque!",
+      });
+    } catch (error: any) {
       console.error('Erro ao cadastrar ferramenta:', error);
       toast({
-        title: "Erro",
-        description: "Erro ao cadastrar ferramenta. Tente novamente.",
+        title: "Erro ao cadastrar",
+        description: error.message || "Erro ao salvar ferramenta. Tente novamente.",
         variant: "destructive",
       });
     } finally {

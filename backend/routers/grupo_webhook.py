@@ -1,20 +1,24 @@
+"""
+routers/grupo_webhook.py — Endpoint de webhook para mensagens do WhatsApp com suporte a provedor desacoplado.
+"""
+
 import os
 import re
-from fastapi import APIRouter, Request, Depends
+from pathlib import Path
 from dotenv import load_dotenv
+from fastapi import APIRouter, Request, Depends
 
 from middleware.auth import verificar_webhook_secret
-
 from agents.avb_agent import processar_mensagem_grupo
-from evolution import enviar_mensagem_whatsapp
+from providers import whatsapp_provider
+from utils.logger import get_logger
 
-from pathlib import Path
+logger = get_logger("grupo_webhook")
+
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
-# JID do agente no grupo — número do WhatsApp do agente (formato: 5500000000000)
 AGENTE_JID = os.getenv("AGENTE_JID", "")
-# ID do grupo WhatsApp (formato: 00000000000@g.us)
 GRUPO_JID = os.getenv("GRUPO_JID", "")
 
 router = APIRouter()
@@ -26,7 +30,6 @@ def extrair_dados_grupo(payload: dict) -> dict | None:
     Retorna None se não for uma menção ao agente num grupo.
     """
     try:
-        # Verifica se é mensagem de grupo
         data = payload.get("data", {})
         key = data.get("key", {})
         remote_jid = key.get("remoteJid", "")
@@ -36,22 +39,20 @@ def extrair_dados_grupo(payload: dict) -> dict | None:
             return None
 
         # Não processa mensagens do próprio bot
-        from_me = key.get("fromMe", False)
-        if from_me:
+        if key.get("fromMe", False):
             return None
 
         message = data.get("message", {})
         push_name = data.get("pushName", "Colaborador")
-        participant = data.get("participant", "")  # Quem enviou dentro do grupo
+        participant = data.get("participant", "")
 
-        # Pega o texto da mensagem (pode estar em vários formatos)
+        # Pega o texto da mensagem
         texto = (
             message.get("conversation")
             or message.get("extendedTextMessage", {}).get("text")
             or ""
         )
 
-        # ContextInfo pode vir no data ou dentro de extendedTextMessage
         context_info = (
             data.get("contextInfo")
             or message.get("extendedTextMessage", {}).get("contextInfo", {})
@@ -62,7 +63,7 @@ def extrair_dados_grupo(payload: dict) -> dict | None:
         agente_numero = AGENTE_JID.replace("@s.whatsapp.net", "").replace("@c.us", "")
         foi_mencionado = (
             any(agente_numero in jid for jid in mentioned_jids)
-            or len(mentioned_jids) > 0  # Se marcou qualquer contato
+            or len(mentioned_jids) > 0
             or "@agente" in texto.lower()
             or "@assistente" in texto.lower()
             or (agente_numero and agente_numero in texto)
@@ -86,7 +87,7 @@ def extrair_dados_grupo(payload: dict) -> dict | None:
         }
 
     except Exception as e:
-        print(f"⚠️ [Grupo Webhook] Erro ao extrair dados: {e}")
+        logger.error(f"Erro ao extrair dados do webhook: {e}")
         return None
 
 
@@ -94,11 +95,10 @@ def extrair_dados_grupo(payload: dict) -> dict | None:
 async def webhook_grupo(request: Request, _auth=Depends(verificar_webhook_secret)):
     """
     Endpoint chamado pela Evolution API para mensagens do grupo.
-    Processa apenas menções ao @agente.
+    Processa menções ao @agente e responde no grupo.
     """
     try:
         payload = await request.json()
-        print(f"\n🔍 [Webhook Payload Recebido]: {payload}\n")
         dados = extrair_dados_grupo(payload)
 
         if not dados:
@@ -108,7 +108,7 @@ async def webhook_grupo(request: Request, _auth=Depends(verificar_webhook_secret
         push_name = dados["push_name"]
         texto = dados["texto"]
 
-        print(f"📨 [Grupo] {push_name} mencionou o agente: '{texto}'")
+        logger.info(f"📨 [Grupo] {push_name} mencionou o agente: '{texto}'")
 
         # Processa com o agente de IA com memória por grupo
         resposta = await processar_mensagem_grupo(
@@ -117,11 +117,11 @@ async def webhook_grupo(request: Request, _auth=Depends(verificar_webhook_secret
             grupo_jid=grupo_jid
         )
 
-        # Envia resposta no grupo
-        await enviar_mensagem_whatsapp(telefone=grupo_jid, texto=resposta)
+        # Envia resposta no grupo via provedor desacoplado
+        await whatsapp_provider.send_text(recipient=grupo_jid, text=resposta)
 
         return {"status": "respondido", "grupo": grupo_jid, "remetente": push_name}
 
     except Exception as e:
-        print(f"❌ [Grupo Webhook] Erro: {e}")
+        logger.exception(f"Erro ao processar webhook: {e}")
         return {"status": "erro", "detalhe": str(e)}
