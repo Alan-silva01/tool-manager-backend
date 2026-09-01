@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { notificacaoSchema } from '@/utils/validationSchemas';
 import { z } from 'zod';
+import { apiRequest } from '@/lib/api';
 
 export const useNotificacoes = () => {
   const { toast } = useToast();
@@ -47,10 +48,8 @@ export const useNotificacoes = () => {
         }
       }
 
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
-      const response = await fetch(`${backendUrl}/api/notificar/solicitar-devolucao`, {
+      const response = await apiRequest('/api/notificar/solicitar-devolucao', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nome: funcionario.nome,
           numero_whatsapp: numeroWhats,

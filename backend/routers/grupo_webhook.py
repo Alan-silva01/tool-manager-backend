@@ -1,7 +1,9 @@
 import os
 import re
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from dotenv import load_dotenv
+
+from middleware.auth import verificar_webhook_secret
 
 from agents.avb_agent import processar_mensagem_grupo
 from evolution import enviar_mensagem_whatsapp
@@ -89,7 +91,7 @@ def extrair_dados_grupo(payload: dict) -> dict | None:
 
 
 @router.post("/webhook/grupo")
-async def webhook_grupo(request: Request):
+async def webhook_grupo(request: Request, _auth=Depends(verificar_webhook_secret)):
     """
     Endpoint chamado pela Evolution API para mensagens do grupo.
     Processa apenas menções ao @agente.

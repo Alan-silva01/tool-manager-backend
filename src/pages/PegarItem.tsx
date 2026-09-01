@@ -13,6 +13,7 @@ import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { signWebhookPayload, getAuthHeaders } from "@/utils/webhookAuth";
+import { apiRequestFormData } from "@/lib/api";
 
 type CartItem = {
   id: string;
@@ -369,7 +370,6 @@ const PegarItem = () => {
       }
 
       // Enviar notificação e fotos ao Backend do WhatsApp do Agente
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       for (const item of carrinho) {
         const foto = fotosItens[item.id];
         const formData = new FormData();
@@ -382,10 +382,8 @@ const PegarItem = () => {
           formData.append('foto', foto, foto.name);
         }
 
-        fetch(`${backendUrl}/api/notificar/retirada-form`, {
-          method: 'POST',
-          body: formData,
-        }).catch(err => console.error('Erro ao enviar notificação ao WhatsApp:', err));
+        apiRequestFormData('/api/notificar/retirada-form', formData)
+          .catch(err => console.error('Erro ao enviar notificação ao WhatsApp:', err));
       }
 
       toast({

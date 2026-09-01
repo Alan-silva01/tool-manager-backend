@@ -13,6 +13,7 @@ import { useFerramentas } from "@/hooks/useFerramentas";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { signWebhookPayload, getAuthHeaders } from "@/utils/webhookAuth";
+import { apiRequestFormData } from "@/lib/api";
 
 const DevolverItem = () => {
   const navigate = useNavigate();
@@ -251,7 +252,6 @@ const DevolverItem = () => {
       }
 
       // Enviar notificação e foto de devolução para o Backend do WhatsApp
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       for (const ferramenta of ferramentasSelecionadas) {
         const foto = fotosFerramentas[ferramenta.id];
         const formDataFoto = new FormData();
@@ -263,10 +263,8 @@ const DevolverItem = () => {
           formDataFoto.append('foto', foto, foto.name);
         }
 
-        fetch(`${backendUrl}/api/notificar/devolucao-form`, {
-          method: 'POST',
-          body: formDataFoto,
-        }).catch(err => console.error('Erro ao enviar devolução ao WhatsApp:', err));
+        apiRequestFormData('/api/notificar/devolucao-form', formDataFoto)
+          .catch(err => console.error('Erro ao enviar devolução ao WhatsApp:', err));
       }
 
       toast({

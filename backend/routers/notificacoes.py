@@ -2,10 +2,12 @@ import os
 import httpx
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 from dotenv import load_dotenv
+
+from middleware.auth import verificar_api_key
 
 from pathlib import Path
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
@@ -106,7 +108,7 @@ async def enviar_imagem_grupo(media_b64_or_url: str, caption: str, mimetype: str
 # ─── Endpoints ─────────────────────────────────────
 
 @router.post("/api/notificar/retirada")
-async def notificar_retirada(payload: RetiradaPayload):
+async def notificar_retirada(payload: RetiradaPayload, _auth=Depends(verificar_api_key)):
     """
     Chamado pelo frontend quando um funcionário retira uma ferramenta ou material.
     Envia notificação no grupo do WhatsApp com texto e imagem.
@@ -146,7 +148,7 @@ async def notificar_retirada(payload: RetiradaPayload):
 
 
 @router.post("/api/notificar/devolucao")
-async def notificar_devolucao(payload: DevolucaoPayload):
+async def notificar_devolucao(payload: DevolucaoPayload, _auth=Depends(verificar_api_key)):
     """
     Chamado pelo frontend quando um funcionário devolve uma ferramenta.
     Envia notificação no grupo do WhatsApp.
@@ -187,7 +189,8 @@ async def notificar_retirada_form(
     quantidade: int = Form(1),
     data: Optional[str] = Form(None),
     hora: Optional[str] = Form(None),
-    foto: Optional[UploadFile] = File(None)
+    foto: Optional[UploadFile] = File(None),
+    _auth=Depends(verificar_api_key)
 ):
     """
     Recebe multipart/form-data com a foto tirada pelo frontend e envia ao WhatsApp.
@@ -230,7 +233,8 @@ async def notificar_devolucao_form(
     item_tipo: str = Form("ferramenta"),
     data: Optional[str] = Form(None),
     hora: Optional[str] = Form(None),
-    foto: Optional[UploadFile] = File(None)
+    foto: Optional[UploadFile] = File(None),
+    _auth=Depends(verificar_api_key)
 ):
     """
     Recebe multipart/form-data com a foto da devolução tirada pelo frontend e envia ao WhatsApp.
@@ -273,7 +277,7 @@ class SolicitarDevolucaoPayload(BaseModel):
 
 
 @router.post("/api/notificar/solicitar-devolucao")
-async def notificar_solicitar_devolucao(payload: SolicitarDevolucaoPayload):
+async def notificar_solicitar_devolucao(payload: SolicitarDevolucaoPayload, _auth=Depends(verificar_api_key)):
     """
     Envia notificação no PV (WhatsApp privado) do colaborador solicitando a devolução da ferramenta.
     """
