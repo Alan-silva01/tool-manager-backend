@@ -47,13 +47,16 @@ async def verificar_api_key(api_key: str = Depends(api_key_header)):
     return True
 
 
+EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", "")
+
 async def verificar_webhook_secret(request: Request):
     """
     Dependency para rota /webhook/grupo. Valida o header X-Webhook-Secret
     ou a apikey da Evolution API.
-    Se WEBHOOK_SECRET não estiver configurada no .env, desabilita a proteção (dev mode).
+    Se nem WEBHOOK_SECRET nem EVOLUTION_API_KEY estiverem configuradas, desabilita a proteção (dev mode).
     """
-    if not WEBHOOK_SECRET:
+    segredos_validos = [s for s in [WEBHOOK_SECRET, EVOLUTION_API_KEY] if s]
+    if not segredos_validos:
         # Modo desenvolvimento: sem chave configurada, permite tudo
         return True
 
@@ -64,9 +67,18 @@ async def verificar_webhook_secret(request: Request):
         or ""
     )
 
-    if not secret or not secrets.compare_digest(secret, WEBHOOK_SECRET):
+    if not secret:
         raise HTTPException(
             status_code=403,
-            detail="Acesso negado ao webhook. Secret inválido.",
+            detail="Acesso negado ao webhook. Header de autenticação ausente.",
         )
-    return True
+
+    # Verifica se bate com WEBHOOK_SECRET ou com a EVOLUTION_API_KEY
+    if any(secrets.compare_digest(secret, chave_valida) for chave_valida in segredos_validos):
+        return True
+
+    raise HTTPException(
+        status_code=403,
+        detail="Acesso negado ao webhook. Secret inválido.",
+    )
+
