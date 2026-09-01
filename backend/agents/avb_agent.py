@@ -10,6 +10,8 @@ from services.supabase_avb import (
     consultar_ferramenta,
     consultar_material,
     listar_ferramentas_funcionario,
+    listar_todas_ferramentas,
+    listar_todos_materiais,
     salvar_mensagem_chat_supabase,
     obter_historico_chat_supabase,
 )
@@ -46,7 +48,14 @@ def executar_tool(fn_name: str, args: dict) -> dict:
             matricula=args.get("matricula")
         )
 
+    elif fn_name == "listar_todas_ferramentas":
+        return listar_todas_ferramentas()
+
+    elif fn_name == "listar_todos_materiais":
+        return listar_todos_materiais()
+
     return {"erro": f"Tool '{fn_name}' não reconhecida."}
+
 
 
 def obter_historico(grupo_jid: str) -> list[dict]:

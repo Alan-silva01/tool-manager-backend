@@ -67,5 +67,34 @@ TOOLS_AVB: List[Any] = [
                 "required": ["nome_funcionario"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "listar_todas_ferramentas",
+            "description": (
+                "Lista TODAS as ferramentas cadastradas na ferramentaria com Tag, Nome, Quantidade e Status (se está disponível ou quem está com ela). "
+                "Use SEMPRE que alguém perguntar de forma ampla o que tem na ferramentaria, quais ferramentas temos, catálogo de ferramentas ou inventário geral."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "listar_todos_materiais",
+            "description": (
+                "Lista TODOS os materiais de consumo cadastrados no estoque com quantidades disponíveis e unidades. "
+                "Use quando alguém perguntar quais materiais temos no estoque em geral."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
     }
 ]
+

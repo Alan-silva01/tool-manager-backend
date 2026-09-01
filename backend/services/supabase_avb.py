@@ -308,3 +308,134 @@ def listar_ferramentas_funcionario(nome_funcionario: str, matricula: Optional[st
             "encontrado": False,
             "mensagem": "Ocorreu um erro ao consultar as ferramentas do funcionário."
         }
+
+
+def listar_todas_ferramentas() -> dict:
+    """
+    Lista todas as ferramentas cadastradas na ferramentaria com Tag, Nome, Quantidade e Status de disponibilidade.
+    """
+    try:
+        sb = get_supabase()
+        
+        # 1. Busca todas as ferramentas cadastradas
+        res_ferramentas = sb.table("ferramentas").select("tag, nome, quantidade, status").order("nome").execute()
+        ferramentas = res_ferramentas.data or []
+        
+        if not ferramentas:
+            return {
+                "encontrado": False,
+                "mensagem": "Não há ferramentas cadastradas no sistema no momento."
+            }
+            
+        # 2. Busca todos os funcionários com posse de ferramentas
+        res_funcs = (
+            sb.table("funcionarios")
+            .select("nome, matricula, posse_ferramentas")
+            .not_.is_("posse_ferramentas", "null")
+            .execute()
+        )
+        
+        tag_para_funcionario = {}
+        for func in (res_funcs.data or []):
+            tags_func = _obter_tags_funcionario(func.get("posse_ferramentas"))
+            for t in tags_func:
+                tag_para_funcionario[t] = {
+                    "nome": func.get("nome"),
+                    "matricula": func.get("matricula")
+                }
+                
+        total_cadastradas = len(ferramentas)
+        total_emprestadas = 0
+        linhas = []
+        
+        for f in ferramentas:
+            tag = f.get("tag", "S/TAG")
+            nome = f.get("nome", "Sem Nome")
+            qtd = f.get("quantidade", 1)
+            
+            if tag in tag_para_funcionario:
+                total_emprestadas += 1
+                func_info = tag_para_funcionario[tag]
+                status_str = f"🔴 *Emprestada* ({func_info['nome']} - #{func_info['matricula']})"
+            else:
+                status_str = f"🟢 *Disponível* (Qtd: {qtd})"
+                
+            linhas.append(f"🔧 *{nome}*\n🏷️ Tag: `{tag}` | {status_str}")
+            
+        total_disponiveis = total_cadastradas - total_emprestadas
+        resumo_header = (
+            f"📋 *CATÁLOGO DE FERRAMENTAS — Ferramentaria AVB*\n\n"
+            f"📊 *Total:* {total_cadastradas} itens | 🟢 Disponíveis: {total_disponiveis} | 🔴 Emprestadas: {total_emprestadas}\n"
+            f"────────────────────────────"
+        )
+        
+        corpo = "\n\n".join(linhas)
+        mensagem_final = f"{resumo_header}\n\n{corpo}"
+        
+        return {
+            "encontrado": True,
+            "total": total_cadastradas,
+            "disponiveis": total_disponiveis,
+            "emprestadas": total_emprestadas,
+            "mensagem": mensagem_final
+        }
+        
+    except Exception as e:
+        print(f"❌ Erro ao listar todas as ferramentas: {e}")
+        return {
+            "encontrado": False,
+            "mensagem": "Ocorreu um erro ao consultar as ferramentas no banco de dados."
+        }
+
+
+def listar_todos_materiais() -> dict:
+    """
+    Lista todos os materiais de consumo cadastrados com Estoque Atual (Entrada - Saída) e Unidade.
+    """
+    try:
+        sb = get_supabase()
+        res_mat = sb.table("materiais").select("nome, entrada, saida, unidade, quantidade_minima, estoque_baixo").order("nome").execute()
+        materiais = res_mat.data or []
+        
+        if not materiais:
+            return {
+                "encontrado": False,
+                "mensagem": "Não há materiais de consumo cadastrados no estoque."
+            }
+            
+        linhas = []
+        for m in materiais:
+            nome = m.get("nome", "Material")
+            entrada = m.get("entrada", 0)
+            saida = m.get("saida", 0)
+            estoque = entrada - saida
+            unidade = m.get("unidade", "un")
+            minimo = m.get("quantidade_minima", 0)
+            
+            if estoque <= 0:
+                status_str = f"🔴 *Esgotado* (0 {unidade})"
+            elif estoque <= minimo:
+                status_str = f"⚠️ *Baixo Estoque:* {estoque} {unidade} (Mín: {minimo})"
+            else:
+                status_str = f"🟢 *Em Estoque:* {estoque} {unidade}"
+                
+            linhas.append(f"📦 *{nome}* ➔ {status_str}")
+            
+        mensagem_final = (
+            f"📋 *ESTOQUE DE MATERIAIS — Ferramentaria AVB*\n"
+            f"────────────────────────────\n"
+            + "\n".join(linhas)
+        )
+        
+        return {
+            "encontrado": True,
+            "total": len(materiais),
+            "mensagem": mensagem_final
+        }
+    except Exception as e:
+        print(f"❌ Erro ao listar todos os materiais: {e}")
+        return {
+            "encontrado": False,
+            "mensagem": "Ocorreu um erro ao consultar o estoque de materiais."
+        }
+
