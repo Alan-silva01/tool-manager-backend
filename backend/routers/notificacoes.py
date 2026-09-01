@@ -1,5 +1,5 @@
 """
-routers/notificacoes.py — Rotas de notificação WhatsApp com BackgroundTasks e Provedor desacoplado.
+routers/notificacoes.py — Rotas de notificação WhatsApp com Fila Persistente no Redis e Provedor desacoplado.
 """
 
 import os
@@ -10,11 +10,11 @@ from typing import Optional
 from pathlib import Path
 from dotenv import load_dotenv
 
-from fastapi import APIRouter, Depends, Form, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, Form, UploadFile, File
 from pydantic import BaseModel
 
 from middleware.auth import verificar_api_key
-from providers import whatsapp_provider
+from services.queue import enfileirar_mensagem_whatsapp
 from utils.logger import get_logger
 
 logger = get_logger("notificacoes")
@@ -63,49 +63,15 @@ class SolicitarDevolucaoPayload(BaseModel):
     data_retirada: Optional[str] = None
 
 
-# ─── Helpers de Envio em Background ────────────────
-
-async def _disparar_notificacao_grupo(
-    texto: str,
-    media_b64_or_url: Optional[str] = None,
-    mimetype: str = "image/jpeg",
-    file_name: str = "foto.jpg"
-):
-    """Executa o envio da notificação no WhatsApp em background."""
-    if not GRUPO_JID:
-        logger.warning("GRUPO_JID não configurado no .env")
-        return
-
-    if media_b64_or_url:
-        await whatsapp_provider.send_image(
-            recipient=GRUPO_JID,
-            media_b64_or_url=media_b64_or_url,
-            caption=texto,
-            mimetype=mimetype,
-            file_name=file_name
-        )
-    else:
-        await whatsapp_provider.send_text(
-            recipient=GRUPO_JID,
-            text=texto
-        )
-
-
-async def _disparar_pv_solicitacao(numero: str, texto: str):
-    """Executa o envio de solicitação no PV do colaborador em background."""
-    await whatsapp_provider.send_text(recipient=numero, text=texto)
-
-
 # ─── Endpoints ─────────────────────────────────────
 
 @router.post("/api/notificar/retirada")
 async def notificar_retirada(
     payload: RetiradaPayload,
-    background_tasks: BackgroundTasks,
     _auth=Depends(verificar_api_key)
 ):
     """
-    Notifica retirada no grupo do WhatsApp via JSON (execução em background).
+    Notifica retirada no grupo do WhatsApp via fila assíncrona persistente no Redis.
     """
     agora = obter_agora_brasilia()
     data = payload.data or agora.strftime("%d/%m/%Y")
@@ -122,8 +88,8 @@ async def notificar_retirada(
         f"📅 *Data:* {data} às {hora}"
     )
 
-    background_tasks.add_task(
-        _disparar_notificacao_grupo,
+    await enfileirar_mensagem_whatsapp(
+        recipient=GRUPO_JID,
         texto=texto,
         media_b64_or_url=payload.imagem_url
     )
@@ -138,11 +104,10 @@ async def notificar_retirada(
 @router.post("/api/notificar/devolucao")
 async def notificar_devolucao(
     payload: DevolucaoPayload,
-    background_tasks: BackgroundTasks,
     _auth=Depends(verificar_api_key)
 ):
     """
-    Notifica devolução no grupo do WhatsApp via JSON (execução em background).
+    Notifica devolução no grupo do WhatsApp via fila assíncrona persistente no Redis.
     """
     agora = obter_agora_brasilia()
     data = payload.data or agora.strftime("%d/%m/%Y")
@@ -158,8 +123,8 @@ async def notificar_devolucao(
         f"📅 *Data:* {data} às {hora}"
     )
 
-    background_tasks.add_task(
-        _disparar_notificacao_grupo,
+    await enfileirar_mensagem_whatsapp(
+        recipient=GRUPO_JID,
         texto=texto,
         media_b64_or_url=payload.imagem_url
     )
@@ -173,7 +138,6 @@ async def notificar_devolucao(
 
 @router.post("/api/notificar/retirada-form")
 async def notificar_retirada_form(
-    background_tasks: BackgroundTasks,
     funcionario: str = Form(...),
     matricula: str = Form(...),
     item_nome: str = Form(...),
@@ -185,7 +149,7 @@ async def notificar_retirada_form(
     _auth=Depends(verificar_api_key)
 ):
     """
-    Recebe multipart/form-data com a foto tirada pelo frontend e despacha notificação em background.
+    Recebe multipart/form-data com a foto da retirada e enfileira no Redis para envio assíncrono.
     """
     agora = obter_agora_brasilia()
     data_str = data or agora.strftime("%d/%m/%Y")
@@ -212,8 +176,8 @@ async def notificar_retirada_form(
         mimetype = foto.content_type or "image/jpeg"
         filename = foto.filename or "foto.jpg"
 
-    background_tasks.add_task(
-        _disparar_notificacao_grupo,
+    await enfileirar_mensagem_whatsapp(
+        recipient=GRUPO_JID,
         texto=texto,
         media_b64_or_url=b64_foto,
         mimetype=mimetype,
@@ -225,7 +189,6 @@ async def notificar_retirada_form(
 
 @router.post("/api/notificar/devolucao-form")
 async def notificar_devolucao_form(
-    background_tasks: BackgroundTasks,
     funcionario: str = Form(...),
     matricula: str = Form(...),
     item_nome: str = Form(...),
@@ -236,7 +199,7 @@ async def notificar_devolucao_form(
     _auth=Depends(verificar_api_key)
 ):
     """
-    Recebe multipart/form-data com a foto da devolução e despacha notificação em background.
+    Recebe multipart/form-data com a foto da devolução e enfileira no Redis para envio assíncrono.
     """
     agora = obter_agora_brasilia()
     data_str = data or agora.strftime("%d/%m/%Y")
@@ -262,8 +225,8 @@ async def notificar_devolucao_form(
         mimetype = foto.content_type or "image/jpeg"
         filename = foto.filename or "foto.jpg"
 
-    background_tasks.add_task(
-        _disparar_notificacao_grupo,
+    await enfileirar_mensagem_whatsapp(
+        recipient=GRUPO_JID,
         texto=texto,
         media_b64_or_url=b64_foto,
         mimetype=mimetype,
@@ -276,11 +239,10 @@ async def notificar_devolucao_form(
 @router.post("/api/notificar/solicitar-devolucao")
 async def notificar_solicitar_devolucao(
     payload: SolicitarDevolucaoPayload,
-    background_tasks: BackgroundTasks,
     _auth=Depends(verificar_api_key)
 ):
     """
-    Envia notificação no PV do colaborador em background.
+    Envia notificação no PV do colaborador via fila persistente.
     """
     numero = payload.numero_whatsapp.replace("+", "").replace(" ", "").replace("-", "")
     if not numero.startswith("55") and len(numero) in [10, 11]:
@@ -296,6 +258,6 @@ async def notificar_solicitar_devolucao(
         f"_Mensagem automática — Controle de Ferramentaria AVB_"
     )
 
-    background_tasks.add_task(_disparar_pv_solicitacao, numero=numero, texto=texto)
+    await enfileirar_mensagem_whatsapp(recipient=numero, texto=texto)
 
     return {"status": "enfileirado", "destinatario": numero}
