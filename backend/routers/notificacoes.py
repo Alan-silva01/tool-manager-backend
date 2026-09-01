@@ -2,30 +2,25 @@
 routers/notificacoes.py — Rotas de notificação WhatsApp com Fila Persistente no Redis e Provedor desacoplado.
 """
 
-import os
 import base64
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional
-from pathlib import Path
-from dotenv import load_dotenv
 
 from fastapi import APIRouter, Depends, Form, UploadFile, File
 from pydantic import BaseModel
 
+from config import GRUPO_JID
 from middleware.auth import verificar_api_key
 from services.queue import enfileirar_mensagem_whatsapp
 from utils.logger import get_logger
 
 logger = get_logger("notificacoes")
 
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
-
 TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
-GRUPO_JID = os.getenv("GRUPO_JID", "")
 
 router = APIRouter()
+
 
 
 def obter_agora_brasilia() -> datetime:

@@ -2,13 +2,12 @@
 agents/avb_agent.py — Agente de IA para a Ferramentaria AVB com OpenAI Function Calling e Memória.
 """
 
-import os
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from openai import OpenAI
-from dotenv import load_dotenv
 
+from config import OPENAI_API_KEY, OPENAI_MODEL
 from tools.avb_tools import TOOLS_AVB
 from prompts.avb_prompt import AVB_SYSTEM_PROMPT
 from services.supabase_avb import (
@@ -26,22 +25,15 @@ logger = get_logger("avb_agent")
 
 TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
 
-from pathlib import Path
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
 _openai_client: OpenAI | None = None
 
 
 def get_openai_client() -> OpenAI:
     global _openai_client
     if _openai_client is None:
-        key = os.getenv("OPENAI_API_KEY", OPENAI_API_KEY)
-        _openai_client = OpenAI(api_key=key)
+        _openai_client = OpenAI(api_key=OPENAI_API_KEY)
     return _openai_client
+
 
 
 def executar_tool(fn_name: str, args: dict) -> dict:

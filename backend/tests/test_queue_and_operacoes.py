@@ -10,8 +10,9 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from main import app
-from middleware.auth import API_KEY
+from config import API_KEY
 from services.queue import enfileirar_mensagem_whatsapp
+
 
 
 @pytest.mark.asyncio

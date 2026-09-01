@@ -2,27 +2,23 @@
 providers/evolution.py — Implementação do provedor Evolution API v2.
 """
 
-import os
 import httpx
-from pathlib import Path
-from dotenv import load_dotenv
 
+from config import EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE
 from providers.base import BaseWhatsAppProvider
 from utils.logger import get_logger
 
 logger = get_logger("evolution_provider")
 
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
-
 
 class EvolutionWhatsAppProvider(BaseWhatsAppProvider):
     def __init__(self):
-        self.api_url = os.getenv("EVOLUTION_API_URL", "").rstrip("/")
-        self.api_key = os.getenv("EVOLUTION_API_KEY", "")
-        self.instance = os.getenv("EVOLUTION_INSTANCE", "")
+        self.api_url = EVOLUTION_API_URL.rstrip("/")
+        self.api_key = EVOLUTION_API_KEY
+        self.instance = EVOLUTION_INSTANCE
 
     async def send_text(self, recipient: str, text: str) -> bool:
+
         """Envia mensagem de texto via Evolution API."""
         if not self.api_url or not self.instance:
             logger.warning(f"Evolution API não configurada. Mensagem simulada para {recipient}:\n{text}")

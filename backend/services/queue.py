@@ -2,24 +2,19 @@
 services/queue.py — Fila de mensageria assíncrona persistente com Redis e Fallback gracioso.
 """
 
-import os
 import json
 import asyncio
 from typing import Optional
-from pathlib import Path
-from dotenv import load_dotenv
-import redis.asyncio as aioredis
+from redis import asyncio as aioredis
 
+from config import REDIS_URL
 from providers import whatsapp_provider
 from utils.logger import get_logger
 
 logger = get_logger("queue_service")
 
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
-
-REDIS_URL = os.getenv("REDIS_URL", "")
 FILA_WHATSAPP_KEY = "fila:whatsapp:notificacoes"
+
 
 _redis_client: Optional[aioredis.Redis] = None
 _worker_running = False

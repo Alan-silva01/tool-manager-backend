@@ -11,7 +11,8 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from main import app
-from middleware.auth import API_KEY, WEBHOOK_SECRET
+from config import API_KEY, WEBHOOK_SECRET
+
 
 
 @pytest.mark.asyncio

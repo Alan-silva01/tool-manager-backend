@@ -10,18 +10,17 @@ Endpoints:
   GET  /                        — Health check & Métricas
 """
 
-import os
 import asyncio
 from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-from pathlib import Path
-dotenv_path = Path(__file__).resolve().parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
+from config import CORS_ORIGINS, PORT
 from routers.grupo_webhook import router as grupo_router
 from routers.notificacoes import router as notificacoes_router
 from routers.operacoes import router as operacoes_router
@@ -29,6 +28,9 @@ from services.queue import worker_fila_whatsapp
 from utils.logger import get_logger
 
 logger = get_logger("main")
+
+# Limiter: 120 requisições por minuto por IP (alta margem para não interferir na operação diária)
+limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
 
 
 @asynccontextmanager
@@ -48,13 +50,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ─── CORS — Restrito aos domínios permitidos ──────────
-cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:8080")
-ALLOWED_ORIGINS = [origin.strip() for origin in cors_raw.split(",") if origin.strip()]
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# ─── CORS — Restrito aos domínios permitidos ──────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
@@ -64,6 +66,7 @@ app.add_middleware(
 app.include_router(grupo_router)
 app.include_router(notificacoes_router)
 app.include_router(operacoes_router)
+
 
 
 @app.get("/")
@@ -85,5 +88,4 @@ def health_check():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8001))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)

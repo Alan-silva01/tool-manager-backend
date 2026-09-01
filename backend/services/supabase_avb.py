@@ -1,11 +1,10 @@
-import os
 from typing import Optional
 from supabase import create_client, Client
-from dotenv import load_dotenv
 
-from pathlib import Path
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
+from config import SUPABASE_URL, SUPABASE_KEY
+from utils.logger import get_logger
+
+logger = get_logger("supabase_avb")
 
 _supabase_client: Optional[Client] = None
 
@@ -14,12 +13,11 @@ def get_supabase() -> Client:
     """Retorna instância singleton do Supabase AVB."""
     global _supabase_client
     if _supabase_client is None:
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_KEY", "")
-        if not url or not key:
+        if not SUPABASE_URL or not SUPABASE_KEY:
             raise ValueError("SUPABASE_URL e SUPABASE_KEY devem estar configurados no .env")
-        _supabase_client = create_client(url, key)
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
     return _supabase_client
+
 
 
 # ─────────────────────────────────────────
@@ -38,7 +36,7 @@ def salvar_mensagem_chat_supabase(session_id: str, role: str, content: str):
             }
         }).execute()
     except Exception as e:
-        print(f"⚠️ Erro ao salvar mensagem no Supabase: {e}")
+        logger.warning(f"Erro ao salvar mensagem no Supabase: {e}")
 
 
 def obter_historico_chat_supabase(session_id: str, limit: int = 8) -> list[dict]:
@@ -60,7 +58,7 @@ def obter_historico_chat_supabase(session_id: str, limit: int = 8) -> list[dict]
         mensagens = [item["message"] for item in reversed(res.data) if "message" in item and item["message"]]
         return mensagens
     except Exception as e:
-        print(f"⚠️ Erro ao obter histórico do Supabase: {e}")
+        logger.warning(f"Erro ao obter histórico do Supabase: {e}")
         return []
 
 
@@ -189,7 +187,7 @@ def consultar_ferramenta(nome_ferramenta: str) -> dict:
             }
 
     except Exception as e:
-        print(f"❌ Erro ao consultar ferramenta '{nome_ferramenta}': {e}")
+        logger.error(f"Erro ao consultar ferramenta '{nome_ferramenta}': {e}")
         return {
             "encontrado": False,
             "mensagem": "Ocorreu um erro ao consultar o banco de dados. Tente novamente."
@@ -246,7 +244,7 @@ def consultar_material(nome_material: str) -> dict:
         }
 
     except Exception as e:
-        print(f"❌ Erro ao consultar material '{nome_material}': {e}")
+        logger.error(f"Erro ao consultar material '{nome_material}': {e}")
         return {
             "encontrado": False,
             "mensagem": "Ocorreu um erro ao consultar o estoque. Tente novamente."
@@ -303,7 +301,7 @@ def listar_ferramentas_funcionario(nome_funcionario: str, matricula: Optional[st
         }
 
     except Exception as e:
-        print(f"❌ Erro ao listar ferramentas do funcionário '{nome_funcionario}': {e}")
+        logger.error(f"Erro ao listar ferramentas do funcionário '{nome_funcionario}': {e}")
         return {
             "encontrado": False,
             "mensagem": "Ocorreu um erro ao consultar as ferramentas do funcionário."
@@ -381,7 +379,7 @@ def listar_todas_ferramentas() -> dict:
         }
         
     except Exception as e:
-        print(f"❌ Erro ao listar todas as ferramentas: {e}")
+        logger.error(f"Erro ao listar todas as ferramentas: {e}")
         return {
             "encontrado": False,
             "mensagem": "Ocorreu um erro ao consultar as ferramentas no banco de dados."
@@ -465,7 +463,7 @@ def listar_todos_materiais() -> dict:
             "mensagem": mensagem_final
         }
     except Exception as e:
-        print(f"❌ Erro ao listar todos os materiais: {e}")
+        logger.error(f"Erro ao listar todos os materiais: {e}")
         return {
             "encontrado": False,
             "mensagem": "Ocorreu um erro ao consultar o estoque de materiais."

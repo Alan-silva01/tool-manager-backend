@@ -2,12 +2,10 @@
 routers/grupo_webhook.py — Endpoint de webhook para mensagens do WhatsApp com suporte a provedor desacoplado.
 """
 
-import os
 import re
-from pathlib import Path
-from dotenv import load_dotenv
 from fastapi import APIRouter, Request, Depends
 
+from config import AGENTE_JID, GRUPO_JID
 from middleware.auth import verificar_webhook_secret
 from agents.avb_agent import processar_mensagem_grupo
 from providers import whatsapp_provider
@@ -15,13 +13,8 @@ from utils.logger import get_logger
 
 logger = get_logger("grupo_webhook")
 
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
-
-AGENTE_JID = os.getenv("AGENTE_JID", "")
-GRUPO_JID = os.getenv("GRUPO_JID", "")
-
 router = APIRouter()
+
 
 
 def extrair_dados_grupo(payload: dict) -> dict | None:

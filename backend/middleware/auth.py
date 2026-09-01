@@ -6,24 +6,11 @@ Implementa 2 camadas de segurança:
   2. WEBHOOK_SECRET — protege a rota /webhook/grupo chamada pela Evolution API
 """
 
-import os
 import secrets
 from fastapi import Request, HTTPException, Depends
 from fastapi.security import APIKeyHeader
 
-from pathlib import Path
-from dotenv import load_dotenv
-
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
-
-# ─── Chaves de Segurança ──────────────────────────────
-# API_KEY: validada nas rotas /api/* (Frontend → Backend)
-API_KEY = os.getenv("API_KEY", "")
-
-# WEBHOOK_SECRET: validada na rota /webhook/grupo (Evolution API → Backend)
-WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
-EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", "")
+from config import API_KEY, WEBHOOK_SECRET, EVOLUTION_API_KEY
 
 
 # ─── Header Extractors ────────────────────────────────
