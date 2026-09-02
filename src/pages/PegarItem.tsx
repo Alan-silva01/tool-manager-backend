@@ -58,10 +58,6 @@ const PegarItem = () => {
     // Se já está no carrinho, remove (desseleciona)
     if (existingItem) {
       removeFromCart(item.id);
-      toast({
-        title: "Item removido",
-        description: `${item.nome} foi removido do carrinho`,
-      });
       return;
     }
     
@@ -75,10 +71,6 @@ const PegarItem = () => {
       reserva: item.reserva || false,
       matricula_reserva: item.matricula_reserva || ''
     }]);
-    toast({
-      title: "Item adicionado",
-      description: `${item.nome} foi adicionado ao carrinho`,
-    });
   };
 
   const removeFromCart = (id: string) => {
@@ -137,10 +129,6 @@ const PegarItem = () => {
           matricula: matricula.trim()
         });
         setStep('fotos');
-        toast({
-          title: "Funcionário encontrado!",
-          description: `${func.nome} - ${func.setor}`,
-        });
       } else {
         toast({
           title: "Matrícula não encontrada",
@@ -256,11 +244,6 @@ const PegarItem = () => {
           ...prev,
           [itemId]: newFile
         }));
-        
-        toast({
-          title: "Foto capturada!",
-          description: `Foto de ${itemNome} adicionada`,
-        });
       }
     };
     input.click();
@@ -495,10 +478,13 @@ const PegarItem = () => {
               {carrinho.length > 0 && (
                 <Button 
                   onClick={() => setStep('carrinho')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition-all active:scale-95 animate-in fade-in zoom-in-90"
                 >
                   <ShoppingCart className="w-4 h-4" />
-                  {carrinho.length}
+                  <span>Ver Carrinho</span>
+                  <span className="bg-white text-emerald-700 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {carrinho.length}
+                  </span>
                 </Button>
               )}
             </div>
@@ -534,11 +520,25 @@ const PegarItem = () => {
                 : null;
               
               return (
-                <Card key={item.id} className={`hover:shadow-md transition-shadow ${item.quantidade <= 0 ? 'opacity-50' : ''}`}>
+                <Card 
+                  key={item.id} 
+                  className={`transition-all duration-200 ${
+                    itemNoCarrinho 
+                      ? 'border-2 border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-md ring-1 ring-emerald-500/30' 
+                      : 'hover:shadow-md'
+                  } ${item.quantidade <= 0 ? 'opacity-50' : ''}`}
+                >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                        <div className="flex-1">
-                         <h3 className="font-semibold">{item.nome}</h3>
+                         <div className="flex items-center gap-2">
+                           <h3 className="font-semibold">{item.nome}</h3>
+                           {itemNoCarrinho && (
+                             <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0 h-4 hover:bg-emerald-600">
+                               No Carrinho
+                             </Badge>
+                           )}
+                         </div>
                          <Badge variant="outline" className="mt-1">
                            TAG: {item.tag}
                          </Badge>
@@ -775,15 +775,22 @@ const PegarItem = () => {
         {/* Nova etapa: Fotografar os itens */}
         {step === 'fotos' && funcionario && (
           <div className="space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Fotografe os Itens</CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  <p><strong>{funcionario.nome}</strong></p>
-                  <p>{funcionario.setor} - Matrícula: {matricula}</p>
-                  <p className="text-xs mt-1">É obrigatório fotografar cada item individualmente</p>
+            <Card className="border-emerald-500/40 bg-emerald-50/30 dark:bg-emerald-950/20 shadow-sm">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+                  {funcionario.nome?.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
                 </div>
-              </CardHeader>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-semibold text-sm truncate">{funcionario.nome}</h3>
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{funcionario.setor} • Matrícula {matricula}</p>
+                </div>
+                <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border-none text-[10px] px-2 py-0.5 font-medium">
+                  Identificado
+                </Badge>
+              </CardContent>
             </Card>
 
             {carrinho.map((item) => {

@@ -131,10 +131,6 @@ const DevolverItem = () => {
         });
         setFuncionarioFerramentas(ferramentasDoFuncionario);
         setStep('ferramentas');
-        toast({
-          title: "Crachá lido com sucesso!",
-          description: `Funcionário: ${func.nome}`,
-        });
       } else {
         toast({
           title: "Funcionário não encontrado",
@@ -176,11 +172,6 @@ const DevolverItem = () => {
           ...prev,
           [ferramentaId]: newFile
         }));
-        
-        toast({
-          title: "Foto capturada!",
-          description: `Foto de ${ferramentaNome} adicionada à devolução`,
-        });
       }
     };
     input.click();
