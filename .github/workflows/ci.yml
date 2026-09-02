@@ -28,5 +28,16 @@ jobs:
 
       - name: Run Test Suite (Pytest)
         working-directory: ./backend
+        env:
+          SUPABASE_URL: "https://mock.supabase.co"
+          SUPABASE_KEY: "mock-key-for-ci"
+          OPENAI_API_KEY: "mock-openai-key"
+          API_KEY: "teste-api-key-secreta"
+          WEBHOOK_SECRET: "teste-webhook-secret"
+          EVOLUTION_API_KEY: "teste-evolution-key"
+          EVOLUTION_API_URL: "https://mock.evolution.com"
+          EVOLUTION_INSTANCE: "mock-instance"
+          GRUPO_JID: "mock-grupo@g.us"
+          AGENTE_JID: "mock-agente@s.whatsapp.net"
         run: |
           pytest -v --tb=short
