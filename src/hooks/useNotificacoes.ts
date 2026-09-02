@@ -61,8 +61,8 @@ export const useNotificacoes = () => {
 
       if (response.ok) {
         toast({
-          title: "Solicitação enviada no PV",
-          description: `Mensagem enviada para o WhatsApp de ${funcionario.nome} solicitando a devolução da ${ferramenta.nome}.`,
+          title: "Solicitação enviada no WhatsApp",
+          description: `Mensagem enviada para ${funcionario.nome} solicitando a devolução da ${ferramenta.nome}.`,
         });
       } else {
         throw new Error('Erro ao enviar notificação');
