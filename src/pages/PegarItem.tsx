@@ -284,88 +284,104 @@ const PegarItem = () => {
     setConfirmando(true);
 
     try {
-      // 1. Atualizar banco Supabase diretamente
       const matNum = parseInt(matricula.trim());
       const dataFormatada = new Date().toLocaleDateString('pt-BR');
 
       for (const item of carrinho) {
-        if (item.tipo === 'ferramenta' || categoria === 'ferramentas') {
-          // Atualiza a tabela ferramentas: saiu=1, funcionario_emprestado, matricula, status
-          await supabase
-            .from('ferramentas')
-            .update({
-              saiu: 1,
-              funcionario_emprestado: funcionario.nome,
-              matricula: matNum,
-              data_emprestado: dataFormatada,
-              status: 'emprestada'
-            })
-            .eq('id', item.id);
-
-          // Atualiza posse_ferramentas do colaborador
-          const { data: funcData } = await supabase
-            .from('funcionarios')
-            .select('posse_ferramentas')
-            .eq('matricula', matNum)
-            .single();
-
-          let posseAtual: string[] = [];
-          if (funcData?.posse_ferramentas) {
-            posseAtual = Array.isArray(funcData.posse_ferramentas) 
-              ? funcData.posse_ferramentas 
-              : JSON.parse(String(funcData.posse_ferramentas) || '[]');
-          }
-          if (!posseAtual.includes(item.tag)) {
-            posseAtual.push(item.tag);
-            await supabase
-              .from('funcionarios')
-              .update({ posse_ferramentas: posseAtual })
-              .eq('matricula', matNum);
-          }
-        } else {
-          // É material: incrementa saída na tabela materiais
-          const { data: matData } = await supabase
-            .from('materiais')
-            .select('saida')
-            .eq('id', item.id)
-            .single();
-
-          const saidaAtual = Number(matData?.saida || 0);
-          const novaSaida = saidaAtual + (item.quantidade || 1);
-
-          await supabase
-            .from('materiais')
-            .update({ saida: novaSaida })
-            .eq('id', item.id);
-
-          // Registra histórico em registro_mate_funcionarios
-          await supabase
-            .from('registro_mate_funcionarios')
-            .insert({
-              funcionario: funcionario.nome,
-              matricula: String(matNum),
-              material: item.tag ? String(item.tag) : undefined,
-              quantidade: item.quantidade || 1,
-              data: dataFormatada
-            });
-        }
-      }
-
-      // Enviar notificação e fotos ao Backend do WhatsApp do Agente
-      for (const item of carrinho) {
         const foto = fotosItens[item.id];
-        const formData = new FormData();
-        formData.append('funcionario', funcionario.nome);
-        formData.append('matricula', matricula);
-        formData.append('item_nome', item.nome);
-        formData.append('item_tipo', item.tipo || 'ferramenta');
-        formData.append('quantidade', String(item.quantidade || 1));
-        if (foto) {
-          formData.append('foto', foto, foto.name);
+        let sucessoBff = false;
+
+        // 1. Tenta a Operação Atômica ACID via Backend FastAPI (PostgreSQL FOR UPDATE + Fila Redis)
+        try {
+          const formBff = new FormData();
+          formBff.append('matricula', matricula.trim());
+          formBff.append('item_id', item.id);
+          formBff.append('item_tipo', item.tipo === 'ferramenta' || categoria === 'ferramentas' ? 'ferramenta' : 'material');
+          formBff.append('quantidade', String(item.quantidade || 1));
+          if (foto) {
+            formBff.append('foto', foto, foto.name);
+          }
+
+          const resBff = await apiRequestFormData('/api/operacoes/retirar', formBff);
+          if (resBff.ok) {
+            sucessoBff = true;
+          }
+        } catch (bffErr) {
+          console.warn('Backend BFF offline ou indisponível. Usando fallback direto no Supabase:', bffErr);
         }
 
-        apiRequestFormData('/api/notificar/retirada-form', formData)
-          .catch(err => console.error('Erro ao enviar notificação ao WhatsApp:', err));
+        // 2. Fallback de Segurança: se o BFF não responder, executa diretamente no banco para a fábrica nunca parar
+        if (!sucessoBff) {
+          if (item.tipo === 'ferramenta' || categoria === 'ferramentas') {
+            await supabase
+              .from('ferramentas')
+              .update({
+                saiu: 1,
+                funcionario_emprestado: funcionario.nome,
+                matricula: matNum,
+                data_emprestado: dataFormatada,
+                status: 'emprestada'
+              })
+              .eq('id', item.id);
+
+            const { data: funcData } = await supabase
+              .from('funcionarios')
+              .select('posse_ferramentas')
+              .eq('matricula', matNum)
+              .single();
+
+            let posseAtual: string[] = [];
+            if (funcData?.posse_ferramentas) {
+              posseAtual = Array.isArray(funcData.posse_ferramentas) 
+                ? funcData.posse_ferramentas 
+                : JSON.parse(String(funcData.posse_ferramentas) || '[]');
+            }
+            if (!posseAtual.includes(item.tag)) {
+              posseAtual.push(item.tag);
+              await supabase
+                .from('funcionarios')
+                .update({ posse_ferramentas: posseAtual })
+                .eq('matricula', matNum);
+            }
+          } else {
+            const { data: matData } = await supabase
+              .from('materiais')
+              .select('saida')
+              .eq('id', item.id)
+              .single();
+
+            const saidaAtual = Number(matData?.saida || 0);
+            const novaSaida = saidaAtual + (item.quantidade || 1);
+
+            await supabase
+              .from('materiais')
+              .update({ saida: novaSaida })
+              .eq('id', item.id);
+
+            await supabase
+              .from('registro_mate_funcionarios')
+              .insert({
+                funcionario: funcionario.nome,
+                matricula: String(matNum),
+                material: item.tag ? String(item.tag) : undefined,
+                quantidade: item.quantidade || 1,
+                data: dataFormatada
+              });
+          }
+
+          // Notificação de fallback
+          const formData = new FormData();
+          formData.append('funcionario', funcionario.nome);
+          formData.append('matricula', matricula);
+          formData.append('item_nome', item.nome);
+          formData.append('item_tipo', item.tipo || 'ferramenta');
+          formData.append('quantidade', String(item.quantidade || 1));
+          if (foto) {
+            formData.append('foto', foto, foto.name);
+          }
+          apiRequestFormData('/api/notificar/retirada-form', formData)
+            .catch(err => console.error('Erro ao enviar notificação fallback:', err));
+        }
       }
 
       toast({

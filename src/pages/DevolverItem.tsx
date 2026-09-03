@@ -204,57 +204,73 @@ const DevolverItem = () => {
     setConfirmando(true);
 
     try {
-      // 1. Atualizar banco Supabase diretamente
       const matNum = parseInt(matricula.trim());
 
       for (const ferramenta of ferramentasSelecionadas) {
-        // Marca a ferramenta como devolvida (disponível, saiu=0, limpa funcionario)
-        await supabase
-          .from('ferramentas')
-          .update({
-            saiu: 0,
-            funcionario_emprestado: null,
-            matricula: null,
-            data_emprestado: null,
-            status: 'disponível'
-          })
-          .eq('id', ferramenta.id);
-      }
-
-      // Remove as ferramentas da posse_ferramentas do colaborador
-      const tagsDevolvidas = ferramentasSelecionadas.map(f => f.tag);
-      const { data: funcData } = await supabase
-        .from('funcionarios')
-        .select('posse_ferramentas')
-        .eq('matricula', matNum)
-        .single();
-
-      if (funcData?.posse_ferramentas) {
-        let posseAtual: string[] = Array.isArray(funcData.posse_ferramentas)
-          ? funcData.posse_ferramentas
-          : JSON.parse(String(funcData.posse_ferramentas) || '[]');
-
-        const novaPosse = posseAtual.filter(tag => !tagsDevolvidas.includes(tag));
-        await supabase
-          .from('funcionarios')
-          .update({ posse_ferramentas: novaPosse })
-          .eq('matricula', matNum);
-      }
-
-      // Enviar notificação e foto de devolução para o Backend do WhatsApp
-      for (const ferramenta of ferramentasSelecionadas) {
         const foto = fotosFerramentas[ferramenta.id];
-        const formDataFoto = new FormData();
-        formDataFoto.append('funcionario', funcionario.nome);
-        formDataFoto.append('matricula', matricula);
-        formDataFoto.append('item_nome', ferramenta.nome);
-        formDataFoto.append('item_tipo', 'ferramenta');
-        if (foto) {
-          formDataFoto.append('foto', foto, foto.name);
+        let sucessoBff = false;
+
+        // 1. Tenta a Operação Atômica ACID via Backend FastAPI (PostgreSQL FOR UPDATE + Fila Redis)
+        try {
+          const formBff = new FormData();
+          formBff.append('matricula', matricula.trim());
+          formBff.append('ferramenta_id', ferramenta.id);
+          if (foto) {
+            formBff.append('foto', foto, foto.name);
+          }
+
+          const resBff = await apiRequestFormData('/api/operacoes/devolver', formBff);
+          if (resBff.ok) {
+            sucessoBff = true;
+          }
+        } catch (bffErr) {
+          console.warn('Backend BFF offline. Usando fallback direto no Supabase:', bffErr);
         }
 
-        apiRequestFormData('/api/notificar/devolucao-form', formDataFoto)
-          .catch(err => console.error('Erro ao enviar devolução ao WhatsApp:', err));
+        // 2. Fallback de Segurança caso o BFF esteja temporariamente offline
+        if (!sucessoBff) {
+          await supabase
+            .from('ferramentas')
+            .update({
+              saiu: 0,
+              funcionario_emprestado: null,
+              matricula: null,
+              data_emprestado: null,
+              status: 'disponível'
+            })
+            .eq('id', ferramenta.id);
+
+          const tagsDevolvidas = [ferramenta.tag];
+          const { data: funcData } = await supabase
+            .from('funcionarios')
+            .select('posse_ferramentas')
+            .eq('matricula', matNum)
+            .single();
+
+          if (funcData?.posse_ferramentas) {
+            let posseAtual: string[] = Array.isArray(funcData.posse_ferramentas)
+              ? funcData.posse_ferramentas
+              : JSON.parse(String(funcData.posse_ferramentas) || '[]');
+
+            const novaPosse = posseAtual.filter(tag => !tagsDevolvidas.includes(tag));
+            await supabase
+              .from('funcionarios')
+              .update({ posse_ferramentas: novaPosse })
+              .eq('matricula', matNum);
+          }
+
+          // Notificação fallback
+          const formDataFoto = new FormData();
+          formDataFoto.append('funcionario', funcionario.nome);
+          formDataFoto.append('matricula', matricula);
+          formDataFoto.append('item_nome', ferramenta.nome);
+          formDataFoto.append('item_tipo', 'ferramenta');
+          if (foto) {
+            formDataFoto.append('foto', foto, foto.name);
+          }
+          apiRequestFormData('/api/notificar/devolucao-form', formDataFoto)
+            .catch(err => console.error('Erro ao enviar devolução fallback ao WhatsApp:', err));
+        }
       }
 
       toast({
