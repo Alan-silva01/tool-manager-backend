@@ -40,6 +40,12 @@ Para prevenir condicoes de corrida (Race Conditions) em cenarios de acessos simu
 - **Isolamento:** Bloqueio pontual na linha do item impede retiradas duplicadas quando o saldo disponivel for unitario.
 - **Auditoria:** Registro automatico e imutavel na tabela `historico_emprestimos` a cada mutacao.
 
+### Racional Arquitetural: Supabase Gerenciado vs PostgreSQL Local na VPS
+A decisao de isolar a persistencia no Supabase Platform (PostgreSQL gerenciado) em vez de hospedar o banco no mesmo container da VPS foi pautada por principios de alta disponibilidade e desacoplamento de infraestrutura:
+- **I/O e Recursos Dedicados:** A VPS na Oracle Cloud fica 100% dedicada ao processamento do FastAPI, enfileiramento em memoria do Redis e ao gateway da Evolution API, sem concorrencia de CPU e disco com rotinas pesadas de banco de dados.
+- **Seguranca e Backup Continuo:** Politicas de Point-in-Time Recovery (PITR), backups automaticos e isolamento de rede contra eventuais falhas do host de aplicacao.
+- **Conformidade PostgreSQL Nativa:** O Supabase nao e um banco proprietario; trata-se de um PostgreSQL puro em nuvem, permitindo o uso irrestrito de triggers, transacoes PL/pgSQL com `FOR UPDATE`, indices compostos e Row Level Security (RLS).
+
 ### Mensageria Resiliente com Fallback Gracioso
 O envio de fotos e notificacoes operacionais nao bloqueia a thread de resposta HTTP do cliente:
 - A requisicao transacional conclui no banco em milissegundos e o payload da mensagem e enfileirado no Redis.
