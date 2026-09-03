@@ -369,18 +369,20 @@ const PegarItem = () => {
       }
 
       toast({
-        title: "Itens retirados com sucesso!",
+        title: "Retirada concluída com sucesso!",
         description: `${carrinho.length} item(s) registrado(s) para ${funcionario.nome}`,
       });
-    } catch (error) {
+      navigate('/');
+    } catch (error: any) {
       console.error('Erro ao processar retirada:', error);
       toast({
-        title: "Itens retirados com sucesso!",
-        description: `${carrinho.length} item(s) registrado(s) para ${funcionario.nome}`,
+        title: "Erro ao processar retirada",
+        description: error?.message || "Ocorreu um erro ao registrar a retirada. Tente novamente.",
+        variant: "destructive",
       });
+    } finally {
+      setConfirmando(false);
     }
-    
-    navigate('/');
   };
 
   // Show loading state

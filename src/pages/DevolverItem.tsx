@@ -261,15 +261,17 @@ const DevolverItem = () => {
         title: "Ferramentas devolvidas com sucesso!",
         description: `${selectedFerramentas.length} ferramenta(s) retornada(s) ao estoque`,
       });
-    } catch (error) {
-      console.error('Erro ao enviar webhook:', error);
+      navigate('/');
+    } catch (error: any) {
+      console.error('Erro ao processar devolução:', error);
       toast({
-        title: "Ferramentas devolvidas com sucesso!",
-        description: `${selectedFerramentas.length} ferramenta(s) retornada(s) ao estoque`,
+        title: "Erro ao processar devolução",
+        description: error?.message || "Ocorreu um erro ao devolver as ferramentas. Tente novamente.",
+        variant: "destructive",
       });
+    } finally {
+      setConfirmando(false);
     }
-    
-    navigate('/');
   };
 
   const ferramentasSelecionadas = funcionarioFerramentas.filter(f => selectedFerramentas.includes(f.tag));
