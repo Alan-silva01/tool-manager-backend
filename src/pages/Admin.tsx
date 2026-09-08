@@ -14,8 +14,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { DashboardSkeleton, EmprestimosSkeleton } from "@/components/admin/LoadingSkeleton";
 import { EmprestimosTab } from "@/components/admin/EmprestimosTab";
-import { EstoqueManager } from "@/components/admin/EstoqueManager";
-import { HistoricoMateriaisTab } from "@/components/admin/HistoricoMateriaisTab";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { calculateAdminStats } from "@/utils/adminCalculations";
 
 // Lazy load de componentes pesados
@@ -155,19 +154,23 @@ const Admin = () => {
               </TabsContent>
 
               <TabsContent value="controle" className="space-y-6">
-                <React.Suspense fallback={<div className="p-8 text-center">Carregando controle de estoque...</div>}>
-                  <LazyEstoqueManager 
-                    materiais={materiais}
-                    ferramentas={ferramentas}
-                    onRefresh={handleRefresh}
-                  />
-                </React.Suspense>
+                <ErrorBoundary>
+                  <React.Suspense fallback={<div className="p-8 text-center">Carregando controle de estoque...</div>}>
+                    <LazyEstoqueManager 
+                      materiais={materiais}
+                      ferramentas={ferramentas}
+                      onRefresh={handleRefresh}
+                    />
+                  </React.Suspense>
+                </ErrorBoundary>
               </TabsContent>
 
               <TabsContent value="historico" className="space-y-6">
-                <React.Suspense fallback={<div className="p-8 text-center">Carregando histórico...</div>}>
-                  <LazyHistoricoMateriaisTab refreshKey={refreshKey} />
-                </React.Suspense>
+                <ErrorBoundary>
+                  <React.Suspense fallback={<div className="p-8 text-center">Carregando histórico...</div>}>
+                    <LazyHistoricoMateriaisTab refreshKey={refreshKey} />
+                  </React.Suspense>
+                </ErrorBoundary>
               </TabsContent>
             </Tabs>
           </>

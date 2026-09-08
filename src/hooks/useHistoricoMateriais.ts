@@ -34,6 +34,68 @@ export interface HistoricoFiltros {
   periodo: string;
 }
 
+/**
+ * Calcula a data limite com base no período selecionado.
+ * Retorna null quando o período é "todos" (sem filtro de data).
+ */
+const calcularDataLimite = (periodo: string): Date | null => {
+  const agora = new Date();
+
+  switch (periodo) {
+    case 'hoje': {
+      const inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+      return inicio;
+    }
+    case 'semana': {
+      const diaSemana = agora.getDay();
+      const inicio = new Date(agora);
+      inicio.setDate(agora.getDate() - diaSemana);
+      inicio.setHours(0, 0, 0, 0);
+      return inicio;
+    }
+    case 'mes': {
+      return new Date(agora.getFullYear(), agora.getMonth(), 1);
+    }
+    case 'trimestre': {
+      const mesInicioTrimestre = Math.floor(agora.getMonth() / 3) * 3;
+      return new Date(agora.getFullYear(), mesInicioTrimestre, 1);
+    }
+    default:
+      return null;
+  }
+};
+
+/**
+ * Tenta parsear uma string de data em múltiplos formatos comuns.
+ * Retorna null se não conseguir parsear.
+ */
+const parsearData = (dataStr: string): Date | null => {
+  if (!dataStr) return null;
+
+  // Formato ISO: 2024-01-15 ou 2024-01-15T10:30:00
+  const isoDate = new Date(dataStr);
+  if (!isNaN(isoDate.getTime())) return isoDate;
+
+  // Formato BR: dd/mm/yyyy
+  const partesBR = dataStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (partesBR) {
+    const [, dia, mes, ano] = partesBR;
+    const data = new Date(Number(ano), Number(mes) - 1, Number(dia));
+    if (!isNaN(data.getTime())) return data;
+  }
+
+  return null;
+};
+
+/**
+ * Acessa propriedade de string de forma segura, retornando string vazia
+ * caso o valor seja null/undefined.
+ */
+const safeStr = (value: unknown): string => {
+  if (value == null) return '';
+  return String(value);
+};
+
 export const useHistoricoMateriais = (refreshKey?: number) => {
   const [historico, setHistorico] = useState<HistoricoMaterialFormatado[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,15 +156,15 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
 
           console.log('Mapa de materiais:', materiaisMap);
 
-          // Processar dados de forma mais eficiente
+          // Processar dados com null-safety garantida
           const historicoFormatado: HistoricoMaterialFormatado[] = registros.map((registro: any) => ({
-            id: registro.id,
-            funcionario: registro.funcionario || '',
-            matricula: registro.matricula || '',
-            material_tag: registro.material || '',
-            material_nome: materiaisMap[registro.material] || 'Material não encontrado',
+            id: safeStr(registro.id),
+            funcionario: safeStr(registro.funcionario),
+            matricula: safeStr(registro.matricula),
+            material_tag: safeStr(registro.material),
+            material_nome: materiaisMap[safeStr(registro.material)] || 'Material não encontrado',
             quantidade: Number(registro.quantidade) || 0,
-            data: registro.data || ''
+            data: safeStr(registro.data)
           }));
 
           console.log('Histórico formatado:', historicoFormatado);
@@ -114,9 +176,10 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
 
           setHistorico(historicoOrdenado);
         }
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Erro ao carregar histórico de materiais:', error);
+      } catch (err: unknown) {
+        const isAbort = err instanceof DOMException && err.name === 'AbortError';
+        if (!isAbort) {
+          console.error('Erro ao carregar histórico de materiais:', err);
           if (mounted) setError('Erro ao carregar histórico de materiais');
         }
       } finally {
@@ -153,34 +216,52 @@ export const useHistoricoMateriais = (refreshKey?: number) => {
     };
   }, [refreshKey]);
 
-  // Otimizar função de agrupamento com memoização
+  // Filtragem e agrupamento com null-safety completa
   const getHistoricoAgrupado = useCallback((): FuncionarioComMateriais[] => {
     let historicoFiltrado = historico;
 
-    // Aplicar filtros de forma mais eficiente
+    // Filtro por funcionário (nome ou matrícula)
     if (filtros.funcionario) {
       const termoBusca = filtros.funcionario.toLowerCase();
-      historicoFiltrado = historicoFiltrado.filter(item => 
-        item.funcionario.toLowerCase().includes(termoBusca) ||
-        item.matricula.includes(filtros.funcionario)
-      );
+      historicoFiltrado = historicoFiltrado.filter(item => {
+        const nome = safeStr(item.funcionario).toLowerCase();
+        const matricula = safeStr(item.matricula);
+        return nome.includes(termoBusca) || matricula.includes(filtros.funcionario);
+      });
     }
 
+    // Filtro por material (nome ou tag)
     if (filtros.material) {
       const termoBusca = filtros.material.toLowerCase();
-      historicoFiltrado = historicoFiltrado.filter(item => 
-        item.material_nome.toLowerCase().includes(termoBusca) ||
-        item.material_tag.includes(filtros.material)
-      );
+      historicoFiltrado = historicoFiltrado.filter(item => {
+        const nome = safeStr(item.material_nome).toLowerCase();
+        const tag = safeStr(item.material_tag);
+        return nome.includes(termoBusca) || tag.includes(filtros.material);
+      });
     }
 
-    // Agrupar de forma mais eficiente
+    // Filtro por período
+    if (filtros.periodo && filtros.periodo !== 'todos') {
+      const dataLimite = calcularDataLimite(filtros.periodo);
+      if (dataLimite) {
+        historicoFiltrado = historicoFiltrado.filter(item => {
+          const dataItem = parsearData(item.data);
+          if (!dataItem) return false;
+          return dataItem >= dataLimite;
+        });
+      }
+    }
+
+    // Agrupar por funcionário
     const grupos = historicoFiltrado.reduce((acc, item) => {
-      const key = `${item.matricula}-${item.funcionario}`;
+      const matricula = safeStr(item.matricula);
+      const funcionario = safeStr(item.funcionario);
+      const key = `${matricula}-${funcionario}`;
+
       if (!acc[key]) {
         acc[key] = {
-          funcionario: item.funcionario,
-          matricula: item.matricula,
+          funcionario,
+          matricula,
           materiais: [],
           totalQuantidade: 0
         };
