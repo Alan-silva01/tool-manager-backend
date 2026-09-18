@@ -38,3 +38,8 @@ banco.md
 *.dump
 *.sql.bak
 
+# Spec-driven e skills locais
+.agents/
+.spec/
+onpspec.config.json
+/test/

@@ -13,6 +13,7 @@ import { useFuncionarios } from "@/hooks/useFuncionarios";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { apiRequestFormData } from "@/lib/api";
+import { useCarrinho } from "@/hooks/useCarrinho";
 
 type CartItem = {
   id: string;
@@ -30,10 +31,16 @@ const PegarItem = () => {
   const { ferramentas, loading: loadingFerramentas } = useFerramentas();
   const { materiais, loading: loadingMateriais } = useMateriais();
   const { buscarNomePorMatricula, funcionarios, loading: loadingFuncionarios } = useFuncionarios();
+  const {
+    carrinho,
+    addToCart: addToCartHook,
+    removeFromCart,
+    updateCartQuantity: updateCartQuantityHook,
+    mostrarFAB,
+  } = useCarrinho();
   
   const [step, setStep] = useState<'categoria' | 'lista' | 'carrinho' | 'funcionario' | 'fotos' | 'confirmacao'>('categoria');
   const [categoria, setCategoria] = useState<'ferramentas' | 'materiais'>('ferramentas');
-  const [carrinho, setCarrinho] = useState<CartItem[]>([]);
   const [matricula, setMatricula] = useState('');
   const [funcionario, setFuncionario] = useState<any>(null);
   const [filtroFerramentas, setFiltroFerramentas] = useState('');
@@ -47,35 +54,17 @@ const PegarItem = () => {
     setStep('lista');
   };
 
+  const addToCart = (item: any) => {
+    addToCartHook(item, categoria === 'ferramentas' ? 'ferramenta' : 'material');
+  };
+
   const getItemDisponivel = (itemId: string) => {
     const allItems = categoria === 'ferramentas' ? ferramentas : materiais;
     return allItems.find(item => item.id === itemId);
   };
 
-  const addToCart = (item: any) => {
-    const existingItem = carrinho.find(c => c.id === item.id);
-    
-    // Se já está no carrinho, remove (desseleciona)
-    if (existingItem) {
-      removeFromCart(item.id);
-      return;
-    }
-    
-    // Se não está no carrinho, adiciona
-    setCarrinho([...carrinho, {
-      id: item.id,
-      nome: item.nome,
-      tag: String(item.tag),
-      quantidade: 1,
-      tipo: categoria === 'ferramentas' ? 'ferramenta' : 'material',
-      reserva: item.reserva || false,
-      matricula_reserva: item.matricula_reserva || ''
-    }]);
-  };
-
-  const removeFromCart = (id: string) => {
-    setCarrinho(carrinho.filter(item => item.id !== id));
-    // Remove foto do item se existir
+  const removeFromCartWithFoto = (id: string) => {
+    removeFromCart(id);
     const newFotos = { ...fotosItens };
     delete newFotos[id];
     setFotosItens(newFotos);
@@ -84,26 +73,17 @@ const PegarItem = () => {
   const updateCartQuantity = (id: string, delta: number) => {
     const itemDisponivel = getItemDisponivel(id);
     if (!itemDisponivel) return;
-
-    setCarrinho(carrinho.map(item => {
-      if (item.id === id) {
-        const novaQuantidade = item.quantidade + delta;
-        
-        if (novaQuantidade < 1) return item;
-        
-        if (novaQuantidade > itemDisponivel.quantidade) {
-          toast({
-            title: "Quantidade indisponível",
-            description: `Só há ${itemDisponivel.quantidade} ${item.nome} disponível(is)`,
-            variant: "destructive",
-          });
-          return item;
-        }
-        
-        return { ...item, quantidade: novaQuantidade };
+    const ok = updateCartQuantityHook(id, delta, itemDisponivel.quantidade);
+    if (!ok) {
+      const item = carrinho.find(c => c.id === id);
+      if (item) {
+        toast({
+          title: "Quantidade indisponível",
+          description: `Só há ${itemDisponivel.quantidade} ${item.nome} disponível(is)`,
+          variant: "destructive",
+        });
       }
-      return item;
-    }));
+    }
   };
 
   const handleMatriculaSubmit = async () => {
@@ -450,7 +430,7 @@ const PegarItem = () => {
         </div>
       </header>
 
-      <main className="container mx-auto p-4 max-w-md lg:max-w-lg">
+      <main className={`container mx-auto p-4 max-w-md lg:max-w-lg${mostrarFAB(step) ? ' pb-28' : ''}`}>
         {/* Seleção de Categoria */}
         {step === 'categoria' && (
           <div className="space-y-4 mt-6">
@@ -707,7 +687,7 @@ const PegarItem = () => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={() => removeFromCartWithFoto(item.id)}
                         >
                           ✕
                         </Button>
@@ -961,6 +941,22 @@ const PegarItem = () => {
           </div>
         )}
       </main>
+
+      {/* Botão flutuante do carrinho — visível em qualquer posição de scroll */}
+      {mostrarFAB(step) && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <button
+            onClick={() => setStep('carrinho')}
+            className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-full shadow-2xl transition-all duration-200 animate-in fade-in zoom-in-90"
+          >
+            <ShoppingCart className="w-5 h-5" />
+            <span>Ver Carrinho</span>
+            <span className="bg-white text-emerald-700 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+              {carrinho.length}
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
