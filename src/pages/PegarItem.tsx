@@ -469,7 +469,7 @@ const PegarItem = () => {
         {/* Lista de Itens */}
         {step === 'lista' && (
           <div className="space-y-4 mt-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center min-h-[40px]">
               <h2 className="text-xl font-semibold">
                 {categoria === 'ferramentas' ? 'Ferramentas' : 'Materiais'}
               </h2>
@@ -571,11 +571,7 @@ const PegarItem = () => {
                            </p>
                          )}
                          
-                         {quantidadeNoCarrinho > 0 && (
-                           <p className="text-sm text-blue-600 mt-1">
-                             No carrinho: {quantidadeNoCarrinho}
-                           </p>
-                         )}
+
                          
                          {item.quantidade <= 0 && !isFerramentaEmprestada && (
                            <Badge variant="destructive" className="mt-1">
@@ -589,19 +585,43 @@ const PegarItem = () => {
                            </Badge>
                          )}
                        </div>
-                       <Button 
-                         onClick={() => addToCart(item)}
-                         size="sm"
-                         className="ml-2"
-                         variant={itemNoCarrinho ? "destructive" : "default"}
-                         disabled={item.quantidade <= 0 && !itemNoCarrinho}
-                       >
+                       <div className="ml-2 flex items-center">
                          {itemNoCarrinho ? (
-                           <Minus className="w-4 h-4" />
+                           <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border">
+                             <Button
+                               size="icon"
+                               variant="outline"
+                               className="h-7 w-7 rounded-md"
+                               onClick={() => updateCartQuantity(item.id, -1)}
+                               title="Diminuir quantidade"
+                             >
+                               <Minus className="w-3.5 h-3.5 text-destructive" />
+                             </Button>
+                             <span className="w-6 text-center font-semibold text-sm">
+                               {quantidadeNoCarrinho}
+                             </span>
+                             <Button
+                               size="icon"
+                               variant="outline"
+                               className="h-7 w-7 rounded-md"
+                               onClick={() => updateCartQuantity(item.id, 1)}
+                               disabled={quantidadeNoCarrinho >= item.quantidade}
+                               title={quantidadeNoCarrinho >= item.quantidade ? "Limite de estoque atingido" : "Aumentar quantidade"}
+                             >
+                               <Plus className="w-3.5 h-3.5" />
+                             </Button>
+                           </div>
                          ) : (
-                           <Plus className="w-4 h-4" />
+                           <Button 
+                             onClick={() => addToCart(item)}
+                             size="sm"
+                             variant="default"
+                             disabled={item.quantidade <= 0}
+                           >
+                             <Plus className="w-4 h-4" />
+                           </Button>
                          )}
-                       </Button>
+                       </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -945,16 +965,17 @@ const PegarItem = () => {
       {/* Botão flutuante do carrinho — visível em qualquer posição de scroll */}
       {mostrarFAB(step) && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-          <button
+          <Button
             onClick={() => setStep('carrinho')}
-            className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-full shadow-2xl transition-all duration-200 animate-in fade-in zoom-in-90"
+            size="lg"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium px-5 shadow-2xl transition-all duration-200 animate-in fade-in zoom-in-90 rounded-md"
           >
-            <ShoppingCart className="w-5 h-5" />
+            <ShoppingCart className="w-4 h-4" />
             <span>Ver Carrinho</span>
-            <span className="bg-white text-emerald-700 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+            <span className="bg-white text-emerald-700 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
               {carrinho.length}
             </span>
-          </button>
+          </Button>
         </div>
       )}
     </div>

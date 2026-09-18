@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export type CartItem = {
   id: string;
@@ -35,6 +35,8 @@ export type UseCarrinhoReturn = {
  */
 export function useCarrinho(): UseCarrinhoReturn {
   const [carrinho, setCarrinho] = useState<CartItem[]>([]);
+  const carrinhoRef = useRef<CartItem[]>(carrinho);
+  carrinhoRef.current = carrinho;
 
   const addToCart = (
     item: { id: string; nome: string; tag: string | number; quantidade: number; reserva?: boolean; matricula_reserva?: string },
@@ -45,7 +47,7 @@ export function useCarrinho(): UseCarrinhoReturn {
       removeFromCart(item.id);
       return;
     }
-    setCarrinho(prev => [...prev, {
+    const next = [...carrinhoRef.current, {
       id: item.id,
       nome: item.nome,
       tag: String(item.tag),
@@ -53,29 +55,41 @@ export function useCarrinho(): UseCarrinhoReturn {
       tipo,
       reserva: item.reserva || false,
       matricula_reserva: item.matricula_reserva || '',
-    }]);
+    }];
+    carrinhoRef.current = next;
+    setCarrinho(next);
   };
 
   const removeFromCart = (id: string) => {
-    setCarrinho(prev => prev.filter(item => item.id !== id));
+    const next = carrinhoRef.current.filter(item => item.id !== id);
+    carrinhoRef.current = next;
+    setCarrinho(next);
   };
 
   /**
    * Atualiza a quantidade de um item no carrinho.
-   * Retorna false se a atualização foi bloqueada (limite atingido ou quantidade < 1).
+   * Se delta levar a quantidade a 0 ou menos, remove o item do carrinho.
+   * Retorna false se o incremento foi bloqueado (limite de estoque atingido).
    */
   const updateCartQuantity = (id: string, delta: number, quantidadeMaxima: number): boolean => {
-    let bloqueado = false;
-    setCarrinho(prev => prev.map(item => {
-      if (item.id !== id) return item;
-      const nova = item.quantidade + delta;
-      if (nova < 1 || nova > quantidadeMaxima) {
-        bloqueado = true;
-        return item;
-      }
-      return { ...item, quantidade: nova };
-    }));
-    return !bloqueado;
+    const item = carrinhoRef.current.find(i => i.id === id);
+    if (!item) return false;
+
+    const n = item.quantidade + delta;
+    if (n > quantidadeMaxima) {
+      return false;
+    }
+
+    let next: CartItem[];
+    if (n <= 0) {
+      next = carrinhoRef.current.filter(i => i.id !== id);
+    } else {
+      next = carrinhoRef.current.map(i => i.id === id ? { ...i, quantidade: n } : i);
+    }
+
+    carrinhoRef.current = next;
+    setCarrinho(next);
+    return true;
   };
 
   const isInCart = (id: string) => carrinho.some(c => c.id === id);
@@ -83,7 +97,10 @@ export function useCarrinho(): UseCarrinhoReturn {
   const getQuantidadeNoCarrinho = (id: string) =>
     carrinho.find(c => c.id === id)?.quantidade ?? 0;
 
-  const limparCarrinho = () => setCarrinho([]);
+  const limparCarrinho = () => {
+    carrinhoRef.current = [];
+    setCarrinho([]);
+  };
 
   const totalItens = carrinho.length;
 
