@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Package, Wrench, ShoppingCart, Plus, Minus, Search, CreditCard, Camera, CheckCircle, Lock, User } from "lucide-react";
+import { ArrowLeft, Package, Wrench, ShoppingCart, Plus, Minus, X, Search, CreditCard, Camera, CheckCircle, Lock, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useFerramentas } from "@/hooks/useFerramentas";
@@ -587,30 +587,41 @@ const PegarItem = () => {
                        </div>
                        <div className="ml-2 flex items-center">
                          {itemNoCarrinho ? (
-                           <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border">
+                           categoria === "ferramentas" ? (
                              <Button
-                               size="icon"
-                               variant="outline"
-                               className="h-7 w-7 rounded-md"
-                               onClick={() => updateCartQuantity(item.id, -1)}
-                               title="Diminuir quantidade"
+                               size="sm"
+                               variant="destructive"
+                               onClick={() => removeFromCartWithFoto(item.id)}
+                               title="Remover ferramenta do carrinho"
                              >
-                               <Minus className="w-3.5 h-3.5 text-destructive" />
+                               <X className="w-4 h-4" />
                              </Button>
-                             <span className="w-6 text-center font-semibold text-sm">
-                               {quantidadeNoCarrinho}
-                             </span>
-                             <Button
-                               size="icon"
-                               variant="outline"
-                               className="h-7 w-7 rounded-md"
-                               onClick={() => updateCartQuantity(item.id, 1)}
-                               disabled={quantidadeNoCarrinho >= item.quantidade}
-                               title={quantidadeNoCarrinho >= item.quantidade ? "Limite de estoque atingido" : "Aumentar quantidade"}
-                             >
-                               <Plus className="w-3.5 h-3.5" />
-                             </Button>
-                           </div>
+                           ) : (
+                             <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border">
+                               <Button
+                                 size="icon"
+                                 variant="outline"
+                                 className="h-7 w-7 rounded-md"
+                                 onClick={() => updateCartQuantity(item.id, -1)}
+                                 title="Diminuir quantidade"
+                               >
+                                 <Minus className="w-3.5 h-3.5 text-destructive" />
+                               </Button>
+                               <span className="w-6 text-center font-semibold text-sm">
+                                 {quantidadeNoCarrinho}
+                               </span>
+                               <Button
+                                 size="icon"
+                                 variant="outline"
+                                 className="h-7 w-7 rounded-md"
+                                 onClick={() => updateCartQuantity(item.id, 1)}
+                                 disabled={quantidadeNoCarrinho >= item.quantidade}
+                                 title={quantidadeNoCarrinho >= item.quantidade ? "Limite de estoque atingido" : "Aumentar quantidade"}
+                               >
+                                 <Plus className="w-3.5 h-3.5" />
+                               </Button>
+                             </div>
+                           )
                          ) : (
                            <Button 
                              onClick={() => addToCart(item)}
