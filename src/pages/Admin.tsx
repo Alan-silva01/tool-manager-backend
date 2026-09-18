@@ -119,7 +119,7 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <AdminHeader onRefresh={handleRefresh} onLogout={handleLogout} isRefreshing={isRefreshing} />
 
-      <main className="container mx-auto p-6">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {isLoading ? (
           <>
             <DashboardSkeleton />
