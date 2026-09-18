@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { apiRequestFormData } from "@/lib/api";
 import { useCarrinho } from "@/hooks/useCarrinho";
+import { useSwipeBack } from "@/hooks/useSwipeBack";
 
 type CartItem = {
   id: string;
@@ -48,6 +49,17 @@ const PegarItem = () => {
   const [tipoIdentificacao, setTipoIdentificacao] = useState<'matricula' | 'nfc'>('matricula');
   const [fotosItens, setFotosItens] = useState<Record<string, File>>({});
   const [confirmando, setConfirmando] = useState(false);
+
+  const handleVoltar = () => {
+    if (step === "categoria") navigate("/");
+    else if (step === "lista") setStep("categoria");
+    else if (step === "carrinho") setStep("lista");
+    else if (step === "funcionario") setStep("carrinho");
+    else if (step === "fotos") setStep("funcionario");
+    else if (step === "confirmacao") setStep("fotos");
+  };
+
+  useSwipeBack(handleVoltar);
 
   const handleSelectCategoria = (cat: 'ferramentas' | 'materiais') => {
     setCategoria(cat);
@@ -403,14 +415,7 @@ const PegarItem = () => {
               variant="ghost"
               size="icon"
               className="text-primary-foreground hover:bg-primary-foreground/20"
-              onClick={() => {
-                if (step === 'categoria') navigate('/');
-                else if (step === 'lista') setStep('categoria');
-                else if (step === 'carrinho') setStep('lista');
-                else if (step === 'funcionario') setStep('carrinho');
-                else if (step === 'fotos') setStep('funcionario');
-                else if (step === 'confirmacao') setStep('fotos');
-              }}
+              onClick={handleVoltar}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
