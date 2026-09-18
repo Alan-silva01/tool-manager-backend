@@ -10,8 +10,6 @@ Disponivel em producao: [https://avb-ferramentaria.vercel.app/](https://avb-ferr
 
 O sistema adota o padrao **Backend for Frontend (BFF)** desacoplado, com transacoes atomicas ACID no banco de dados e mensageria assincrona orientada a eventos para notificacoes externas, mitigando gargalos de latencia de rede e garantindo integridade absoluta de estoque.
 
-![Arquitetura do Sistema](public/assets/architecture.png)
-
 ```
 [ Cliente Web / PWA ]  --->  (HTTPS / REST)  --->  [ Backend FastAPI BFF ]
 (Hospedado na Vercel)                               (Oracle Cloud VPS - Easypanel)
