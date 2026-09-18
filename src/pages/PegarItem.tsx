@@ -669,73 +669,135 @@ const PegarItem = () => {
               </Card>
             ) : (
               <>
-                {carrinho.map((item) => {
-              const itemDisponivel = getItemDisponivel(item.id);
-              const quantidadeMaxima = itemDisponivel ? itemDisponivel.quantidade : 0;
-              const nomeReservado = item.tipo === 'ferramenta' && item.reserva && item.matricula_reserva 
-                ? buscarNomePorMatricula(item.matricula_reserva) 
-                : null;
-              
-              return (
-                <Card key={item.id}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{item.nome}</h3>
-                        <Badge variant="outline" className="mt-1">
-                          TAG: {item.tag}
-                        </Badge>
-                        {item.tipo === 'ferramenta' && item.reserva && nomeReservado && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <Lock className="w-3 h-3 text-orange-500" />
-                            <span className="text-xs text-orange-600">
-                              Reservada para {nomeReservado}
-                            </span>
-                          </div>
-                        )}
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Máximo disponível: {quantidadeMaxima}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateCartQuantity(item.id, -1)}
-                          disabled={item.quantidade <= 1}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <span className="w-8 text-center">{item.quantidade}</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateCartQuantity(item.id, 1)}
-                          disabled={item.quantidade >= quantidadeMaxima}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => removeFromCartWithFoto(item.id)}
-                        >
-                          ✕
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                );
-              })}
+                {(() => {
+                  const ferramentasNoCarrinho = carrinho.filter(i => i.tipo === "ferramenta");
+                  const materiaisNoCarrinho = carrinho.filter(i => i.tipo === "material");
 
-              <Button 
-                className="w-full" 
-                onClick={() => setStep('funcionario')}
-              >
-                Continuar
-              </Button>
-            </>
+                  return (
+                    <div className="space-y-6">
+                      {/* Seção Ferramentas */}
+                      {ferramentasNoCarrinho.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 border-b pb-1">
+                            <Wrench className="w-4 h-4 text-emerald-600" />
+                            <h3 className="font-semibold text-base">Ferramentas</h3>
+                            <Badge variant="outline" className="text-xs">
+                              {ferramentasNoCarrinho.length}
+                            </Badge>
+                          </div>
+                          {ferramentasNoCarrinho.map((item) => {
+                            const nomeReservado = item.reserva && item.matricula_reserva 
+                              ? buscarNomePorMatricula(item.matricula_reserva) 
+                              : null;
+
+                            return (
+                              <Card key={item.id}>
+                                <CardContent className="p-4">
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex-1">
+                                      <h4 className="font-semibold">{item.nome}</h4>
+                                      <Badge variant="outline" className="mt-1">
+                                        TAG: {item.tag}
+                                      </Badge>
+                                      {nomeReservado && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                          <Lock className="w-3 h-3 text-orange-500" />
+                                          <span className="text-xs text-orange-600">
+                                            Reservada para {nomeReservado}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => removeFromCartWithFoto(item.id)}
+                                      title="Remover ferramenta"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Seção Materiais */}
+                      {materiaisNoCarrinho.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 border-b pb-1">
+                            <Package className="w-4 h-4 text-emerald-600" />
+                            <h3 className="font-semibold text-base">Materiais</h3>
+                            <Badge variant="outline" className="text-xs">
+                              {materiaisNoCarrinho.length}
+                            </Badge>
+                          </div>
+                          {materiaisNoCarrinho.map((item) => {
+                            const itemDisponivel = getItemDisponivel(item.id);
+                            const quantidadeMaxima = itemDisponivel ? itemDisponivel.quantidade : 0;
+
+                            return (
+                              <Card key={item.id}>
+                                <CardContent className="p-4">
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <h4 className="font-semibold">{item.nome}</h4>
+                                      <Badge variant="outline" className="mt-1">
+                                        TAG: {item.tag}
+                                      </Badge>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        Máximo disponível: {quantidadeMaxima}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => updateCartQuantity(item.id, -1)}
+                                        disabled={item.quantidade <= 1}
+                                        title="Diminuir quantidade"
+                                      >
+                                        <Minus className="w-3 h-3" />
+                                      </Button>
+                                      <span className="w-8 text-center font-semibold">{item.quantidade}</span>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => updateCartQuantity(item.id, 1)}
+                                        disabled={item.quantidade >= quantidadeMaxima}
+                                        title="Aumentar quantidade"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => removeFromCartWithFoto(item.id)}
+                                        title="Remover material"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <Button 
+                  className="w-full mt-4" 
+                  onClick={() => setStep('funcionario')}
+                >
+                  Continuar
+                </Button>
+              </>
             )}
           </div>
         )}
