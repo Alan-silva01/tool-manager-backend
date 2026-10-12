@@ -130,12 +130,17 @@ async def worker_fila_whatsapp():
                 await asyncio.sleep(5.0)
                 continue
 
-            # BLPOP com timeout de 5 segundos.
-            # Quando não há mensagens, retorna None — sem exceção.
-            # socket_connect_timeout é separado e não interfere aqui.
-            item = await r.blpop(FILA_WHATSAPP_KEY, timeout=5)
+            # BLPOP com timeout de 5s.
+            # - Retorna None se a fila estiver vazia → continua normalmente
+            # - Lança redis_exc.TimeoutError em alguns ambientes → também normal
+            try:
+                item = await r.blpop(FILA_WHATSAPP_KEY, timeout=5)
+            except redis_exc.TimeoutError:
+                # Fila vazia — comportamento normal, sem erros
+                continue
+
             if not item:
-                # Sem mensagens na fila — comportamento normal, continua o loop
+                # Sem mensagens na fila — comportamento normal
                 continue
 
             _, job_json = item
@@ -160,23 +165,23 @@ async def worker_fila_whatsapp():
             logger.info("Worker da fila cancelado.")
             break
 
-        except (redis_exc.TimeoutError, redis_exc.ConnectionError) as e:
-            # Erro real de conexão com o Redis — reseta e reconecta
+        except (redis_exc.ConnectionError, redis_exc.BusyLoadingError, redis_exc.AuthenticationError) as e:
+            # Erro REAL de conexão — reseta e reconecta
             await _reset_redis_client()
             logger.warning(f"⚠️ Conexão Redis perdida ({type(e).__name__}). Reconectando em 5s...")
             await asyncio.sleep(5.0)
 
-        except (TimeoutError, ConnectionError, OSError) as e:
-            # Erros de rede no nível do sistema operacional
+        except (ConnectionError, OSError) as e:
+            # Erros de rede no nível do SO
             await _reset_redis_client()
             logger.warning(f"⚠️ Erro de rede ({type(e).__name__}). Reconectando em 5s...")
             await asyncio.sleep(5.0)
 
         except json.JSONDecodeError as e:
             logger.error(f"Job inválido na fila (JSON corrompido): {e}")
-            # Continua sem parar o worker
 
         except Exception as e:
             # Erros verdadeiramente inesperados
             logger.error(f"Erro inesperado no worker: {type(e).__name__}: {e}")
             await asyncio.sleep(3.0)
+
