@@ -57,136 +57,184 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-primary text-primary-foreground p-4 shadow-lg">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
-                alt="AVB Logo" 
-                className="w-6 h-6 md:w-10 md:h-10 brightness-0 invert"
-                loading="eager"
-                width="40"
-                height="40"
-                style={{ maxWidth: '40px', maxHeight: '40px' }}
-              />
-            </div>
-            <div>
-              <h1 className="text-lg md:text-2xl font-bold">AVB - Aço Verde Brasil</h1>
-              <p className="text-xs md:text-sm text-primary-foreground/80 hidden sm:block">Sistema de Controle de Estoque e Ferramentaria</p>
-            </div>
+      {/* Header Estilo Alma / Carbon */}
+      <header className="sticky top-0 z-50 bg-[#161616] text-[#f4f4f4] px-4 md:px-6 h-12 flex items-center justify-between border-b border-[#2e2e2e]">
+        <div className="flex items-center space-x-3">
+          <div className="w-7 h-7 bg-[#262626] border border-[#393939] flex items-center justify-center">
+            <img 
+              src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
+              alt="AVB Logo" 
+              className="w-5 h-5 brightness-0 invert"
+              loading="eager"
+              width="20"
+              height="20"
+            />
           </div>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-              onClick={handleRefresh}
-            >
-              <RefreshIcon />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-              onClick={() => navigate("/admin")}
-              onMouseEnter={() => preloadPage('admin')}
-              onFocus={() => preloadPage('admin')}
-            >
-              Admin
-            </Button>
+            <h1 className="text-sm md:text-base font-semibold tracking-tight text-white">AVB</h1>
+            <span className="text-[11px] font-mono text-[#7c9c84] bg-[#262626] px-1.5 py-0.5 border border-[#393939] hidden sm:inline-block">
+              FERRAMENTARIA
+            </span>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#262626] border border-[#393939] text-[#7c9c84] text-[11px] font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7c9c84] animate-pulse"></span>
+            OPERACIONAL
+          </span>
+          <ThemeToggle />
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626]"
+            onClick={handleRefresh}
+            title="Atualizar"
+          >
+            <RefreshIcon />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="h-8 px-3 text-xs font-mono uppercase tracking-wider text-[#f4f4f4] hover:bg-[#262626] border border-[#393939]"
+            onClick={() => navigate("/admin")}
+            onMouseEnter={() => preloadPage('admin')}
+            onFocus={() => preloadPage('admin')}
+          >
+            Admin
+          </Button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto p-4 md:p-6 max-w-lg">
-        <div className="text-center mb-6 md:mb-8 mt-4 md:mt-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 md:mb-3">
-            Sistema de Controle
+      <main className="container mx-auto p-4 md:p-10 max-w-3xl">
+        {/* Banner Hero Alma */}
+        <div className="mb-8 md:mb-10 border-l-4 border-primary pl-5 py-2 bg-card/40 border-y border-r border-border/50">
+          <div className="text-xs font-mono uppercase tracking-widest text-[#7c9c84] mb-1 font-semibold">
+            Controle de Fluxo Operacional
+          </div>
+          <h2 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight">
+            Gestão de Ferramentaria
           </h2>
-          <p className="text-muted-foreground text-base md:text-lg">
-            Gestão inteligente de ferramentas e materiais
+          <p className="text-muted-foreground text-sm md:text-base mt-1.5">
+            Selecione uma operação para retirada, devolução ou consulta de registros.
           </p>
         </div>
 
-        <div className="space-y-4 md:space-y-6">
-          {/* Pegar Item Button */}
-          <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20">
+        <div className="space-y-4 md:space-y-5">
+          {/* Pegar Item Card */}
+          <Card className="group border-2 border-border hover:border-primary transition-all duration-200 bg-card hover:shadow-md">
             <CardContent className="p-0">
               <Button
                 variant="ghost"
-                className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-primary/5"
+                className="w-full h-auto flex items-center justify-start gap-5 md:gap-6 text-left p-5 md:p-7 hover:bg-primary/5 rounded-none"
                 onClick={() => navigate("/pegar-item")}
                 onMouseEnter={() => preloadPage('pegar-item')}
                 onFocus={() => preloadPage('pegar-item')}
               >
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                  <DownloadIcon />
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 group-hover:bg-[#6c8c74] transition-colors shadow-sm">
+                  <div className="scale-125">
+                    <DownloadIcon />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
-                    Pegar Item
-                  </h3>
-                  <p className="text-sm md:text-base text-muted-foreground">
-                    Retirar ferramentas ou materiais do estoque
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg md:text-xl font-bold text-foreground">
+                      Pegar Item
+                    </h3>
+                    <span className="text-[11px] font-mono uppercase px-2 py-0.5 bg-primary/15 text-[#5c7b64] dark:text-[#8eaf96] font-semibold border border-primary/30">
+                      Saída
+                    </span>
+                  </div>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                    Retirar ferramentas ou materiais sob requisição de serviço
                   </p>
+                </div>
+                <div className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all text-lg font-mono">
+                  →
                 </div>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Devolver Item Button */}
-          <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-accent/20">
+          {/* Devolver Item Card */}
+          <Card className="group border-2 border-border hover:border-primary transition-all duration-200 bg-card hover:shadow-md">
             <CardContent className="p-0">
               <Button
                 variant="ghost"
-                className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-accent/5"
+                className="w-full h-auto flex items-center justify-start gap-5 md:gap-6 text-left p-5 md:p-7 hover:bg-muted/40 rounded-none"
                 onClick={() => navigate("/devolver-item")}
                 onMouseEnter={() => preloadPage('devolver-item')}
                 onFocus={() => preloadPage('devolver-item')}
               >
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-accent rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                  <UploadIcon />
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-[#161616] text-[#f4f4f4] dark:bg-[#262626] flex items-center justify-center flex-shrink-0 border border-border group-hover:border-primary transition-colors shadow-sm">
+                  <div className="scale-125">
+                    <UploadIcon />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
-                    Devolver Item
-                  </h3>
-                  <p className="text-sm md:text-base text-muted-foreground">
-                    Retornar ferramentas ao estoque
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg md:text-xl font-bold text-foreground">
+                      Devolver Item
+                    </h3>
+                    <span className="text-[11px] font-mono uppercase px-2 py-0.5 bg-muted text-muted-foreground font-semibold border border-border">
+                      Entrada
+                    </span>
+                  </div>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                    Registrar retorno de ferramentas e instrumentos ao almoxarifado
                   </p>
+                </div>
+                <div className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all text-lg font-mono">
+                  →
                 </div>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Relatórios Button */}
-          <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-secondary/20">
+          {/* Relatórios Card */}
+          <Card className="group border-2 border-border hover:border-primary transition-all duration-200 bg-card hover:shadow-md">
             <CardContent className="p-0">
               <Button
                 variant="ghost"
-                className="w-full h-20 md:h-28 flex items-center justify-start gap-4 md:gap-6 text-left p-4 md:p-8 hover:bg-secondary/5"
+                className="w-full h-auto flex items-center justify-start gap-5 md:gap-6 text-left p-5 md:p-7 hover:bg-muted/40 rounded-none"
                 onClick={() => navigate("/relatorios")}
                 onMouseEnter={() => preloadPage('relatorios')}
                 onFocus={() => preloadPage('relatorios')}
               >
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-secondary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                  <UsersIcon />
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-muted text-foreground flex items-center justify-center flex-shrink-0 border border-border group-hover:border-primary transition-colors shadow-sm">
+                  <div className="scale-125">
+                    <UsersIcon />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
-                    Relatórios
-                  </h3>
-                  <p className="text-sm md:text-base text-muted-foreground">
-                    Consultar empréstimos por funcionário
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg md:text-xl font-bold text-foreground">
+                      Relatórios & Histórico
+                    </h3>
+                    <span className="text-[11px] font-mono uppercase px-2 py-0.5 bg-muted text-muted-foreground font-semibold border border-border">
+                      Consulta
+                    </span>
+                  </div>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                    Consultar empréstimos em aberto e histórico de movimentações por colaborador
                   </p>
+                </div>
+                <div className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all text-lg font-mono">
+                  →
                 </div>
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Footer Minimalista Alma */}
+        <div className="mt-12 pt-5 border-t border-border flex items-center justify-between text-xs font-mono text-muted-foreground">
+          <span>AVB FERRAMENTARIA v2.0</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#7c9c84] inline-block"></span>
+            SISTEMA OPERACIONAL
+          </span>
         </div>
       </main>
     </div>

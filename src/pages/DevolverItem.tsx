@@ -304,33 +304,31 @@ const DevolverItem = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-primary text-primary-foreground p-4 shadow-sm">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-              onClick={handleVoltar}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Devolver Item</h1>
-              <p className="text-sm text-primary-foreground/80">
-                {step === 'matricula' && 'Digite sua matrícula'}
-                {step === 'ferramentas' && 'Selecione as ferramentas'}
-                {step === 'fotos' && 'Fotografe as ferramentas'}
-                {step === 'confirmacao' && 'Confirme a devolução'}
-              </p>
-            </div>
+      {/* Header Estilo Alma */}
+      <header className="sticky top-0 z-50 bg-[#161616] text-[#f4f4f4] px-4 md:px-6 h-12 flex items-center justify-between border-b border-[#2e2e2e]">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626] rounded-none"
+            onClick={handleVoltar}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm md:text-base font-semibold tracking-tight text-white">Devolver Item</h1>
+            <span className="text-[11px] font-mono text-[#7c9c84] bg-[#262626] px-1.5 py-0.5 border border-[#393939]">
+              {step === 'matricula' && 'IDENTIFICAÇÃO'}
+              {step === 'ferramentas' && 'SELEÇÃO'}
+              {step === 'fotos' && 'FOTOS'}
+              {step === 'confirmacao' && 'CONFIRMAÇÃO'}
+            </span>
           </div>
-          <ThemeToggle />
         </div>
+        <ThemeToggle />
       </header>
 
-      <main className="container mx-auto p-4 max-w-md lg:max-w-lg">
+      <main className="container mx-auto p-4 md:p-8 max-w-2xl">
         {/* Identificação do Funcionário */}
         {step === 'matricula' && (
           <div className="space-y-4 mt-6">

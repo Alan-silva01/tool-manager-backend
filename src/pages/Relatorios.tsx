@@ -83,44 +83,43 @@ const Relatorios = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-primary text-primary-foreground p-4 shadow-sm">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-              onClick={() => {
-                if (view === 'menu') navigate('/');
-                else setView('menu');
-              }}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Relatórios</h1>
-              <p className="text-sm text-primary-foreground/80">
-                {view === 'menu' && 'Escolha um relatório'}
-                {view === 'funcionario' && 'Histórico do funcionário'}
-              </p>
-            </div>
-          </div>
+      <header className="sticky top-0 z-50 bg-[#161616] text-[#f4f4f4] px-4 md:px-6 h-12 flex items-center justify-between border-b border-[#2e2e2e]">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626] rounded-none"
+            onClick={() => {
+              if (view === 'menu') navigate('/');
+              else setView('menu');
+            }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-              onClick={handleRefresh} 
-              disabled={isLoading}
-            >
-              <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
+            <h1 className="text-sm md:text-base font-semibold tracking-tight text-white">Relatórios</h1>
+            <span className="text-[11px] font-mono text-[#7c9c84] bg-[#262626] px-1.5 py-0.5 border border-[#393939] uppercase">
+              {view === 'menu' && 'VISÃO GERAL'}
+              {view === 'funcionario' && 'POR COLABORADOR'}
+            </span>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626] rounded-none"
+            onClick={handleRefresh} 
+            disabled={isLoading}
+            title="Atualizar"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </header>
 
-      <main className="container mx-auto p-4 max-w-md">
+      <main className="container mx-auto p-4 md:p-8 max-w-2xl md:max-w-3xl">
         {view === 'menu' && (
           <div className="space-y-4 mt-6">
             <Card 

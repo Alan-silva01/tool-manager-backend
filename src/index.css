@@ -8,89 +8,89 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 85 35% 15%;
+    /* Alma Light Theme */
+    --background: 0 0% 95.7%; /* #f4f4f4 */
+    --foreground: 0 0% 8.6%; /* #161616 Carbon */
 
-    --card: 0 0% 100%;
-    --card-foreground: 85 35% 15%;
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 0 0% 8.6%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 85 35% 15%;
+    --popover-foreground: 0 0% 8.6%;
 
-    --primary: 144 20% 58%;
+    /* Sage Primary: #7c9c84 -> hsl(136, 14%, 55%) */
+    --primary: 136 14% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 85 20% 85%;
-    --secondary-foreground: 85 35% 15%;
+    /* Neutral dark / structural */
+    --secondary: 0 0% 92.2%; /* #ebebeb */
+    --secondary-foreground: 0 0% 8.6%;
 
-    --muted: 85 15% 92%;
-    --muted-foreground: 85 15% 45%;
+    --muted: 0 0% 92.2%;
+    --muted-foreground: 0 0% 32.2%; /* #525252 */
 
-    --accent: 85 25% 45%;
-    --accent-foreground: 0 0% 100%;
+    /* Sage Accent / Tint */
+    --accent: 137 20% 94%; /* #edf3ef */
+    --accent-foreground: 135 15% 35%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 357 76% 48.6%; /* #da1e28 Carbon Red */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 0 0% 87.8%; /* #e0e0e0 hairline */
+    --input: 0 0% 87.8%;
+    --ring: 136 14% 55%;
 
-    --radius: 0.5rem;
+    --radius: 0px;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 8.6%;
+    --sidebar-primary: 136 14% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 137 20% 94%;
+    --sidebar-accent-foreground: 135 15% 35%;
+    --sidebar-border: 0 0% 87.8%;
+    --sidebar-ring: 136 14% 55%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Alma Dark Theme (Carbon Gray 100/90) */
+    --background: 0 0% 8.6%; /* #161616 */
+    --foreground: 0 0% 95.7%; /* #f4f4f4 */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 12.9%; /* #212121 */
+    --card-foreground: 0 0% 95.7%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 14.9%; /* #262626 */
+    --popover-foreground: 0 0% 95.7%;
 
-    --primary: 144 20% 25%;
+    /* Sage Primary: #7c9c84 */
+    --primary: 136 14% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 18%; /* #2e2e2e */
+    --secondary-foreground: 0 0% 95.7%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 66%; /* #a8a8a8 */
 
-    --accent: 85 25% 35%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 137 17% 13%; /* #1b261f */
+    --accent-foreground: 136 14% 65%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 356 94% 64%; /* #fa4d56 */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 0 0% 20%; /* #333333 */
+    --input: 0 0% 20%;
+    --ring: 136 14% 55%;
+
+    --sidebar-background: 0 0% 7.1%; /* #121212 */
+    --sidebar-foreground: 0 0% 95.7%;
+    --sidebar-primary: 136 14% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 137 17% 13%;
+    --sidebar-accent-foreground: 136 14% 65%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 136 14% 55%;
   }
 }
 
@@ -100,6 +100,11 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  .font-mono, [data-mono] {
+    font-variant-numeric: tabular-nums;
   }
 }

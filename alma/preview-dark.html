@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design System Inspired by Alma (Dark Mode) — Complete Token Catalog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #161616;
+    --bg-surface: #212121;
+    --bg-elevated: #262626;
+    --bg-hover: #2e2e2e;
+    --text-primary: #f4f4f4;
+    --text-secondary: #a8a8a8;
+    --text-tertiary: #757575;
+    --text-quaternary: #525252;
+    --brand-primary: #7c9c84;
+    --brand-hover: #8eaf96;
+    --brand-active: #6c8c74;
+    --brand-tint: #1b261f;
+    --brand-border: #354a3b;
+    --header-bg: #121212;
+    --header-surface: #1e1e1e;
+    --header-border: #2e2e2e;
+    --success: #42be65;
+    --success-bg: #15281b;
+    --danger: #fa4d56;
+    --danger-bg: #2d1819;
+    --warning: #f1c21b;
+    --warning-bg: #2d2611;
+    --info: #4589ff;
+    --info-bg: #142238;
+    --border-primary: #333333;
+    --border-subtle: #333333;
+    --border-ultralight: #2a2a2a;
+    --font-sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --shadow-dropdown: 0 4px 16px rgba(0,0,0,0.6);
+    --shadow-modal: 0 8px 30px rgba(0,0,0,0.7);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* MODE BADGE (HEADER PILL DARK) */
+  .mode-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--header-surface); border: 1px solid var(--header-border);
+    color: var(--text-tertiary); font-size: 11px; font-weight: 600;
+    padding: 4px 10px; font-family: var(--font-mono); letter-spacing: 0.05em;
+  }
+  .mode-badge svg { color: var(--brand-primary); }
+
+  /* HEADER & NAV */
+  .nav {
+    position: sticky; top: 0; z-index: 500;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 48px;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--header-border);
+  }
+  .nav-left { display: flex; align-items: center; gap: 14px; min-width: 120px; }
+  .btn-sidebar-toggle {
+    width: 32px; height: 32px; background: transparent; border: none;
+    color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: 0.15s;
+  }
+  .btn-sidebar-toggle:hover { background: var(--header-surface); }
+  .nav-center {
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; left: 50%; transform: translateX(-50%);
+    pointer-events: auto;
+  }
+  .nav-brand {
+    font-weight: 700; font-size: 14px; color: #fff;
+    display: flex; align-items: center; gap: 8px; text-align: center;
+  }
+  .nav-brand span {
+    color: var(--brand-primary); font-family: var(--font-mono); font-size: 11px;
+    background: var(--header-surface); padding: 2px 6px; border: 1px solid var(--header-border);
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+
+  /* LAYOUT COM SIDEBAR RETRÁTIL DARK */
+  .layout-wrapper { display: flex; min-height: calc(100vh - 48px); position: relative; }
+  .sidebar {
+    width: 250px; background: var(--bg-surface); border-right: 1px solid var(--border-subtle);
+    position: sticky; top: 48px; height: calc(100vh - 48px); overflow-y: auto;
+    flex-shrink: 0; transition: width 0.2s ease, padding 0.2s ease;
+  }
+  .sidebar.collapsed { width: 0; border-right: none; overflow: hidden; visibility: hidden; }
+  .sidebar-title { padding: 16px 18px 8px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); }
+  .sidebar-link {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 18px; font-size: 13px; color: var(--text-secondary); text-decoration: none;
+    border-left: 3px solid transparent; transition: 0.15s;
+  }
+  .sidebar-link .link-left { display: flex; align-items: center; gap: 10px; }
+  .sidebar-link svg { color: var(--text-secondary); flex-shrink: 0; }
+  .sidebar-link:hover { background: var(--bg-page); color: var(--text-primary); }
+  .sidebar-link:hover svg { color: var(--text-primary); }
+  .sidebar-link.active { background: var(--brand-tint); color: var(--brand-primary); font-weight: 600; border-left-color: var(--brand-primary); }
+  .sidebar-link.active svg { color: var(--brand-primary); }
+  .main-content { flex: 1; min-width: 0; }
+  .nav-links { display: flex; gap: 20px; list-style: none; }
+  .nav-links a { color: #a8a8a8; text-decoration: none; font-size: 12px; font-weight: 500; transition: color 0.15s; }
+  .nav-links a:hover { color: #fff; }
+
+  /* HERO */
+  .hero {
+    padding: 56px 24px; text-align: center;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .hero h1 {
+    font-size: 38px; font-weight: 700; letter-spacing: -0.02em;
+    color: var(--text-primary); margin-bottom: 10px; line-height: 1.15;
+  }
+  .hero p {
+    font-size: 15px; color: var(--text-secondary);
+    max-width: 680px; margin: 0 auto 24px auto;
+  }
+  .hero-buttons { display: flex; gap: 12px; justify-content: center; }
+
+  /* BUTTONS CORE */
+  .btn {
+    height: 38px; padding: 0 16px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    border: 1px solid transparent; border-radius: 0; cursor: pointer;
+    text-decoration: none; transition: all 0.15s ease;
+  }
+  .btn-primary { background: var(--brand-primary); color: #161616; font-weight: 700; }
+  .btn-primary:hover { background: var(--brand-hover); }
+  .btn-primary:active { background: var(--brand-active); }
+  .btn-secondary { background: var(--header-surface); color: #fff; border: 1px solid var(--border-subtle); }
+  .btn-secondary:hover { background: #2c2c2c; }
+  .btn-dark { background: var(--header-bg); color: #fff; border: 1px solid var(--border-subtle); }
+  .btn-dark:hover { background: #262626; }
+  .btn-ghost { background: transparent; color: var(--brand-primary); }
+  .btn-ghost:hover { background: var(--brand-tint); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #ba1b23; }
+  .btn-disabled { background: var(--header-surface); color: var(--text-tertiary); border: 1px solid var(--border-subtle); cursor: not-allowed; }
+
+  /* FAB & SWITCH */
+  .btn-fab { width: 44px; height: 44px; background: var(--brand-primary); color: #161616; font-weight: 800; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+  .switch-box { position: relative; display: inline-block; width: 44px; height: 22px; }
+  .switch-box input { opacity: 0; width: 0; height: 0; }
+  .switch-slider { position: absolute; cursor: pointer; inset: 0; background: var(--header-border); transition: 0.2s; }
+  .switch-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #f4f4f4; transition: 0.2s; }
+  .switch-box input:checked + .switch-slider { background: var(--brand-primary); }
+  .switch-box input:checked + .switch-slider:before { transform: translateX(22px); }
+
+  /* CHIPS & TAGS */
+  .chip { padding: 3px 8px; font-size: 11px; font-family: var(--font-mono); background: var(--header-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); }
+  .chip.brand { background: var(--brand-tint); border-color: var(--brand-border); color: var(--brand-primary); font-weight: 600; }
+
+  /* SECTIONS */
+  .section { max-width: 1140px; margin: 0 auto; padding: 48px 24px; }
+  .section-label { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--brand-primary); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .section-title { font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; }
+  .card-box { background: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 24px; margin-bottom: 20px; }
+  .box-sub { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 16px; display: block; }
+
+  /* 01 / COLORS */
+  .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .color-swatch { background: var(--bg-surface); border: 1px solid var(--border-subtle); }
+  .color-swatch-block { height: 56px; width: 100%; }
+  .color-swatch-info { padding: 8px 10px; background: var(--header-surface); }
+  .color-swatch-name { font-size: 12px; font-weight: 600; }
+  .color-swatch-hex { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* 02 / TYPOGRAPHY */
+  .type-table { width: 100%; border-collapse: collapse; }
+  .type-table tr { border-bottom: 1px solid var(--border-ultralight); }
+  .type-table td { padding: 10px 4px; }
+  .type-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); text-align: right; width: 170px; }
+
+  /* 03 / CARDS & CALL HIGHLIGHT */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .kpi-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-top: 3px solid var(--brand-primary); padding: 18px; }
+  .kpi-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); }
+  .kpi-num { font-size: 32px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); margin: 4px 0; }
+  .kpi-status { font-size: 11px; font-weight: 600; color: var(--success); }
+
+  .highlight-card { border: 2px solid var(--brand-primary); background: var(--bg-surface); overflow: hidden; margin-bottom: 20px; }
+  .highlight-header { background: var(--brand-primary); color: #161616; padding: 10px 16px; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; display: flex; justify-content: space-between; }
+  .highlight-body { padding: 20px; }
+  .highlight-name { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+  .highlight-tags { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+
+  /* 04 / TABLES */
+  .ds-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ds-table th { background: var(--bg-page); color: var(--text-secondary); padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
+  .ds-table td { padding: 12px; border-bottom: 1px solid var(--border-ultralight); }
+  .ds-table tr:hover td { background: var(--header-surface); }
+
+  /* 05 / FORMS */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+  .form-input, .form-textarea {
+    font-family: var(--font-sans); font-size: 13px; padding: 10px 12px;
+    background: var(--bg-page); color: var(--text-primary); border: none; border-bottom: 2px solid var(--header-border);
+    outline: none; transition: border-color 0.15s, background-color 0.15s;
+  }
+  .form-select {
+    font-family: var(--font-sans); font-size: 13px; padding: 10px 36px 10px 12px;
+    background-color: var(--bg-page);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23f4f4f4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    border: none; border-bottom: 2px solid var(--header-border);
+    outline: none; transition: border-color 0.15s, background-color 0.15s;
+    color: var(--text-primary); cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+  }
+  .form-select option {
+    background-color: #212121;
+    color: var(--text-primary);
+    padding: 10px;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-bottom-color: var(--brand-primary); background: var(--bg-elevated); }
+  .form-input.has-error { border-bottom-color: var(--danger); }
+
+  /* FAIXA DE AJUSTE (SLIDER) COM FUNDO CALIBRADO E CONTROLE SÁLVIA */
+  .range-box {
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    padding: 10px 14px; margin-top: 4px; display: flex; align-items: center; gap: 12px;
+  }
+  .form-range {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px; background: #333333;
+    outline: none; border-radius: 3px; cursor: pointer;
+  }
+  .form-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; background: var(--brand-primary);
+    border: 2px solid #212121; box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    cursor: pointer; border-radius: 50%; transition: transform 0.1s;
+  }
+  .form-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .range-val { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--brand-primary); min-width: 32px; text-align: right; }
+
+  .dropzone { border: 2px dashed var(--border-subtle); padding: 24px; text-align: center; background: var(--bg-page); cursor: pointer; transition: 0.15s; }
+  .dropzone:hover { border-color: var(--brand-primary); background: var(--brand-tint); }
+
+  /* ICON MATRIX MINIMALISTA DARK */
+  .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+  .icon-card {
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    text-align: center; transition: 0.15s;
+  }
+  .icon-card:hover { border-color: var(--brand-primary); background: var(--brand-tint); }
+  .icon-card svg { stroke: var(--text-primary); transition: stroke 0.15s; }
+  .icon-card:hover svg { stroke: var(--brand-primary); }
+  .icon-name { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+
+  /* 06 / DROPDOWNS, POPOVERS, TOOLTIPS */
+  .dropdown-wrap { position: relative; display: inline-block; }
+  .dropdown-menu {
+    position: absolute; top: calc(100% + 4px); left: 0;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-dropdown); min-width: 210px;
+    z-index: 600; display: none;
+  }
+  .dropdown-menu.dropdown-menu-right { left: auto; right: 0; }
+  .dropdown-wrap.open .dropdown-menu { display: block; }
+  .dropdown-item { display: block; padding: 10px 14px; font-size: 13px; color: var(--text-primary); text-decoration: none; }
+  .dropdown-item:hover { background: var(--header-surface); color: var(--brand-primary); }
+  .dropdown-divider { height: 1px; background: var(--border-subtle); margin: 4px 0; }
+
+  .popover-card {
+    position: absolute; top: calc(100% + 6px); left: 0;
+    width: 280px; padding: 16px; background: var(--bg-surface);
+    border: 1px solid var(--border-subtle); box-shadow: var(--shadow-dropdown);
+    display: none; z-index: 650;
+  }
+  .dropdown-wrap.popover-open .popover-card { display: block; }
+
+  .tooltip-target { position: relative; display: inline-block; cursor: pointer; }
+  .tooltip-target:after {
+    content: attr(data-tooltip); position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%); background: #f4f4f4; color: #161616;
+    font-size: 11px; font-weight: 600; padding: 4px 8px; white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity 0.15s; z-index: 200;
+  }
+  .tooltip-target:hover:after { opacity: 1; }
+
+  /* ACCORDION */
+  .acc-wrap { border-top: 1px solid var(--border-subtle); }
+  .acc-item { border-bottom: 1px solid var(--border-subtle); }
+  .acc-btn { width: 100%; padding: 12px 14px; background: none; border: none; text-align: left; font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; justify-content: space-between; cursor: pointer; }
+  .acc-content { padding: 0 14px 14px 14px; font-size: 13px; color: var(--text-secondary); display: none; }
+  .acc-item.open .acc-content { display: block; }
+
+  /* STEPPER */
+  .stepper { display: flex; justify-content: space-between; margin-bottom: 20px; }
+  .step-node { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .step-bullet { width: 28px; height: 28px; background: var(--header-surface); border: 2px solid var(--border-subtle); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .step-node.active .step-bullet { background: var(--brand-primary); border-color: var(--brand-primary); color: #161616; font-weight: 800; }
+  .step-node.done .step-bullet { background: var(--brand-tint); border-color: var(--brand-border); color: var(--brand-primary); }
+
+  /* MODAL & DRAWER */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 2000; }
+  .modal-overlay.open { display: flex; }
+  .modal-card { width: 480px; background: var(--bg-surface); box-shadow: var(--shadow-modal); border: 1px solid var(--border-subtle); }
+  .modal-head { padding: 14px 18px; background: var(--header-bg); color: #fff; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+  .modal-body { padding: 20px; }
+  .modal-foot { padding: 12px 18px; background: var(--bg-page); border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 10px; }
+
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none; justify-content: flex-end; z-index: 2000; }
+  .drawer-overlay.open { display: flex; }
+  .drawer-panel { width: 360px; background: var(--bg-surface); border-left: 1px solid var(--border-subtle); height: 100%; display: flex; flex-direction: column; box-shadow: -4px 0 20px rgba(0,0,0,0.4); animation: slideIn 0.2s ease-out; }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+  /* TOAST & LOADERS & SKELETON LOADING DARK */
+  .toast-zone { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 3000; }
+  .toast-card { background: var(--header-surface); border: 1px solid var(--border-subtle); color: #fff; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 320px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+  .spinner { width: 24px; height: 24px; border: 3px solid var(--border-subtle); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SKELETON LOADING (SHIMMER DARK) */
+  .skeleton-box {
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    padding: 16px; margin-top: 10px;
+  }
+  .skeleton-line {
+    height: 14px; background: linear-gradient(90deg, #262626 25%, #333333 37%, #262626 63%);
+    background-size: 400% 100%; animation: skeleton-shimmer-dark 1.4s ease infinite;
+    border-radius: 2px; margin-bottom: 10px;
+  }
+  .skeleton-line:last-child { margin-bottom: 0; }
+  .skeleton-circle {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(90deg, #262626 25%, #333333 37%, #262626 63%);
+    background-size: 400% 100%; animation: skeleton-shimmer-dark 1.4s ease infinite;
+    flex-shrink: 0;
+  }
+  .skeleton-card-preview {
+    display: flex; gap: 14px; align-items: center;
+  }
+  @keyframes skeleton-shimmer-dark {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  .footer { padding: 32px; text-align: center; border-top: 1px solid var(--border-subtle); font-size: 13px; color: var(--text-tertiary); background: var(--header-bg); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR COM TOGGLE SIDEBAR, LOGO CENTRALIZADO E DROPDOWN (DARK) -->
+<nav class="nav">
+  <div class="nav-left">
+    <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" title="Abrir / Fechar Barra Lateral" aria-label="Toggle Sidebar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <div class="nav-center">
+    <div class="nav-brand">
+      Alma Design System <span>ALAN FERREIRA DA SILVA</span>
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <div class="mode-badge" title="Tema Ativo: Alma Dark">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+      <span>Alma Dark</span>
+    </div>
+
+    <div class="dropdown-wrap">
+      <button class="btn btn-secondary dropdown-trigger" style="height: 32px; font-size: 12px; padding: 0 12px; display: flex; align-items: center; gap: 6px;">
+        <span>Menu Rápido</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      <div class="dropdown-menu dropdown-menu-right">
+        <a href="#colors" class="dropdown-item">01. Colors Dark</a>
+        <a href="#typography" class="dropdown-item">02. Typography</a>
+        <a href="#buttons" class="dropdown-item">03. Buttons</a>
+        <a href="#cards" class="dropdown-item">04. Cards & Data</a>
+        <a href="#forms" class="dropdown-item">05. Forms</a>
+        <a href="#icons" class="dropdown-item">06. Minimal Icons</a>
+        <a href="#overlays" class="dropdown-item">07. Overlays & Modals</a>
+        <a href="#feedback" class="dropdown-item">08. Feedback</a>
+        <div class="dropdown-divider"></div>
+        <a href="preview.html" class="dropdown-item" style="color: var(--brand-primary); font-weight: 600; display: flex; align-items: center; gap: 8px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle></svg>
+          Abrir Light Mode
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="layout-wrapper">
+  <!-- SIDEBAR RETRÁTIL (DARK) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">Navegação do Catálogo</div>
+    <nav>
+      <a href="#colors" class="sidebar-link active">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m4.93 4.93 4.24 4.24"></path></svg>
+          01. Colors Dark
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <a href="#typography" class="sidebar-link">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+          02. Typography
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <a href="#buttons" class="sidebar-link">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M7 12h10"></path></svg>
+          03. Buttons & Actions
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <a href="#cards" class="sidebar-link">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+          04. Cards & Data
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <a href="#forms" class="sidebar-link">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          05. Forms & Inputs
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <a href="#icons" class="sidebar-link">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          06. Minimal Icons
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <a href="#overlays" class="sidebar-link">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="7" y="7" width="10" height="10"></rect></svg>
+          07. Overlays & Modals
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <a href="#feedback" class="sidebar-link">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          08. Feedback & Alerts
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <div class="dropdown-divider" style="margin: 10px 18px;"></div>
+      <a href="preview.html" class="sidebar-link" style="color: var(--brand-primary); font-weight: 600;">
+        <span class="link-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle></svg>
+          Ver Light Mode
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+  <main class="main-content">
+
+<!-- HERO -->
+<section class="hero">
+  <h1>Design System Inspired by Alma</h1>
+  <p>Catálogo no modo Carbon Dark calibrado. Dropdowns, popovers, drawers, formulários e modais funcionais sob medida por Alan Ferreira da Silva.</p>
+  <div class="hero-buttons">
+    <a class="btn btn-primary" href="#colors">Explorar Componentes</a>
+    <a class="btn btn-secondary" href="preview.html">Alternar para o Light Mode</a>
+  </div>
+</section>
+
+<!-- 01 / COLORS -->
+<section class="section" id="colors">
+  <div class="section-label">01 / Colors</div>
+  <h2 class="section-title">Color Palette & Tokens Dark</h2>
+
+  <div class="box-sub">Brand Primary & Accents (Warehouse Sage)</div>
+  <div class="color-grid">
+    <div class="color-swatch"><div class="color-swatch-block" style="background:#7c9c84"></div><div class="color-swatch-info"><div class="color-swatch-name">Sage Primary</div><div class="color-swatch-hex">#7c9c84</div></div></div>
+    <div class="color-swatch"><div class="color-swatch-block" style="background:#8eaf96"></div><div class="color-swatch-info"><div class="color-swatch-name">Sage Hover</div><div class="color-swatch-hex">#8eaf96</div></div></div>
+    <div class="color-swatch"><div class="color-swatch-block" style="background:#6c8c74"></div><div class="color-swatch-info"><div class="color-swatch-name">Sage Active</div><div class="color-swatch-hex">#6c8c74</div></div></div>
+    <div class="color-swatch"><div class="color-swatch-block" style="background:#1b261f; border: 1px solid #354a3b;"></div><div class="color-swatch-info"><div class="color-swatch-name">Sage Tint Dark</div><div class="color-swatch-hex">#1b261f</div></div></div>
+  </div>
+
+  <div class="box-sub">Carbon Neutral Surfaces Dark</div>
+  <div class="color-grid">
+    <div class="color-swatch"><div class="color-swatch-block" style="background:#121212"></div><div class="color-swatch-info"><div class="color-swatch-name">Carbon Topbar</div><div class="color-swatch-hex">#121212</div></div></div>
+    <div class="color-swatch"><div class="color-swatch-block" style="background:#161616; border: 1px solid #333;"></div><div class="color-swatch-info"><div class="color-swatch-name">Canvas Dark</div><div class="color-swatch-hex">#161616</div></div></div>
+    <div class="color-swatch"><div class="color-swatch-block" style="background:#212121; border: 1px solid #333;"></div><div class="color-swatch-info"><div class="color-swatch-name">Surface Dark</div><div class="color-swatch-hex">#212121</div></div></div>
+    <div class="color-swatch"><div class="color-swatch-block" style="background:#262626; border: 1px solid #333;"></div><div class="color-swatch-info"><div class="color-swatch-name">Elevated Surface</div><div class="color-swatch-hex">#262626</div></div></div>
+  </div>
+</section>
+
+<!-- 02 / TYPOGRAPHY -->
+<section class="section" id="typography">
+  <div class="section-label">02 / Typography</div>
+  <h2 class="section-title">Hierarquia Tipográfica IBM Plex Dark</h2>
+
+  <div class="card-box">
+    <table class="type-table">
+      <tr><td><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand-primary); letter-spacing: 0.1em;">OVERLINE LABEL</span></td><td class="type-meta">11px · Bold</td></tr>
+      <tr><td><h1 style="font-size: 28px; font-weight: 700;">Título H1 — Cabeçalho Principal</h1></td><td class="type-meta">28px · Bold</td></tr>
+      <tr><td><h2 style="font-size: 20px; font-weight: 600;">Título H2 — Título de Seção e Módulos</h2></td><td class="type-meta">20px · SemiBold</td></tr>
+      <tr><td><p style="font-size: 13px; color: var(--text-secondary);">Parágrafo com contraste calibrado, evitando fundos estourados ou cansaço visual em sessões prolongadas.</p></td><td class="type-meta">13px · Regular</td></tr>
+      <tr><td><span class="chip brand">ALMA-Q24601 · NUMERAIS TABULARES</span></td><td class="type-meta">IBM Plex Mono · 600</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- 03 / BUTTONS & ACTIONS -->
+<section class="section" id="buttons">
+  <div class="section-label">03 / Buttons</div>
+  <h2 class="section-title">Botões, Toggles, FAB e Chips</h2>
+
+  <div class="card-box">
+    <span class="box-sub">Variações de Botão</span>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 24px;">
+      <button class="btn btn-primary">Botão Primário</button>
+      <button class="btn btn-secondary">Botão Secundário</button>
+      <button class="btn btn-dark">Botão Carbon Dark</button>
+      <button class="btn btn-ghost">Botão Ghost</button>
+      <button class="btn btn-danger">Botão Perigo</button>
+      <button class="btn btn-disabled" disabled>Desabilitado</button>
+      <button class="btn-fab" title="Ação Rápida">+</button>
+    </div>
+
+    <span class="box-sub">Switches e Chips</span>
+    <div style="display: flex; gap: 16px; align-items: center;">
+      <label class="switch-box">
+        <input type="checkbox" checked>
+        <span class="switch-slider"></span>
+      </label>
+      <span class="chip brand">Chip Ativo</span>
+      <span class="chip">Chip Neutro</span>
+      <span class="chip" style="border-left: 3px solid var(--success);">Status Concluído</span>
+    </div>
+  </div>
+</section>
+
+<!-- 04 / CARDS & DATA -->
+<section class="section" id="cards">
+  <div class="section-label">04 / Cards</div>
+  <h2 class="section-title">Containers de Dados, KPIs e Tabela</h2>
+
+  <!-- KPIS -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-title">Requisições Atendidas</span>
+      <div class="kpi-num">1.428</div>
+      <span class="kpi-status">▲ +14% vs. semana anterior</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">Tempo Médio de Espera</span>
+      <div class="kpi-num">03m 40s</div>
+      <span class="kpi-status">▼ -45s de latência</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">Itens em Atenção</span>
+      <div class="kpi-num" style="color: var(--danger);">02</div>
+      <span class="kpi-status" style="color: var(--danger);">! Abaixo do estoque mínimo</span>
+    </div>
+  </div>
+
+  <!-- CARD DE CHAMADA OFICIAL DO ALMA DARK -->
+  <div class="highlight-card">
+    <div class="highlight-header">
+      <span>CHAMADA ATIVA NO BALCÃO</span>
+      <span style="font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 2px 6px;">CONVOCAÇÃO ATIVA</span>
+    </div>
+    <div class="highlight-body">
+      <div class="highlight-name">ALAN FERREIRA DA SILVA</div>
+      <div class="highlight-tags">
+        <span class="chip brand">MATRÍCULA: 000182773</span>
+        <span class="chip" style="background: var(--brand-primary); color: #161616; font-weight: 800;">BALCÃO 01</span>
+        <span class="chip">MANUTENÇÃO INDUSTRIAL · CC-4120</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABELA DE ITENS DARK -->
+  <div class="card-box">
+    <span class="box-sub">Tabela com Interação Hover Dark</span>
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Material / Descrição</th>
+          <th>Localização</th>
+          <th style="text-align: center;">Qtd</th>
+          <th style="text-align: right;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="chip">EPI-1044</span></td>
+          <td><strong>Capacete de Segurança Classe B c/ Jugular</strong></td>
+          <td>Prateleira A-02</td>
+          <td style="text-align: center; font-family: var(--font-mono);">01 UN</td>
+          <td style="text-align: right;"><span class="chip brand">✓ Separado</span></td>
+        </tr>
+        <tr>
+          <td><span class="chip">FER-0482</span></td>
+          <td><strong>Jogo de Chaves Combinadas Gedore 6 a 22mm</strong></td>
+          <td>Gaveteiro F-12</td>
+          <td style="text-align: center; font-family: var(--font-mono);">01 JG</td>
+          <td style="text-align: right;"><span class="chip brand">✓ Separado</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 / FORMS -->
+<section class="section" id="forms">
+  <div class="section-label">05 / Forms</div>
+  <h2 class="section-title">Campos de Formulário e Dropzone Dark</h2>
+
+  <div class="card-box">
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Nome Completo</label>
+        <input type="text" class="form-input" value="Alan Ferreira da Silva">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Campo com Erro de Validação</label>
+        <input type="text" class="form-input has-error" value="Entrada incorreta">
+        <span style="font-size: 11px; color: var(--danger);">Campo obrigatório não atendido</span>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Posto de Atendimento</label>
+        <select class="form-select">
+          <option value="1">Balcão 01 — Atendimento Geral (Entregas e Conferência)</option>
+          <option value="2">Balcão 02 — Ferramentaria & Cautelas Especiais</option>
+          <option value="3">Balcão 03 — Recebimento e Triagem de Devoluções</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Faixa de Ajuste de Tolerância</label>
+        <div class="range-box">
+          <input type="range" class="form-range" id="range-slider-dark" min="0" max="100" value="70">
+          <span class="range-val" id="range-val-dark">70%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Observações da Ordem</label>
+      <textarea class="form-textarea" rows="2" placeholder="Observações operacionais..."></textarea>
+    </div>
+
+    <span class="box-sub" style="margin-top: 14px;">Upload de Arquivo</span>
+    <div class="dropzone">
+      <div style="font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Arraste e solte documentos da requisição aqui
+      </div>
+      <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Formatos suportados: PDF, PNG, JPG (até 15MB)</div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 / MINIMAL ICONS -->
+<section class="section" id="icons">
+  <div class="section-label">06 / Icons</div>
+  <h2 class="section-title">Minimalist Iconography Dark (24px Line Grid)</h2>
+  <div class="card-box">
+    <span class="box-sub">Conjunto de Ícones Minimalistas Desenvolvidos para Operação</span>
+    <div class="icon-grid">
+      <div class="icon-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+        <span class="icon-name">dashboard</span>
+      </div>
+      <div class="icon-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+        <span class="icon-name">estoque</span>
+      </div>
+      <div class="icon-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span class="icon-name">usuario</span>
+      </div>
+      <div class="icon-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <span class="icon-name">alerta</span>
+      </div>
+      <div class="icon-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+        <span class="icon-name">requisicao</span>
+      </div>
+      <div class="icon-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span class="icon-name">concluido</span>
+      </div>
+      <div class="icon-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <span class="icon-name">busca</span>
+      </div>
+      <div class="icon-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span class="icon-name">ajustes</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 / OVERLAYS & INTERATIVIDADE -->
+<section class="section" id="overlays">
+  <div class="section-label">07 / Overlays</div>
+  <h2 class="section-title">Dropdowns, Popover, Tooltip, Modal e Drawer Dark</h2>
+
+  <div class="card-box">
+    <span class="box-sub">Demonstração Interativa ao Vivo</span>
+    <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 24px;">
+      
+      <!-- DROPDOWN -->
+      <div class="dropdown-wrap">
+        <button class="btn btn-primary dropdown-trigger">
+          Abrir Dropdown Menu ▾
+        </button>
+        <div class="dropdown-menu">
+          <a href="#" class="dropdown-item">Ação: Gerar Relatório</a>
+          <a href="#" class="dropdown-item">Ação: Exportar Dados CSV</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item" style="color: var(--danger);">Excluir Registro</a>
+        </div>
+      </div>
+
+      <!-- POPOVER -->
+      <div class="dropdown-wrap">
+        <button class="btn btn-secondary" id="btn-popover">
+          Abrir Popover
+        </button>
+        <div class="popover-card">
+          <strong style="font-size: 12px; display: block; margin-bottom: 6px;">Informações Adicionais</strong>
+          <p style="font-size: 12px; color: var(--text-secondary);">
+            Popovers flutuantes são ideais para exibir dados secundários sem sair da tela.
+          </p>
+        </div>
+      </div>
+
+      <!-- TOOLTIP -->
+      <div class="tooltip-target" data-tooltip="Dica de ferramenta informativa no hover!">
+        <button class="btn btn-dark">Hover Tooltip</button>
+      </div>
+
+      <!-- MODAL TRIGGER -->
+      <button class="btn btn-secondary" id="btn-open-modal">
+        Abrir Janela Modal
+      </button>
+
+      <!-- DRAWER TRIGGER -->
+      <button class="btn btn-dark" id="btn-open-drawer">
+        Abrir Drawer Lateral
+      </button>
+    </div>
+
+    <!-- STEPPER -->
+    <span class="box-sub">Stepper (Passo a Passo)</span>
+    <div class="stepper">
+      <div class="step-node done">
+        <div class="step-bullet">✓</div>
+        <span style="font-size: 11px;">1. Solicitação</span>
+      </div>
+      <div class="step-node active">
+        <div class="step-bullet">2</div>
+        <span style="font-size: 11px;">2. Separação</span>
+      </div>
+      <div class="step-node">
+        <div class="step-bullet">3</div>
+        <span style="font-size: 11px;">3. Balcão</span>
+      </div>
+      <div class="step-node">
+        <div class="step-bullet">4</div>
+        <span style="font-size: 11px;">4. Conclusão</span>
+      </div>
+    </div>
+
+    <!-- ACCORDION -->
+    <span class="box-sub">Accordion / FAQ</span>
+    <div class="acc-wrap">
+      <div class="acc-item open">
+        <button class="acc-btn">
+          <span>Como funciona a chamada de balcão no Design System Alma?</span>
+          <span>▾</span>
+        </button>
+        <div class="acc-content">
+          O sistema utiliza síntese de voz (Web Speech API) integrada com chime acústico senoidal tri-tom na Web Audio API para máxima clareza.
+        </div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-btn">
+          <span>O Design System suporta modo escuro nativo?</span>
+          <span>▾</span>
+        </button>
+        <div class="acc-content">
+          Sim! Esta página preview-dark.html traz a paleta calibrada com fundo Carbon #161616 e verde sálvia original preservado.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 / FEEDBACK -->
+<section class="section" id="feedback">
+  <div class="section-label">08 / Feedback</div>
+  <h2 class="section-title">Alertas, Toasts e Loaders Dark</h2>
+
+  <div class="card-box">
+    <div class="alert-box alert-info" style="background:#142238; border-color:var(--info); color:#78a9ff;">
+      <strong>Informação:</strong> O design system Alma foi desenhado por Alan Ferreira da Silva.
+    </div>
+    <div class="alert-box alert-success" style="background:#15281b; border-color:var(--success); color:#42be65;">
+      <strong>Sucesso:</strong> Materiais conferidos e retirados do estoque com sucesso.
+    </div>
+    <div class="alert-box alert-danger" style="background:#2d1819; border-color:var(--danger); color:#ff8389;">
+      <strong>Alerta:</strong> Falha de comunicação simulada para validação de erro.
+    </div>
+
+    <span class="box-sub" style="margin-top: 20px;">Notificações Toast</span>
+    <button class="btn btn-primary" id="btn-toast">Disparar Toast Flutuante</button>
+
+    <span class="box-sub" style="margin-top: 20px;">Indicadores de Progresso</span>
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div class="spinner"></div>
+      <div style="flex: 1; height: 6px; background: var(--border-subtle);">
+        <div style="width: 70%; height: 100%; background: var(--brand-primary);"></div>
+      </div>
+    </div>
+
+    <!-- SKELETON LOADING DEMO DARK -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 8px;">
+      <span class="box-sub" style="margin-bottom: 0;">Skeleton Loading (Efeito Shimmer Dark)</span>
+      <button class="btn btn-secondary" id="btn-toggle-skeleton-dark" style="height: 28px; font-size: 11px; padding: 0 10px;">
+        Alternar Carregamento Real
+      </button>
+    </div>
+
+    <!-- SKELETON PLACEHOLDER DARK -->
+    <div class="skeleton-box" id="skeleton-container-dark">
+      <div class="skeleton-card-preview" style="margin-bottom: 16px;">
+        <div class="skeleton-circle"></div>
+        <div style="flex: 1;">
+          <div class="skeleton-line" style="width: 45%; height: 16px;"></div>
+          <div class="skeleton-line" style="width: 75%; height: 12px;"></div>
+        </div>
+      </div>
+      <div class="skeleton-line" style="width: 100%; height: 12px;"></div>
+      <div class="skeleton-line" style="width: 90%; height: 12px;"></div>
+      <div class="skeleton-line" style="width: 60%; height: 12px;"></div>
+    </div>
+
+    <!-- DADOS CARREGADOS (ALTERNÁVEL) DARK -->
+    <div class="skeleton-box" id="skeleton-real-data-dark" style="display: none; background: #262626; border-color: var(--brand-border);">
+      <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 12px;">
+        <div style="width: 42px; height: 42px; background: var(--brand-primary); color: #161616; font-weight: 800; display: flex; align-items: center; justify-content: center; border-radius: 50%;">AF</div>
+        <div>
+          <div style="font-weight: 700; font-size: 14px; color: #fff;">Alan Ferreira da Silva</div>
+          <div style="font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono);">ID: 000182773 · Manutenção Industrial</div>
+        </div>
+      </div>
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+        Todos os dados do módulo foram carregados com sucesso no modo escuro. O skeleton shimmer mantém harmonia visual e atenua a sensação de espera.
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer class="footer">
+  Alma Design System — Criado por <a href="#" style="color: var(--brand-primary); text-decoration: none; font-weight: 600;">Alan Ferreira da Silva</a>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-box">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span>Confirmar Baixa de Material</span>
+      <span class="btn-close-modal" style="cursor: pointer; font-size: 18px;">&times;</span>
+    </div>
+    <div class="modal-body">
+      Deseja confirmar a retirada de materiais para o colaborador <strong>ALAN FERREIRA DA SILVA (000182773)</strong>?
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-close-modal">Cancelar</button>
+      <button class="btn btn-primary btn-close-modal">Confirmar Baixa</button>
+    </div>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="drawer-box">
+  <div class="drawer-panel">
+    <div class="modal-head">
+      <span>Painel Lateral (Drawer)</span>
+      <span class="btn-close-drawer" style="cursor: pointer; font-size: 18px;">&times;</span>
+    </div>
+    <div style="padding: 20px; flex: 1; overflow-y: auto;">
+      <h4 style="margin-bottom: 8px;">Configurações Rápidas</h4>
+      <p style="color: var(--text-secondary); margin-bottom: 16px;">
+        Este drawer lateral desliza suavemente sobre o conteúdo para filtros ou edições rápidas.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Nome do Usuário</label>
+        <input type="text" class="form-input" value="Alan Ferreira da Silva">
+      </div>
+      <button class="btn btn-primary" style="width: 100%; margin-top: 14px;">Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-zone" id="toast-zone"></div>
+
+<script>
+  // INTERATIVIDADES COMPLETAS
+  document.addEventListener('DOMContentLoaded', () => {
+    // Sidebar Toggle
+    const sidebarBtn = document.getElementById('btn-sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    if (sidebarBtn && sidebar) {
+      sidebarBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+      });
+    }
+
+    // Dropdowns
+    document.querySelectorAll('.dropdown-trigger').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const parent = btn.closest('.dropdown-wrap');
+        document.querySelectorAll('.dropdown-wrap').forEach(w => {
+          if (w !== parent) w.classList.remove('open', 'popover-open');
+        });
+        if (parent) parent.classList.toggle('open');
+      });
+    });
+
+    // Sidebar Retrátil: Ativação dinâmica no clique e Scrollspy Dark
+    const sidebarLinksDark = document.querySelectorAll('.sidebar-link');
+    sidebarLinksDark.forEach(link => {
+      link.addEventListener('click', () => {
+        sidebarLinksDark.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      });
+    });
+
+    // Auto Scrollspy: Atualiza a marcação verde conforme o usuário rola a página
+    const sectionsDark = document.querySelectorAll('section[id]');
+    const observerDark = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          sidebarLinksDark.forEach(link => {
+            if (link.getAttribute('href') === `#${id}`) {
+              sidebarLinksDark.forEach(l => l.classList.remove('active'));
+              link.classList.add('active');
+            }
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sectionsDark.forEach(sec => observerDark.observe(sec));
+
+    // Popover
+    const popBtn = document.getElementById('btn-popover');
+    if (popBtn) {
+      popBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        popBtn.closest('.dropdown-wrap').classList.toggle('popover-open');
+      });
+    }
+
+    // Modal
+    const modal = document.getElementById('modal-box');
+    document.getElementById('btn-open-modal').addEventListener('click', () => modal.classList.add('open'));
+    document.querySelectorAll('.btn-close-modal').forEach(b => b.addEventListener('click', () => modal.classList.remove('open')));
+
+    // Drawer
+    const drawer = document.getElementById('drawer-box');
+    document.getElementById('btn-open-drawer').addEventListener('click', () => drawer.classList.add('open'));
+    document.querySelectorAll('.btn-close-drawer').forEach(b => b.addEventListener('click', () => drawer.classList.remove('open')));
+
+    // Accordion
+    document.querySelectorAll('.acc-btn').forEach(b => {
+      b.addEventListener('click', () => b.closest('.acc-item').classList.toggle('open'));
+    });
+
+    // Faixa de Ajuste (Slider interativo Dark)
+    const rangeSlider = document.getElementById('range-slider-dark');
+    const rangeVal = document.getElementById('range-val-dark');
+    if (rangeSlider && rangeVal) {
+      rangeSlider.addEventListener('input', () => {
+        rangeVal.textContent = `${rangeSlider.value}%`;
+      });
+    }
+
+    // Skeleton Toggle Demo Dark
+    const btnToggleSkeletonDark = document.getElementById('btn-toggle-skeleton-dark');
+    const skeletonContainerDark = document.getElementById('skeleton-container-dark');
+    const skeletonRealDataDark = document.getElementById('skeleton-real-data-dark');
+    if (btnToggleSkeletonDark && skeletonContainerDark && skeletonRealDataDark) {
+      btnToggleSkeletonDark.addEventListener('click', () => {
+        const isSkeletonVisible = skeletonContainerDark.style.display !== 'none';
+        if (isSkeletonVisible) {
+          skeletonContainerDark.style.display = 'none';
+          skeletonRealDataDark.style.display = 'block';
+          btnToggleSkeletonDark.textContent = 'Ver Modo Skeleton Shimmer';
+        } else {
+          skeletonContainerDark.style.display = 'block';
+          skeletonRealDataDark.style.display = 'none';
+          btnToggleSkeletonDark.textContent = 'Alternar Carregamento Real';
+        }
+      });
+    }
+
+    // Toast
+    const toastZone = document.getElementById('toast-zone');
+    document.getElementById('btn-toast').addEventListener('click', () => {
+      const t = document.createElement('div');
+      t.className = 'toast-card';
+      t.innerHTML = `<span><strong style="color: var(--brand-primary);">Notificação:</strong> Registro processado por Alan Ferreira da Silva.</span><button style="background:none;border:none;color:#fff;cursor:pointer;font-size:16px;">&times;</button>`;
+      toastZone.appendChild(t);
+      t.querySelector('button').addEventListener('click', () => t.remove());
+      setTimeout(() => { if (t.parentElement) t.remove(); }, 4000);
+    });
+  });
+</script>
+</body>
+</html>
