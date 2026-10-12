@@ -49,6 +49,8 @@ const PegarItem = () => {
   const [tipoIdentificacao, setTipoIdentificacao] = useState<'matricula' | 'nfc'>('matricula');
   const [fotosItens, setFotosItens] = useState<Record<string, File>>({});
   const [confirmando, setConfirmando] = useState(false);
+  const [paginaLista, setPaginaLista] = useState(1);
+  const ITEMS_PER_PAGE = 50;
 
   const handleVoltar = () => {
     if (step === "categoria") navigate("/");
@@ -407,20 +409,20 @@ const PegarItem = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header Estilo Alma */}
-      <header className="sticky top-0 z-50 bg-[#161616] text-[#f4f4f4] px-4 md:px-6 h-12 flex items-center justify-between border-b border-[#2e2e2e]">
+      {/* Header Claro/Card */}
+      <header className="sticky top-0 z-50 bg-card text-foreground px-4 md:px-6 h-14 flex items-center justify-between border-b border-border shadow-sm">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626] rounded-none"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none"
             onClick={handleVoltar}
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div className="flex items-center gap-2">
-            <h1 className="text-sm md:text-base font-semibold tracking-tight text-white">Pegar Item</h1>
-            <span className="text-[11px] font-mono text-[#7c9c84] bg-[#262626] px-1.5 py-0.5 border border-[#393939] uppercase">
+            <h1 className="text-sm md:text-base font-bold tracking-tight text-foreground">Pegar Item</h1>
+            <span className="text-[11px] font-mono text-primary font-semibold bg-primary/10 px-1.5 py-0.5 border border-primary/20 uppercase">
               {step === 'categoria' && 'CATEGORIA'}
               {step === 'lista' && categoria}
               {step === 'carrinho' && 'CARRINHO'}
@@ -471,36 +473,46 @@ const PegarItem = () => {
 
         {/* Lista de Itens */}
         {step === 'lista' && (
-          <div className="space-y-4 mt-6">
-            <div className="flex justify-between items-center min-h-[40px]">
-              <h2 className="text-xl font-semibold">
-                {categoria === 'ferramentas' ? 'Ferramentas' : 'Materiais'}
-              </h2>
-              {carrinho.length > 0 && (
-                <Button 
-                  onClick={() => setStep('carrinho')}
-                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition-all active:scale-95 animate-in fade-in zoom-in-90"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>Ver Carrinho</span>
-                  <span className="bg-white text-emerald-700 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                    {carrinho.length}
+          <div className="space-y-4 mt-4">
+            {/* Bloco Fixo / Sticky com título, busca e botão de carrinho */}
+            <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-md pt-2 pb-3 border-b border-border space-y-3">
+              <div className="flex justify-between items-center min-h-[40px]">
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                  {categoria === 'ferramentas' ? 'Ferramentas' : 'Materiais'}
+                  <span className="text-xs font-mono font-normal text-muted-foreground ml-2">
+                    ({getItensDisponiveis().length} disponíveis)
                   </span>
-                </Button>
-              )}
+                </h2>
+                {carrinho.length > 0 && (
+                  <Button 
+                    onClick={() => setStep('carrinho')}
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition-all active:scale-95 animate-in fade-in zoom-in-90 rounded-none h-9 text-xs"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Ver Carrinho</span>
+                    <span className="bg-white text-emerald-700 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center font-mono">
+                      {carrinho.length}
+                    </span>
+                  </Button>
+                )}
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={categoria === 'ferramentas' ? 'Buscar ferramenta por nome ou tag...' : 'Buscar material por nome ou tag...'}
+                  value={categoria === 'ferramentas' ? filtroFerramentas : filtroMateriais}
+                  onChange={(e) => {
+                    setPaginaLista(1);
+                    if (categoria === 'ferramentas') setFiltroFerramentas(e.target.value);
+                    else setFiltroMateriais(e.target.value);
+                  }}
+                  className="pl-10 h-10 rounded-none bg-card"
+                />
+              </div>
             </div>
 
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={categoria === 'ferramentas' ? 'Buscar por nome ou tag...' : 'Buscar por nome ou tag...'}
-                value={categoria === 'ferramentas' ? filtroFerramentas : filtroMateriais}
-                onChange={(e) => categoria === 'ferramentas' ? setFiltroFerramentas(e.target.value) : setFiltroMateriais(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {getItensDisponiveis().map((item) => {
+            {getItensDisponiveis().slice((paginaLista - 1) * ITEMS_PER_PAGE, paginaLista * ITEMS_PER_PAGE).map((item) => {
               const itemNoCarrinho = carrinho.find(c => c.id === item.id);
               const quantidadeNoCarrinho = itemNoCarrinho ? itemNoCarrinho.quantidade : 0;
               const podeAdicionarMais = quantidadeNoCarrinho < item.quantidade;
@@ -641,6 +653,44 @@ const PegarItem = () => {
                 </Card>
               );
             })}
+
+            {/* Paginação de 50 itens */}
+            {getItensDisponiveis().length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between border-t border-border pt-4 px-2 text-xs font-mono">
+                <span className="text-muted-foreground">
+                  Exibindo {((paginaLista - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(paginaLista * ITEMS_PER_PAGE, getItensDisponiveis().length)} de {getItensDisponiveis().length} itens
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={paginaLista === 1}
+                    onClick={() => {
+                      setPaginaLista(p => Math.max(1, p - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="px-2 font-semibold">
+                    {paginaLista} / {Math.ceil(getItensDisponiveis().length / ITEMS_PER_PAGE)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={paginaLista >= Math.ceil(getItensDisponiveis().length / ITEMS_PER_PAGE)}
+                    onClick={() => {
+                      setPaginaLista(p => Math.min(Math.ceil(getItensDisponiveis().length / ITEMS_PER_PAGE), p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

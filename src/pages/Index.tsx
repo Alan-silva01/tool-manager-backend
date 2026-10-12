@@ -57,52 +57,27 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header Estilo Alma / Carbon */}
-      <header className="sticky top-0 z-50 bg-[#161616] text-[#f4f4f4] px-4 md:px-6 h-12 flex items-center justify-between border-b border-[#2e2e2e]">
+      {/* Header Estilo Alma Claro/Neutro */}
+      <header className="sticky top-0 z-50 bg-card text-foreground px-4 md:px-6 h-14 flex items-center justify-between border-b border-border shadow-sm">
         <div className="flex items-center space-x-3">
-          <div className="w-7 h-7 bg-[#262626] border border-[#393939] flex items-center justify-center">
-            <img 
-              src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
-              alt="AVB Logo" 
-              className="w-5 h-5 brightness-0 invert"
-              loading="eager"
-              width="20"
-              height="20"
-            />
-          </div>
+          <img 
+            src="/lovable-uploads/ab346669-a4ee-4f88-84a4-3252d1b2b074.png" 
+            alt="AVB Logo" 
+            className="w-7 h-7 object-contain"
+            loading="eager"
+            width="28"
+            height="28"
+          />
           <div className="flex items-center gap-2">
-            <h1 className="text-sm md:text-base font-semibold tracking-tight text-white">AVB</h1>
-            <span className="text-[11px] font-mono text-[#7c9c84] bg-[#262626] px-1.5 py-0.5 border border-[#393939] hidden sm:inline-block">
+            <h1 className="text-sm md:text-base font-bold tracking-tight text-foreground">AVB</h1>
+            <span className="text-[11px] font-mono text-foreground font-bold uppercase tracking-wider hidden sm:inline-block">
               FERRAMENTARIA
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#262626] border border-[#393939] text-[#7c9c84] text-[11px] font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7c9c84] animate-pulse"></span>
-            OPERACIONAL
-          </span>
           <ThemeToggle />
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626]"
-            onClick={handleRefresh}
-            title="Atualizar"
-          >
-            <RefreshIcon />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="h-8 px-3 text-xs font-mono uppercase tracking-wider text-[#f4f4f4] hover:bg-[#262626] border border-[#393939]"
-            onClick={() => navigate("/admin")}
-            onMouseEnter={() => preloadPage('admin')}
-            onFocus={() => preloadPage('admin')}
-          >
-            Admin
-          </Button>
         </div>
       </header>
 
@@ -162,12 +137,12 @@ const Index = () => {
             <CardContent className="p-0">
               <Button
                 variant="ghost"
-                className="w-full h-auto flex items-center justify-start gap-5 md:gap-6 text-left p-5 md:p-7 hover:bg-muted/40 rounded-none"
+                className="w-full h-auto flex items-center justify-start gap-5 md:gap-6 text-left p-5 md:p-7 hover:bg-primary/5 rounded-none"
                 onClick={() => navigate("/devolver-item")}
                 onMouseEnter={() => preloadPage('devolver-item')}
                 onFocus={() => preloadPage('devolver-item')}
               >
-                <div className="w-14 h-14 md:w-16 md:h-16 bg-[#161616] text-[#f4f4f4] dark:bg-[#262626] flex items-center justify-center flex-shrink-0 border border-border group-hover:border-primary transition-colors shadow-sm">
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 group-hover:bg-[#6c8c74] transition-colors shadow-sm">
                   <div className="scale-125">
                     <UploadIcon />
                   </div>
@@ -177,7 +152,7 @@ const Index = () => {
                     <h3 className="text-lg md:text-xl font-bold text-foreground">
                       Devolver Item
                     </h3>
-                    <span className="text-[11px] font-mono uppercase px-2 py-0.5 bg-muted text-muted-foreground font-semibold border border-border">
+                    <span className="text-[11px] font-mono uppercase px-2 py-0.5 bg-primary/15 text-[#5c7b64] dark:text-[#8eaf96] font-semibold border border-primary/30">
                       Entrada
                     </span>
                   </div>
@@ -230,11 +205,8 @@ const Index = () => {
 
         {/* Footer Minimalista Alma */}
         <div className="mt-12 pt-5 border-t border-border flex items-center justify-between text-xs font-mono text-muted-foreground">
-          <span>AVB FERRAMENTARIA v2.0</span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#7c9c84] inline-block"></span>
-            SISTEMA OPERACIONAL
-          </span>
+          <span>AVB FERRAMENTARIA</span>
+          <span>v2.0</span>
         </div>
       </main>
     </div>

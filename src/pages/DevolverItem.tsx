@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { apiRequestFormData } from "@/lib/api";
 import { useSwipeBack } from "@/hooks/useSwipeBack";
 
+const ITEMS_PER_PAGE = 50;
+
 const DevolverItem = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -29,6 +31,7 @@ const DevolverItem = () => {
   const [tipoIdentificacao, setTipoIdentificacao] = useState<'matricula' | 'nfc'>('matricula');
   const [fotosFerramentas, setFotosFerramentas] = useState<Record<string, File>>({});
   const [confirmando, setConfirmando] = useState(false);
+  const [paginaFerramentas, setPaginaFerramentas] = useState(1);
 
   const handleVoltar = () => {
     if (step === "matricula") navigate("/");
@@ -79,6 +82,8 @@ const DevolverItem = () => {
           matricula: matricula.trim()
         });
         setFuncionarioFerramentas(ferramentasDoFuncionario);
+        setSelectedFerramentas([]);
+        setPaginaFerramentas(1);
         setStep('ferramentas');
       } else {
         toast({
@@ -140,6 +145,8 @@ const DevolverItem = () => {
           matricula: randomMatricula
         });
         setFuncionarioFerramentas(ferramentasDoFuncionario);
+        setSelectedFerramentas([]);
+        setPaginaFerramentas(1);
         setStep('ferramentas');
       } else {
         toast({
@@ -304,20 +311,20 @@ const DevolverItem = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header Estilo Alma */}
-      <header className="sticky top-0 z-50 bg-[#161616] text-[#f4f4f4] px-4 md:px-6 h-12 flex items-center justify-between border-b border-[#2e2e2e]">
+      {/* Header Claro/Card */}
+      <header className="sticky top-0 z-50 bg-card text-foreground px-4 md:px-6 h-14 flex items-center justify-between border-b border-border shadow-sm">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626] rounded-none"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none"
             onClick={handleVoltar}
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div className="flex items-center gap-2">
-            <h1 className="text-sm md:text-base font-semibold tracking-tight text-white">Devolver Item</h1>
-            <span className="text-[11px] font-mono text-[#7c9c84] bg-[#262626] px-1.5 py-0.5 border border-[#393939]">
+            <h1 className="text-sm md:text-base font-bold tracking-tight text-foreground">Devolver Item</h1>
+            <span className="text-[11px] font-mono text-primary font-semibold bg-primary/10 px-1.5 py-0.5 border border-primary/20">
               {step === 'matricula' && 'IDENTIFICAÇÃO'}
               {step === 'ferramentas' && 'SELEÇÃO'}
               {step === 'fotos' && 'FOTOS'}
@@ -398,52 +405,137 @@ const DevolverItem = () => {
         {/* Lista de Ferramentas */}
         {step === 'ferramentas' && funcionario && (
           <div className="space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Suas Ferramentas</CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  <p><strong>{funcionario.nome}</strong></p>
-                  <p>{funcionario.setor}</p>
-                  <p className="text-xs">Matrícula: {matricula}</p>
+            {/* Bloco de Informações do Colaborador + Controles Sticky */}
+            <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-md pb-3 pt-1 border-b border-border/40 space-y-3">
+              <Card className="rounded-none border-border">
+                <CardHeader className="py-3 px-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base font-bold">{funcionario.nome}</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">{funcionario.setor} • Matrícula: {matricula}</p>
+                    </div>
+                    <Badge variant="outline" className="font-mono text-xs rounded-none">
+                      {funcionarioFerramentas.length} {funcionarioFerramentas.length === 1 ? 'item' : 'itens'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              {funcionarioFerramentas.length > 0 && (
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs font-mono rounded-none"
+                      onClick={() => {
+                        if (selectedFerramentas.length === funcionarioFerramentas.length) {
+                          setSelectedFerramentas([]);
+                        } else {
+                          setSelectedFerramentas(funcionarioFerramentas.map(f => f.tag));
+                        }
+                      }}
+                    >
+                      {selectedFerramentas.length === funcionarioFerramentas.length ? "Desmarcar Todos" : "Selecionar Todos"}
+                    </Button>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {selectedFerramentas.length} selecionado(s)
+                    </span>
+                  </div>
+
+                  {selectedFerramentas.length > 0 && (
+                    <Button 
+                      size="sm"
+                      className="h-8 text-xs rounded-none bg-primary text-primary-foreground hover:bg-primary/90"
+                      onClick={() => setStep('fotos')}
+                    >
+                      Fotografar ({selectedFerramentas.length})
+                    </Button>
+                  )}
                 </div>
-              </CardHeader>
-            </Card>
+              )}
+            </div>
 
             {funcionarioFerramentas.length > 0 ? (
               <>
-                {funcionarioFerramentas.map((ferramenta) => (
-                  <Card key={ferramenta.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          id={`ferramenta-${ferramenta.id}`}
-                          checked={selectedFerramentas.includes(ferramenta.tag)}
-                          onCheckedChange={() => handleFerramentaToggle(ferramenta.tag)}
-                        />
-                        <div className="flex-1">
-                          <label 
-                            htmlFor={`ferramenta-${ferramenta.id}`}
-                            className="cursor-pointer"
-                          >
-                            <h3 className="font-semibold">{ferramenta.nome}</h3>
-                            <Badge variant="outline" className="mt-1">
-                              TAG: {ferramenta.tag}
-                            </Badge>
-                            {ferramenta.categoria && (
-                              <Badge variant="secondary" className="mt-1 ml-2">
-                                {ferramenta.categoria}
-                              </Badge>
-                            )}
-                          </label>
+                <div className="space-y-2">
+                  {funcionarioFerramentas
+                    .slice((paginaFerramentas - 1) * ITEMS_PER_PAGE, paginaFerramentas * ITEMS_PER_PAGE)
+                    .map((ferramenta) => (
+                    <Card key={ferramenta.id} className="hover:shadow-md transition-shadow rounded-none border-border">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            id={`ferramenta-${ferramenta.id}`}
+                            checked={selectedFerramentas.includes(ferramenta.tag)}
+                            onCheckedChange={() => handleFerramentaToggle(ferramenta.tag)}
+                            className="rounded-none mt-1"
+                          />
+                          <div className="flex-1">
+                            <label 
+                              htmlFor={`ferramenta-${ferramenta.id}`}
+                              className="cursor-pointer block"
+                            >
+                              <h3 className="font-semibold text-sm md:text-base">{ferramenta.nome}</h3>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                <Badge variant="outline" className="font-mono text-[11px] rounded-none">
+                                  TAG: {ferramenta.tag}
+                                </Badge>
+                                {ferramenta.categoria && (
+                                  <Badge variant="secondary" className="text-[11px] rounded-none font-normal">
+                                    {ferramenta.categoria}
+                                  </Badge>
+                                )}
+                              </div>
+                            </label>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Paginação de 50 itens */}
+                {funcionarioFerramentas.length > ITEMS_PER_PAGE && (
+                  <div className="flex items-center justify-between pt-4 border-t border-border font-mono text-xs text-muted-foreground">
+                    <span>
+                      Exibindo {((paginaFerramentas - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(paginaFerramentas * ITEMS_PER_PAGE, funcionarioFerramentas.length)} de {funcionarioFerramentas.length} itens
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-none px-3"
+                        disabled={paginaFerramentas === 1}
+                        onClick={() => {
+                          setPaginaFerramentas(p => Math.max(1, p - 1));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        Anterior
+                      </Button>
+                      <span className="px-2 py-1 bg-muted border border-border">
+                        {paginaFerramentas} / {Math.ceil(funcionarioFerramentas.length / ITEMS_PER_PAGE)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-none px-3"
+                        disabled={paginaFerramentas >= Math.ceil(funcionarioFerramentas.length / ITEMS_PER_PAGE)}
+                        onClick={() => {
+                          setPaginaFerramentas(p => Math.min(Math.ceil(funcionarioFerramentas.length / ITEMS_PER_PAGE), p + 1));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {selectedFerramentas.length > 0 && (
                   <Button 
-                    className="w-full" 
+                    className="w-full rounded-none h-11 bg-primary text-primary-foreground font-semibold" 
                     onClick={() => setStep('fotos')}
                   >
                     Fotografar {selectedFerramentas.length} ferramenta(s)
@@ -451,7 +543,7 @@ const DevolverItem = () => {
                 )}
               </>
             ) : (
-              <Card>
+              <Card className="rounded-none border-border">
                 <CardContent className="p-4 text-center">
                   <p className="text-muted-foreground">Nenhuma ferramenta encontrada em posse deste funcionário.</p>
                 </CardContent>

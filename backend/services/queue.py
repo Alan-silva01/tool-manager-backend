@@ -32,12 +32,12 @@ async def get_redis_client() -> Optional[aioredis.Redis]:
             _redis_client = aioredis.from_url(
                 REDIS_URL,
                 decode_responses=True,
-                socket_timeout=3.0,
-                socket_connect_timeout=3.0
+                socket_timeout=10.0,          # maior que o blpop timeout (3s)
+                socket_connect_timeout=5.0
             )
             # Testa conexão
             await _redis_client.ping()
-            logger.info("⚡ Conexão com Redis estabelecida com sucesso")
+            logger.info("✔ Conexão com Redis estabelecida com sucesso")
         except Exception as e:
             logger.warning(f"⚠️ Redis indisponível ({e}). Sistema usará fallback em memória.")
             _redis_client = None
@@ -141,6 +141,14 @@ async def worker_fila_whatsapp():
         except asyncio.CancelledError:
             logger.info("Worker da fila cancelado.")
             break
+        except (TimeoutError, ConnectionError, OSError) as e:
+            # Timeout normal do socket ou queda de conexão — reseta o cliente
+            # para forçar reconexão limpa na próxima iteração.
+            global _redis_client
+            _redis_client = None
+            logger.warning(f"⚠️ Conexão Redis perdida ({type(e).__name__}). Reconectando em 5s...")
+            await asyncio.sleep(5.0)
         except Exception as e:
-            logger.error(f"Erro no loop do worker Redis: {e}")
+            # Erros inesperados (ex: JSON inválido, bug no handler)
+            logger.error(f"Erro inesperado no worker: {e}")
             await asyncio.sleep(3.0)

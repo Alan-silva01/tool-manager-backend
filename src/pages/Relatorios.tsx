@@ -83,12 +83,13 @@ const Relatorios = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-[#161616] text-[#f4f4f4] px-4 md:px-6 h-12 flex items-center justify-between border-b border-[#2e2e2e]">
+      {/* Header Claro/Card */}
+      <header className="sticky top-0 z-50 bg-card text-foreground px-4 md:px-6 h-14 flex items-center justify-between border-b border-border shadow-sm">
         <div className="flex items-center gap-3">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626] rounded-none"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none"
             onClick={() => {
               if (view === 'menu') navigate('/');
               else setView('menu');
@@ -97,8 +98,8 @@ const Relatorios = () => {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div className="flex items-center gap-2">
-            <h1 className="text-sm md:text-base font-semibold tracking-tight text-white">Relatórios</h1>
-            <span className="text-[11px] font-mono text-[#7c9c84] bg-[#262626] px-1.5 py-0.5 border border-[#393939] uppercase">
+            <h1 className="text-sm md:text-base font-bold tracking-tight text-foreground">Relatórios</h1>
+            <span className="text-[11px] font-mono text-primary font-semibold bg-primary/10 px-1.5 py-0.5 border border-primary/20 uppercase">
               {view === 'menu' && 'VISÃO GERAL'}
               {view === 'funcionario' && 'POR COLABORADOR'}
             </span>
@@ -109,7 +110,7 @@ const Relatorios = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 text-[#a8a8a8] hover:text-white hover:bg-[#262626] rounded-none"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-none"
             onClick={handleRefresh} 
             disabled={isLoading}
             title="Atualizar"

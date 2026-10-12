@@ -709,32 +709,59 @@ export const EstoqueManager = ({
     }
   };
 
+  // Paginação de 50 em 50 itens
+  const ITEMS_PER_PAGE = 50;
+  const [paginaMateriais, setPaginaMateriais] = useState(1);
+  const [paginaFerramentas, setPaginaFerramentas] = useState(1);
+  const [paginaFuncionarios, setPaginaFuncionarios] = useState(1);
+
+  // Resetar página ao buscar
+  useEffect(() => {
+    setPaginaMateriais(1);
+    setPaginaFerramentas(1);
+    setPaginaFuncionarios(1);
+  }, [searchTerm]);
+
   // Ordenar listas alfabeticamente
   const filteredMateriais = materiais.filter(material => material.nome.toLowerCase().includes(searchTerm.toLowerCase()) || material.tag.toString().includes(searchTerm) || material.unidade?.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => a.nome.localeCompare(b.nome));
   const filteredFerramentas = ferramentas.filter(ferramenta => ferramenta.nome.toLowerCase().includes(searchTerm.toLowerCase()) || ferramenta.categoria.toLowerCase().includes(searchTerm.toLowerCase()) || ferramenta.tag.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => a.nome.localeCompare(b.nome));
   const filteredFuncionarios = funcionarios.filter(funcionario => funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) || funcionario.matricula.toString().includes(searchTerm) || funcionario.setor.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => a.nome.localeCompare(b.nome));
-  return <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package className="w-5 h-5" />
-          Controle Geral de Estoque
-        </CardTitle>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Search className="w-4 h-4" />
-            <Input placeholder="Buscar por nome, tag ou categoria..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="max-w-sm" />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="materiais">Materiais</TabsTrigger>
-            <TabsTrigger value="ferramentas">Ferramentas</TabsTrigger>
-            <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
-          </TabsList>
 
-          <TabsContent value="materiais" className="space-y-4">
+  const totalPaginasMateriais = Math.ceil(filteredMateriais.length / ITEMS_PER_PAGE) || 1;
+  const totalPaginasFerramentas = Math.ceil(filteredFerramentas.length / ITEMS_PER_PAGE) || 1;
+  const totalPaginasFuncionarios = Math.ceil(filteredFuncionarios.length / ITEMS_PER_PAGE) || 1;
+
+  const paginatedMateriais = filteredMateriais.slice((paginaMateriais - 1) * ITEMS_PER_PAGE, paginaMateriais * ITEMS_PER_PAGE);
+  const paginatedFerramentas = filteredFerramentas.slice((paginaFerramentas - 1) * ITEMS_PER_PAGE, paginaFerramentas * ITEMS_PER_PAGE);
+  const paginatedFuncionarios = filteredFuncionarios.slice((paginaFuncionarios - 1) * ITEMS_PER_PAGE, paginaFuncionarios * ITEMS_PER_PAGE);
+  return <Card className="overflow-visible">
+      {/* Bloco Fixo / Sticky ao scrollar a lista de itens */}
+      <div className="sticky top-[56px] z-20 bg-card border-b border-border shadow-sm">
+        <CardHeader className="pb-3 pt-4">
+          <CardTitle className="flex items-center gap-2">
+            <Package className="w-5 h-5 text-primary" />
+            Controle Geral de Estoque
+          </CardTitle>
+          <div className="flex items-center justify-between gap-4 pt-1">
+            <div className="flex items-center gap-2 w-full max-w-sm">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Buscar por nome, tag ou categoria..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-9" />
+            </div>
+          </div>
+        </CardHeader>
+        <div className="px-6 pb-3">
+          <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-0">
+            <TabsList className="grid w-full grid-cols-3 rounded-none">
+              <TabsTrigger value="materiais" className="rounded-none">Materiais</TabsTrigger>
+              <TabsTrigger value="ferramentas" className="rounded-none">Ferramentas</TabsTrigger>
+              <TabsTrigger value="funcionarios" className="rounded-none">Funcionários</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </div>
+      <CardContent className="pt-4">
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
+          <TabsContent value="materiais" className="space-y-4 mt-0">
             <div className="flex justify-end">
               <Dialog>
                 <DialogTrigger asChild>
@@ -820,7 +847,7 @@ export const EstoqueManager = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMateriais.map(material => {
+                  {paginatedMateriais.map(material => {
                   const quantidadeDisponivel = (material.entrada || 0) - (material.saida || 0);
                   return <TableRow key={material.id}>
                         <TableCell className="font-medium">{material.nome}</TableCell>
@@ -997,6 +1024,38 @@ export const EstoqueManager = ({
                 </TableBody>
               </Table>
             </div>
+
+            {/* Paginação de 50 itens */}
+            {filteredMateriais.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between border-t border-border pt-4 px-2 text-xs font-mono">
+                <span className="text-muted-foreground">
+                  Exibindo {((paginaMateriais - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(paginaMateriais * ITEMS_PER_PAGE, filteredMateriais.length)} de {filteredMateriais.length} materiais
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={paginaMateriais === 1}
+                    onClick={() => setPaginaMateriais(p => Math.max(1, p - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="px-2 font-semibold">
+                    {paginaMateriais} / {totalPaginasMateriais}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={paginaMateriais >= totalPaginasMateriais}
+                    onClick={() => setPaginaMateriais(p => Math.min(totalPaginasMateriais, p + 1))}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="ferramentas" className="space-y-4">
@@ -1067,7 +1126,7 @@ export const EstoqueManager = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredFerramentas.map(ferramenta => {
+                  {paginatedFerramentas.map(ferramenta => {
                   return <TableRow key={ferramenta.id}>
                         <TableCell className="font-medium">{ferramenta.nome}</TableCell>
                         <TableCell>{ferramenta.categoria}</TableCell>
@@ -1263,6 +1322,38 @@ export const EstoqueManager = ({
                 </TableBody>
               </Table>
             </div>
+
+            {/* Paginação de 50 itens */}
+            {filteredFerramentas.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between border-t border-border pt-4 px-2 text-xs font-mono">
+                <span className="text-muted-foreground">
+                  Exibindo {((paginaFerramentas - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(paginaFerramentas * ITEMS_PER_PAGE, filteredFerramentas.length)} de {filteredFerramentas.length} ferramentas
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={paginaFerramentas === 1}
+                    onClick={() => setPaginaFerramentas(p => Math.max(1, p - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="px-2 font-semibold">
+                    {paginaFerramentas} / {totalPaginasFerramentas}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={paginaFerramentas >= totalPaginasFerramentas}
+                    onClick={() => setPaginaFerramentas(p => Math.min(totalPaginasFerramentas, p + 1))}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="funcionarios" className="space-y-4">
@@ -1341,7 +1432,7 @@ export const EstoqueManager = ({
                       <TableCell colSpan={6} className="text-center text-muted-foreground">
                         {searchTerm ? 'Nenhum funcionário encontrado com os critérios de busca' : 'Nenhum funcionário cadastrado'}
                       </TableCell>
-                    </TableRow> : filteredFuncionarios.map(funcionario => <TableRow key={funcionario.id}>
+                    </TableRow> : paginatedFuncionarios.map(funcionario => <TableRow key={funcionario.id}>
                         <TableCell className="font-medium">{funcionario.nome}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">{funcionario.matricula}</Badge>
@@ -1454,6 +1545,38 @@ export const EstoqueManager = ({
                 </TableBody>
               </Table>
             </div>
+
+            {/* Paginação de 50 itens */}
+            {filteredFuncionarios.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between border-t border-border pt-4 px-2 text-xs font-mono">
+                <span className="text-muted-foreground">
+                  Exibindo {((paginaFuncionarios - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(paginaFuncionarios * ITEMS_PER_PAGE, filteredFuncionarios.length)} de {filteredFuncionarios.length} funcionários
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={paginaFuncionarios === 1}
+                    onClick={() => setPaginaFuncionarios(p => Math.max(1, p - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="px-2 font-semibold">
+                    {paginaFuncionarios} / {totalPaginasFuncionarios}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={paginaFuncionarios >= totalPaginasFuncionarios}
+                    onClick={() => setPaginaFuncionarios(p => Math.min(totalPaginasFuncionarios, p + 1))}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>

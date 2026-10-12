@@ -99,24 +99,37 @@ export const EmprestimosTab = React.memo(({
     );
   }, [funcionariosComFerramentas, searchTerm]);
 
+  const ITEMS_PER_PAGE = 50;
+  const [pagina, setPagina] = React.useState(1);
+
+  React.useEffect(() => {
+    setPagina(1);
+  }, [searchTerm]);
+
+  const totalPaginas = Math.ceil(filteredFuncionarios.length / ITEMS_PER_PAGE) || 1;
+  const paginatedFuncionarios = filteredFuncionarios.slice((pagina - 1) * ITEMS_PER_PAGE, pagina * ITEMS_PER_PAGE);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Controle de Empréstimos ({totalFerramentasEmprestadas} ferramentas)
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Search className="w-4 h-4" />
-          <Input
-            placeholder="Buscar por funcionário, ferramenta, tag ou matrícula..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-      </CardHeader>
-      <CardContent>
+    <Card className="overflow-visible">
+      {/* Bloco Fixo / Sticky com Título e Busca */}
+      <div className="sticky top-[56px] z-20 bg-card border-b border-border shadow-sm">
+        <CardHeader className="py-3 px-6">
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            Controle de Empréstimos ({totalFerramentasEmprestadas} ferramentas)
+          </CardTitle>
+          <div className="flex items-center gap-2 pt-1">
+            <Search className="w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por funcionário, ferramenta, tag ou matrícula..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="max-w-md h-9"
+            />
+          </div>
+        </CardHeader>
+      </div>
+      <CardContent className="pt-4">
         {loading ? (
           <div className="flex items-center justify-center p-8">
             <RefreshCw className="w-8 h-8 animate-spin" />
@@ -124,7 +137,7 @@ export const EmprestimosTab = React.memo(({
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredFuncionarios.map((funcionario) => (
+            {paginatedFuncionarios.map((funcionario) => (
               <FuncionarioCard
                 key={funcionario.id}
                 funcionario={funcionario}
@@ -136,6 +149,44 @@ export const EmprestimosTab = React.memo(({
               <div className="text-center py-8">
                 <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">Nenhum funcionário encontrado com ferramentas</p>
+              </div>
+            )}
+
+            {/* Paginação de 50 itens */}
+            {filteredFuncionarios.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between border-t border-border pt-4 px-2 text-xs font-mono">
+                <span className="text-muted-foreground">
+                  Exibindo {((pagina - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(pagina * ITEMS_PER_PAGE, filteredFuncionarios.length)} de {filteredFuncionarios.length} funcionários
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={pagina === 1}
+                    onClick={() => {
+                      setPagina(p => Math.max(1, p - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="px-2 font-semibold">
+                    {pagina} / {totalPaginas}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 rounded-none text-xs"
+                    disabled={pagina >= totalPaginas}
+                    onClick={() => {
+                      setPagina(p => Math.min(totalPaginas, p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Próxima
+                  </Button>
+                </div>
               </div>
             )}
           </div>
