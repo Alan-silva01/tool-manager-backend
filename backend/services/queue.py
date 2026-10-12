@@ -6,6 +6,7 @@ import json
 import asyncio
 from typing import Optional
 from redis import asyncio as aioredis
+from redis import exceptions as redis_exc
 
 from config import REDIS_URL
 from providers import whatsapp_provider
@@ -32,8 +33,11 @@ async def get_redis_client() -> Optional[aioredis.Redis]:
             _redis_client = aioredis.from_url(
                 REDIS_URL,
                 decode_responses=True,
-                socket_timeout=10.0,          # maior que o blpop timeout (3s)
-                socket_connect_timeout=5.0
+                # Sem socket_timeout para não conflitar com blpop(timeout=N).
+                # O blpop gerencia seu próprio tempo de espera e retorna None
+                # quando não há mensagens, sem lançar exceção.
+                socket_connect_timeout=5.0,
+                retry_on_timeout=True,
             )
             # Testa conexão
             await _redis_client.ping()
@@ -42,6 +46,17 @@ async def get_redis_client() -> Optional[aioredis.Redis]:
             logger.warning(f"⚠️ Redis indisponível ({e}). Sistema usará fallback em memória.")
             _redis_client = None
     return _redis_client
+
+
+async def _reset_redis_client():
+    """Fecha e reseta o cliente Redis para forçar reconexão limpa."""
+    global _redis_client
+    if _redis_client is not None:
+        try:
+            await _redis_client.aclose()
+        except Exception:
+            pass
+    _redis_client = None
 
 
 async def enfileirar_mensagem_whatsapp(
@@ -115,9 +130,12 @@ async def worker_fila_whatsapp():
                 await asyncio.sleep(5.0)
                 continue
 
-            # BLPOP com timeout de 3 segundos
-            item = await r.blpop(FILA_WHATSAPP_KEY, timeout=3)
+            # BLPOP com timeout de 5 segundos.
+            # Quando não há mensagens, retorna None — sem exceção.
+            # socket_connect_timeout é separado e não interfere aqui.
+            item = await r.blpop(FILA_WHATSAPP_KEY, timeout=5)
             if not item:
+                # Sem mensagens na fila — comportamento normal, continua o loop
                 continue
 
             _, job_json = item
@@ -141,14 +159,24 @@ async def worker_fila_whatsapp():
         except asyncio.CancelledError:
             logger.info("Worker da fila cancelado.")
             break
-        except (TimeoutError, ConnectionError, OSError) as e:
-            # Timeout normal do socket ou queda de conexão — reseta o cliente
-            # para forçar reconexão limpa na próxima iteração.
-            global _redis_client
-            _redis_client = None
+
+        except (redis_exc.TimeoutError, redis_exc.ConnectionError) as e:
+            # Erro real de conexão com o Redis — reseta e reconecta
+            await _reset_redis_client()
             logger.warning(f"⚠️ Conexão Redis perdida ({type(e).__name__}). Reconectando em 5s...")
             await asyncio.sleep(5.0)
+
+        except (TimeoutError, ConnectionError, OSError) as e:
+            # Erros de rede no nível do sistema operacional
+            await _reset_redis_client()
+            logger.warning(f"⚠️ Erro de rede ({type(e).__name__}). Reconectando em 5s...")
+            await asyncio.sleep(5.0)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Job inválido na fila (JSON corrompido): {e}")
+            # Continua sem parar o worker
+
         except Exception as e:
-            # Erros inesperados (ex: JSON inválido, bug no handler)
-            logger.error(f"Erro inesperado no worker: {e}")
+            # Erros verdadeiramente inesperados
+            logger.error(f"Erro inesperado no worker: {type(e).__name__}: {e}")
             await asyncio.sleep(3.0)

@@ -39,7 +39,36 @@ CORS_ORIGINS_RAW = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://local
 CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS_RAW.split(",") if origin.strip()]
 
 # ─── Redis ─────────────────────────────────────────
-REDIS_URL = os.getenv("REDIS_URL", "")
+def _sanitize_redis_url(url: str) -> str:
+    """
+    Codifica o @ da senha como %40 para evitar que o parser de URL
+    interprete o @ da senha como separador entre credenciais e host.
+
+    Ex: redis://default:Senha@123@host:6379
+     -> redis://default:Senha%40123@host:6379
+    """
+    if not url or "://" not in url:
+        return url
+    try:
+        scheme, rest = url.split("://", 1)
+        if "@" not in rest:
+            return url
+        # Separa credenciais do host pelo ÚLTIMO @
+        last_at = rest.rfind("@")
+        credentials = rest[:last_at]   # tudo antes do último @
+        host_part = rest[last_at + 1:] # host:port/db
+
+        if ":" in credentials:
+            user, password = credentials.split(":", 1)
+            # Codifica @ extras na senha
+            password = password.replace("@", "%40")
+            credentials = f"{user}:{password}"
+
+        return f"{scheme}://{credentials}@{host_part}"
+    except Exception:
+        return url
+
+REDIS_URL = _sanitize_redis_url(os.getenv("REDIS_URL", ""))
 
 # ─── Servidor ─────────────────────────────────────
 PORT = int(os.getenv("PORT", "8001"))
